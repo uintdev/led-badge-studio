@@ -1,0 +1,32 @@
+# Branding: the app's name, publisher details and logo.
+#
+# Change these, then build as usual (the build scripts apply this file), or
+# apply it on its own with:
+#   cargo run --release --manifest-path packaging/branding/Cargo.toml
+# See docs/branding.md.
+
+[app]
+name = "LED Badge Studio"
+description = "Design messages and send them to USB LED badges"
+publisher = "uintdev"
+copyright = "Copyright © 2026 uintdev"
+# Optional (Windows "Legal trademarks"); leave empty for none.
+trademarks = ""
+homepage = "https://github.com/uintdev/led-badge-studio"
+
+[icon]
+# The logo the app icons are made from: an SVG (best: every size is drawn
+# from the vector art) or a square PNG of at least 1024x1024 pixels.
+logo = "assets/branding/logo.svg"
+# Optional folder of hand-made sizes, named <pixels>.png (e.g. 16.png,
+# 32.png). Any size found there is used as-is instead of being made from the
+# logo. Leave empty ("") to make every size from the logo.
+pixel_sizes = "assets/branding/icon-sizes"
+# The icon of .badge project files (in file managers, Finder and Explorer).
+# Empty (""): the logo on a plain page. For your own artwork, save it as
+# assets/branding/document.svg (or a PNG of at least 1024x1024) and set
+# document = "assets/branding/document.svg"; it's made the same way as the
+# app icon.
+document = ""
+# Hand-made sizes of the document icon, like pixel_sizes ("" for none).
+document_pixel_sizes = "assets/branding/document-sizes"

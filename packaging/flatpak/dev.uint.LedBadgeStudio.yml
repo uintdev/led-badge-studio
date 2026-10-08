@@ -1,0 +1,69 @@
+# Flatpak manifest for LED Badge Studio. Build it with ./packaging/flatpak/build.sh,
+# which installs everything needed and writes dist/LED_Badge_Studio-linux-<arch>.flatpak.
+app-id: dev.uint.LedBadgeStudio
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+command: led-badge-studio
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  # The badge (/dev/hidraw*), serial badges (/dev/tty*) and the GPU.
+  - --device=all
+  # Device plug-in notifications: the kernel only sends them to the host's
+  # network namespace. The app makes no network connections.
+  - --share=network
+  # Files given to badgectl on the command line (the app itself uses the
+  # file chooser portal).
+  - --filesystem=home
+  # "Install Rule" and "Remove Rule" in Badge Access: run pkexec on the host
+  # to install or remove the udev rule, with the usual password prompt.
+  - --talk-name=org.freedesktop.Flatpak
+build-options:
+  # Rust from the module below.
+  append-path: /app/rust/bin
+  # The release build is already stripped; skip the separate debug package.
+  no-debuginfo: true
+modules:
+  # Rust itself: the official release from rust-lang.org, the same version
+  # as the Rust outside Flatpak (build.sh writes rust.yml before each build;
+  # see there). Only for building: removed before the app is packaged.
+  - rust.yml
+
+  - name: led-badge-studio
+    buildsystem: simple
+    build-options:
+      # Crates come from .flatpak-cargo, which build.sh fills beforehand so
+      # they aren't downloaded on every build; cargo may still download what
+      # is missing. (Flathub would need them listed as sources instead, with
+      # flatpak-cargo-generator.)
+      build-args:
+        - --share=network
+      env:
+        CARGO_HOME: /run/build/led-badge-studio/.flatpak-cargo
+    build-commands:
+      # Applies branding.toml (name, copyright, icons) first.
+      - cargo run --release --locked --manifest-path packaging/branding/Cargo.toml
+      - cargo build --release --locked -p badge-app -p badgectl
+      - install -Dm755 -t /app/bin target/release/led-badge-studio target/release/badgectl
+      - install -Dm644 -t /app/share/applications packaging/linux/${FLATPAK_ID}.desktop
+      - >-
+        for icon in assets/icons/hicolor/*/*/${FLATPAK_ID}.*; do
+        install -Dm644 "$icon" "/app/share/icons/${icon#assets/icons/}";
+        done
+      # The .badge file type (application/x-led-badge).
+      - install -Dm644 packaging/linux/${FLATPAK_ID}.xml /app/share/mime/packages/${FLATPAK_ID}.xml
+      - install -Dm644 -t /app/share/metainfo packaging/flatpak/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 -t /app/share/doc/led-badge-studio README.md LICENSE THIRD_PARTY_NOTICES.txt
+      - install -Dm644 -t /app/share/doc/led-badge-studio/docs docs/*.md
+      - install -Dm644 -t /app/share/doc/led-badge-studio/font-licenses assets/fonts/licenses/*
+      - install -Dm644 -t /app/share/led-badge-studio packaging/linux/70-led-badge.rules
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - target
+          - packaging/branding/target
+          - dist
+          - .flatpak-builder

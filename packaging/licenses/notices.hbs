@@ -1,0 +1,20 @@
+Third-party software in LED Badge Studio
+========================================
+
+LED Badge Studio is built from the open-source Rust libraries listed below.
+Each section names a license, the libraries that use it, and the license
+text. The fonts built into the app are covered separately (see "Font
+licenses").
+
+{{#each licenses}}
+--------------------------------------------------------------------------------
+{{{name}}}
+--------------------------------------------------------------------------------
+Used by:
+{{#each used_by}}  * {{{crate.name}}} {{{crate.version}}}{{#if crate.repository}} - {{{crate.repository}}}{{/if}}
+{{#if crate.authors}}    Authors: {{#each crate.authors}}{{{this}}}{{#unless @last}}; {{/unless}}{{/each}}
+{{/if}}{{/each}}
+
+{{{text}}}
+
+{{/each}}

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.uint.LedBadgeStudio</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>LED Badge Studio</name>
+  <summary>Design messages and send them to USB LED badges</summary>
+  <developer id="dev.uint">
+    <name>uintdev</name>
+  </developer>
+  <description>
+    <p>
+      An editor and uploader for the common USB LED name badges (USB ID 0416:5020)
+      sold under many brand names. It replaces the vendor's Windows-only
+      "BMP Badge LED" software.
+    </p>
+    <ul>
+      <li>Up to eight messages with text, icons, images or your own drawings</li>
+      <li>All the badge's effects (scrolling, snow, curtain, laser, flash, border) with a live preview</li>
+      <li>Saves projects as .badge files that open with a double-click</li>
+      <li>Includes the badgectl command-line tool</li>
+    </ul>
+    <p>
+      On first use, Badge Access sets up the system rule that lets your account
+      write to the badge (asks for your password).
+    </p>
+  </description>
+  <url type="homepage">https://github.com/uintdev/led-badge-studio</url>
+  <launchable type="desktop-id">dev.uint.LedBadgeStudio.desktop</launchable>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <releases>
+    <release version="0.1.0" date="2026-10-02"/>
+  </releases>
+</component>

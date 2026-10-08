@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The .badge project file type, installed by install.sh and the Flatpak. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-led-badge">
+    <comment>LED Badge Studio project</comment>
+    <sub-class-of type="application/json"/>
+    <icon name="dev.uint.LedBadgeStudio.Project"/>
+    <glob pattern="*.badge"/>
+    <magic priority="60">
+      <match type="string" value="&quot;led-badge-project&quot;" offset="0:256"/>
+    </magic>
+  </mime-type>
+</mime-info>

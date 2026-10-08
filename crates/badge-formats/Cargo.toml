@@ -1,0 +1,15 @@
+[package]
+name = "badge-formats"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Project file formats for LED name badges"
+
+[dependencies]
+badge-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_path_to_error = "0.1"

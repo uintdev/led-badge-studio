@@ -1,0 +1,26 @@
+[package]
+name = "badgectl"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line tool for LED name badges"
+
+[build-dependencies]
+# For build.rs, which applies branding.toml.
+winresource = "0.1"
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+
+[dependencies]
+badge-core.workspace = true
+badge-io.workspace = true
+badge-render.workspace = true
+badge-formats.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+clap = { version = "4", features = ["derive"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

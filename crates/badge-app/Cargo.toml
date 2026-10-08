@@ -1,0 +1,68 @@
+[package]
+name = "badge-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "LED name badge editor (GPUI)"
+
+[[bin]]
+name = "led-badge-studio"
+path = "src/main.rs"
+
+[build-dependencies]
+# For build.rs, which applies branding.toml.
+winresource = "0.1"
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+
+[dependencies]
+badge-core.workspace = true
+badge-io.workspace = true
+badge-render.workspace = true
+badge-formats.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+gpui = { package = "gpui-pre", version = "=0.3.8" }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["font-kit", "wayland", "x11"] }
+futures = "0.3"
+log = "0.4"
+env_logger = { version = "0.11", default-features = false, features = ["auto-color", "humantime"] }
+unicode-segmentation = "1"
+
+[dev-dependencies]
+# GPUI's test mode: runs the app's window logic without a real window.
+gpui = { package = "gpui-pre", version = "=0.3.8", features = ["test-support"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["test-support"] }
+
+# Compile GPUI's Metal shaders when the app starts instead of at build time,
+# so building on macOS needs only the Command Line Tools, not all of Xcode.
+[target.'cfg(target_os = "macos")'.dependencies]
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["runtime_shaders"] }
+# The app's light or dark appearance for the native window frames.
+objc = "0.2"
+# The window's NSWindow, for the document title (native_document.rs).
+raw-window-handle = "0.6"
+
+# The desktop's light or dark setting (the version GPUI uses).
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = { version = "0.11", default-features = false, features = ["async-std"] }
+# Asking a virtual GPU what it supports (gpu.rs). Already used by badge-io.
+libc = "0.2"
+
+# The native title bar's light or dark colors, and the taskbar button's
+# progress and Jump List (app/taskbar.rs).
+[target.'cfg(windows)'.dependencies]
+raw-window-handle = "0.6"
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_Console",
+    "Win32_UI_Shell",
+] }

@@ -1,0 +1,9 @@
+target/
+/dist/
+/.flatpak-builder/
+/.flatpak-cargo/
+
+# macOS: Finder's folder settings, and the "._" files macOS writes next to
+# files copied to drives and shares that don't support its metadata.
+.DS_Store
+._*

@@ -1,0 +1,22 @@
+# Rust for building the Flatpak: written by build.sh before each build, with
+# the same version as the Rust outside Flatpak (`rustc --version`, brought up
+# to date with `rustup update stable` first), or the latest stable release
+# when there's none. Checksums from static.rust-lang.org. Only for building:
+# removed before the app is packaged.
+name: rust
+buildsystem: simple
+cleanup:
+  - /rust
+build-commands:
+  - >-
+    ./install.sh --prefix=/app/rust --disable-ldconfig
+    --components=rustc,cargo,rust-std-$(uname -m)-unknown-linux-gnu
+sources:
+  - type: archive
+    only-arches: [x86_64]
+    url: https://static.rust-lang.org/dist/rust-1.99.0-x86_64-unknown-linux-gnu.tar.xz
+    sha256: 891c6366d7100feda0bca4c03ce63f3c9ac827cbebbc283e7433061d42c6a376
+  - type: archive
+    only-arches: [aarch64]
+    url: https://static.rust-lang.org/dist/rust-1.99.0-aarch64-unknown-linux-gnu.tar.xz
+    sha256: 5a30ce742be0835d9b23fc862db5cbbbc71464e1c9b1fca22917e10e4ba32a92

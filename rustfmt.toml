@@ -1,0 +1,4 @@
+# `cargo fmt` settings for the whole project; CONTRIBUTING.md asks for
+# `cargo fmt --all --check` to pass.
+max_width = 120
+style_edition = "2024"

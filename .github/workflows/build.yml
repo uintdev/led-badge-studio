@@ -1,0 +1,148 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (Linux)
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the build packages and Rust
+        run: ./packaging/linux/install-build-deps.sh
+      # The latest stable Rust, as the build scripts use (the runner's own
+      # can be a release behind).
+      - name: Update Rust
+        run: |
+          . "$HOME/.cargo/env"
+          rustup update stable --no-self-update
+          rustup default stable
+          rustup component add rustfmt clippy
+          rustc --version
+      # As CONTRIBUTING.md asks of every pull request.
+      - name: Check the formatting
+        run: |
+          . "$HOME/.cargo/env"
+          cargo fmt --all --check
+          cargo fmt --all --check --manifest-path packaging/branding/Cargo.toml
+      # Also as CONTRIBUTING.md asks. -D warnings makes any warning fail the
+      # build: on its own, clippy reports warnings but still succeeds.
+      - name: Check with clippy
+        run: |
+          . "$HOME/.cargo/env"
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path packaging/branding/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Run the tests
+        run: |
+          . "$HOME/.cargo/env"
+          cargo test --workspace --locked
+
+  linux:
+    name: Linux (Flatpak, ${{ matrix.arch }})
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    # Each built on its own kind of processor (GitHub's ARM runners are free
+    # for public repositories).
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-26.04
+          - arch: arm64
+            runner: ubuntu-26.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      # Ubuntu blocks the unprivileged user namespaces that Flatpak's sandbox
+      # (bubblewrap) builds in; allow them on this throwaway machine.
+      - name: Allow the Flatpak build sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      # The runtime, SDK and flatpak-builder (a few GB from Flathub), and
+      # flatpak-builder's downloads and cache (the Rust release), kept between
+      # runs. A new cache is saved each week, or when the manifest changes;
+      # in between, the latest one is restored and brought up to date.
+      - name: Cache key
+        id: cache-key
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/flatpak
+            target/flatpak/state
+          key: flatpak-${{ matrix.arch }}-${{ hashFiles('packaging/flatpak/dev.uint.LedBadgeStudio.yml') }}-${{ steps.cache-key.outputs.week }}
+          restore-keys: |
+            flatpak-${{ matrix.arch }}-${{ hashFiles('packaging/flatpak/dev.uint.LedBadgeStudio.yml') }}-
+            flatpak-${{ matrix.arch }}-
+      # The Rust crates, for as long as Cargo.lock doesn't change.
+      - uses: actions/cache@v6
+        with:
+          path: .flatpak-cargo
+          key: crates-${{ hashFiles('Cargo.lock', 'packaging/branding/Cargo.lock') }}
+          restore-keys: crates-
+      - name: Install Flatpak and update the cached runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak update --user --noninteractive
+      - name: Build the Flatpak
+        run: ./packaging/flatpak/build.sh
+      # Install Rule in Badge Access asks for the password through the host
+      # (flatpak-spawn --host pkexec), which needs this permission. Fail
+      # rather than release a Flatpak where the button can't work.
+      - name: Check that badge access can be set up from the app
+        run: |
+          grep -A3 '^\[Session Bus Policy\]' target/flatpak/build/metadata | grep -qx 'org.freedesktop.Flatpak=talk' \
+            || { echo "The Flatpak can't run the badge access setup on the host"; exit 1; }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist/LED_Badge_Studio-linux-${{ matrix.arch }}.flatpak
+          retention-days: 30
+
+  windows:
+    name: Windows (${{ matrix.arch }})
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    # Each built on its own kind of processor, so the build tools are the
+    # ones a user of that kind of Windows gets.
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File packaging\windows\build.ps1 -Arch ${{ matrix.arch }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-${{ matrix.arch }}
+          path: dist/LED_Badge_Studio-windows-${{ matrix.arch }}.zip
+          retention-days: 30
+
+  macos:
+    name: macOS (Apple silicon)
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build
+        run: ./packaging/macos/build.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: dist/LED_Badge_Studio-macos-arm64.dmg
+          retention-days: 30

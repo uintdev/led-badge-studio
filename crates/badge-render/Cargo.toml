@@ -1,0 +1,28 @@
+[package]
+name = "badge-render"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Text and image rasterization for LED name badges"
+
+[dependencies]
+badge-core.workspace = true
+anyhow.workspace = true
+image.workspace = true
+# Animated PNG (pure Rust; already used by `image`).
+png = "0.18"
+encoding_rs = "0.8"
+# 0.8, the version png uses too. Cargo.lock keeps flate2 (png's compressor)
+# at 1.1.9, the last release on miniz_oxide 0.8, so only one copy is built
+# in; `cargo update` would bring in a second (0.9) with flate2 1.1.10.
+miniz_oxide = "0.8"
+# 0.23, the version GPUI uses (through usvg), so the app has one copy; 0.24
+# would add a second.
+fontdb = "0.23"
+swash = "0.2"
+
+[dev-dependencies]
+# Decodes the WebP files the tests write (already used by `image`).
+image-webp = "0.2"

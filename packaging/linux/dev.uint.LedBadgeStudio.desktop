@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=LED Badge Studio
+GenericName=LED Name Badge Editor
+Comment=Design messages and send them to USB LED badges
+Exec=led-badge-studio %f
+Icon=dev.uint.LedBadgeStudio
+Terminal=false
+Categories=Utility;
+Keywords=LED;badge;name tag;scrolling;display;
+MimeType=application/x-led-badge;
+StartupWMClass=dev.uint.LedBadgeStudio
