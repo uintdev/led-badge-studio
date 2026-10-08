@@ -7,7 +7,7 @@
 //! GNOME's Light setting reaches the portal as "no preference" (its own apps
 //! read that as light), so on GNOME it means light.
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(test)))]
 use gpui::App;
 use gpui::{Window, WindowAppearance};
 
@@ -19,7 +19,11 @@ pub fn is_dark(appearance: WindowAppearance) -> bool {
 /// Calls `on_change` with the desktop's color scheme now and whenever it
 /// changes: `Some(true)` for dark, `Some(false)` for light, `None` when the
 /// desktop states no preference or has no portal.
-#[cfg(target_os = "linux")]
+///
+/// Not in tests: the portal is reached over D-Bus, which works on threads
+/// of its own, and GPUI's test scheduler stops the test when a task is woken
+/// from a thread it doesn't run.
+#[cfg(all(target_os = "linux", not(test)))]
 pub fn watch_linux(cx: &mut App, on_change: impl Fn(Option<bool>, &mut App) + 'static) {
     use ashpd::desktop::settings::{ColorScheme, Settings};
     use futures::StreamExt;

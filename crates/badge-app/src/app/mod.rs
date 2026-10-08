@@ -468,7 +468,8 @@ impl BadgeApp {
             system_dark: (!cfg!(target_os = "linux")).then(|| crate::system_theme::is_dark(window.appearance())),
         };
         if cfg!(target_os = "linux") {
-            #[cfg(target_os = "linux")]
+            // In tests the system setting stays unknown (the app is dark).
+            #[cfg(all(target_os = "linux", not(test)))]
             {
                 let this = cx.entity().downgrade();
                 crate::system_theme::watch_linux(cx, move |dark, cx| {
