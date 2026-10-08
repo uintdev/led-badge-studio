@@ -110,11 +110,21 @@ fn replace_between(text: &str, start: &str, end: &str, value: &str) -> Result<St
 }
 
 fn update_file(path: &Path, edits: &[(&str, &str, String)], changed: &mut Vec<PathBuf>) -> Result<(), String> {
-    let mut text = std::fs::read_to_string(path).map_err(|e| format!("reading {}: {e}", path.display()))?;
-    for (start, end, value) in edits {
-        text = replace_between(&text, start, end, value).map_err(|e| format!("{}: {e}", path.display()))?;
-    }
+    let text = std::fs::read_to_string(path).map_err(|e| format!("reading {}: {e}", path.display()))?;
+    let text = edit_text(&text, edits).map_err(|e| format!("{}: {e}", path.display()))?;
     write_if_changed(path, text.as_bytes(), changed)
+}
+
+/// Makes `edits` to `text`, whose lines may end in `\r\n` (as Git checks
+/// text files out on Windows): the edits are written for `\n`, and the
+/// file keeps its own line endings.
+fn edit_text(text: &str, edits: &[(&str, &str, String)]) -> Result<String, String> {
+    let crlf = text.contains("\r\n");
+    let mut text = text.replace("\r\n", "\n");
+    for (start, end, value) in edits {
+        text = replace_between(&text, start, end, value)?;
+    }
+    Ok(if crlf { text.replace('\n', "\r\n") } else { text })
 }
 
 fn write_metadata(root: &Path, b: &Branding, changed: &mut Vec<PathBuf>) -> Result<(), String> {
@@ -205,4 +215,27 @@ fn write_metadata(root: &Path, b: &Branding, changed: &mut Vec<PathBuf>) -> Resu
         copyright = xml(&a.copyright),
     );
     write_if_changed(&root.join("packaging/macos/Info.plist"), plist.as_bytes(), changed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::edit_text;
+
+    #[test]
+    fn files_keep_their_line_endings() {
+        let edits = [
+            ("<developer>\n  <name>", "</name>", "New".to_string()),
+            ("\nName=", "\n", "App".to_string()),
+        ];
+        let lf = "<developer>\n  <name>Old</name>\nName=Old\n";
+        assert_eq!(
+            edit_text(lf, &edits).unwrap(),
+            "<developer>\n  <name>New</name>\nName=App\n"
+        );
+        let crlf = lf.replace('\n', "\r\n");
+        assert_eq!(
+            edit_text(&crlf, &edits).unwrap(),
+            "<developer>\r\n  <name>New</name>\r\nName=App\r\n"
+        );
+    }
 }
