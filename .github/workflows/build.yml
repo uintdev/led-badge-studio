@@ -90,7 +90,9 @@ jobs:
       - name: Install Flatpak and update the cached runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak
+          # Ubuntu's flatpak-builder: Flathub's runs in a sandbox and installs
+          # the SDK over D-Bus, which this machine (no desktop session) lacks.
+          sudo apt-get install -y flatpak flatpak-builder
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak update --user --noninteractive
       - name: Build the Flatpak
