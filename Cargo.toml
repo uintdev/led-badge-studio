@@ -7,7 +7,7 @@ default-members = ["crates/badge-app", "crates/badgectl"]
 exclude = ["vendor"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 # The oldest Rust that builds it (`assert_matches!` needs 1.96); cargo says
 # so clearly on an older one.
