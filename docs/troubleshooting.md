@@ -11,6 +11,10 @@
   64-byte packet per 200-300 ms) and has a small buffer, so long uploads are
   paced at 325 ms per packet. Short messages fit in the buffer and upload in
   about a second.
+- **"The device isn't taking the data; it may not be a badge" when
+  sending.** The device chosen under **Badge** is a serial port that isn't
+  a badge, such as one of the computer's own (the Steam Deck has one). Pick
+  your badge under **Badge** and send again.
 - **Sending fails on Windows with "WaitTimedOut", "not functioning" (os
   error 31) or "cannot find the file specified" (os error 2).** Another
   program listed the computer's HID devices mid-upload, which interrupts the

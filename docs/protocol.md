@@ -271,7 +271,10 @@ Older badges connect through a USB serial adapter and use the serial
 protocol. The app sends it on any serial port it lists (`ttyUSB*`,
 `ttyACM*`, `COM*`), with 8 data bits, no parity, and the DTR line on. The
 packets go out one at a time, with a pause before each one and an extra pause
-after the second (the header), while the badge erases its memory.
+after the second (the header), while the badge erases its memory. After each
+packet the app waits until it has left the port, for at most twice its time
+on the wire plus a second: a device that doesn't take the data (one that
+isn't a badge) ends the send with an error instead of keeping it waiting.
 
 ### Color serial badges: the `wang` stream
 

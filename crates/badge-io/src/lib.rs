@@ -49,6 +49,8 @@ pub enum SendError {
     PermissionDenied,
     #[error("badge not found (was it unplugged?)")]
     NotFound,
+    #[error("the device isn't taking the data; it may not be a badge")]
+    NotResponding,
     #[error("USB error: {0}")]
     Hid(String),
     #[error("serial port error: {0}")]
@@ -549,11 +551,23 @@ pub fn send_serial(plan: &protocol::SerialPlan, port_name: &str, progress: Progr
         .timeout(Duration::from_secs(10))
         .open()?;
     port.write_data_terminal_ready(true)?;
+    // How long one byte takes on the wire: a start bit, 8 data bits and the
+    // stop bits.
+    let bits: u32 = if plan.two_stop_bits { 11 } else { 10 };
+    let byte_time = Duration::from_secs(bits.into()) / plan.baud_rate;
     let total = plan.packets.len();
     for (i, p) in plan.packets.iter().enumerate() {
         sleep(Duration::from_millis(plan.gap_ms));
-        port.write_all(p)?;
-        port.flush()?;
+        let sent = port
+            .write_all(p)
+            .map_err(not_responding_on_timeout)
+            .and_then(|()| wait_until_sent(|| port.bytes_to_write().map_err(Into::into), p.len(), byte_time));
+        if let Err(e) = sent {
+            // Throw away what the device didn't take: closing the port would
+            // otherwise wait for it to go out (up to 30 s on Linux).
+            let _ = port.clear(serialport::ClearBuffer::Output);
+            return Err(e);
+        }
         if i == 1 {
             sleep(Duration::from_millis(plan.settle_ms));
         }
@@ -562,6 +576,84 @@ pub fn send_serial(plan: &protocol::SerialPlan, port_name: &str, progress: Progr
         }
     }
     Ok(())
+}
+
+/// A write that timed out: the device stopped taking data.
+fn not_responding_on_timeout(e: std::io::Error) -> SendError {
+    if e.kind() == std::io::ErrorKind::TimedOut {
+        SendError::NotResponding
+    } else {
+        SendError::Io(e)
+    }
+}
+
+/// Waits until the port has sent the `len` bytes just written, as `flush`
+/// does, but with a time limit: a device that doesn't take the data (one
+/// that isn't a badge) would keep `flush` waiting forever. `queued` reports
+/// how many bytes are still waiting to go out.
+fn wait_until_sent(
+    queued: impl Fn() -> std::io::Result<u32>,
+    len: usize,
+    byte_time: Duration,
+) -> Result<(), SendError> {
+    let on_wire = byte_time * len as u32;
+    // Twice the time the bytes take on the wire, and a second to spare.
+    let deadline = std::time::Instant::now() + on_wire * 2 + Duration::from_secs(1);
+    loop {
+        match queued() {
+            Ok(0) => break,
+            Ok(_) if std::time::Instant::now() >= deadline => return Err(SendError::NotResponding),
+            Ok(_) => sleep(Duration::from_millis(5)),
+            // Not known on this system: wait as long as the bytes take.
+            Err(_) => {
+                sleep(on_wire);
+                break;
+            }
+        }
+    }
+    // The serial chip's own buffer (16 bytes on common ones) still goes out
+    // after the queue is empty; `flush` waited for that too.
+    sleep(byte_time * 16);
+    Ok(())
+}
+
+#[cfg(test)]
+mod serial_tests {
+    use super::{SendError, wait_until_sent};
+    use std::cell::Cell;
+    use std::time::{Duration, Instant};
+
+    /// 100 bytes at 1 ms a byte: 0.1 s on the wire, so a 1.2 s deadline.
+    const BYTE: Duration = Duration::from_millis(1);
+
+    #[test]
+    fn a_queue_that_empties_is_sent() {
+        let left = Cell::new(3u32);
+        let r = wait_until_sent(|| Ok(left.replace(left.get().saturating_sub(1))), 100, BYTE);
+        assert!(r.is_ok());
+        assert_eq!(left.get(), 0);
+    }
+
+    #[test]
+    fn a_queue_that_never_empties_gives_up_at_the_deadline() {
+        let start = Instant::now();
+        let r = wait_until_sent(|| Ok(100), 100, BYTE);
+        assert!(matches!(r, Err(SendError::NotResponding)), "{r:?}");
+        let waited = start.elapsed();
+        assert!(
+            waited >= Duration::from_millis(1200) && waited < Duration::from_secs(3),
+            "{waited:?}"
+        );
+    }
+
+    #[test]
+    fn without_a_queue_count_it_waits_as_long_as_the_bytes_take() {
+        let start = Instant::now();
+        let r = wait_until_sent(|| Err(std::io::ErrorKind::Unsupported.into()), 100, BYTE);
+        assert!(r.is_ok());
+        // The bytes' time on the wire, then the chip's 16 bytes.
+        assert!(start.elapsed() >= Duration::from_millis(116), "{:?}", start.elapsed());
+    }
 }
 
 #[cfg(test)]
