@@ -155,6 +155,7 @@ All options, what the script does on each system, and how to build by hand:
 | [The badge protocol](docs/protocol.md)              | What's sent to the badge byte by byte, over USB and serial, how fast, and how to send safely on each system                                            |
 | [Preview timing](docs/preview-timing.md)            | How the preview matches the badge's timing, what was measured, and how to measure a badge                                                              |
 | [Development notes](docs/development.md)            | Project layout, how LEDs are drawn, and how the protocol was worked out                                                                                |
+| [Changelog](CHANGELOG.md)                           | What changed in each version                                                                                                                           |
 
 ## Contributing
 

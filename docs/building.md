@@ -235,11 +235,14 @@ Windows minutes twice, so a full release build uses up a good part of it.
    </release>
    ```
 
-5. **Commit, then tag and push**: `git tag v0.1.3 && git push --tags`. The
+5. **The changelog**: add a section for the version at the top of
+   [`CHANGELOG.md`](../CHANGELOG.md), with the date and a short list, one
+   line for each change people will notice.
+6. **Commit, then tag and push**: `git tag v0.1.3 && git push --tags`. The
    tag builds the packages (above).
-6. **The GitHub release**: on the *Releases* page, create a release for the
-   tag, attach the packages from the run's *Artifacts*, and write its notes:
-   a short list, one line for each change people will notice.
+7. **The GitHub release**: on the *Releases* page, create a release for the
+   tag, attach the packages from the run's *Artifacts*, and paste the
+   version's list from `CHANGELOG.md` as its notes.
 
 ## Regenerating generated files
 

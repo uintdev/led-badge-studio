@@ -36,6 +36,15 @@
     <control>keyboard</control>
   </supports>
   <releases>
-    <release version="0.1.1" date="2026-10-08"/>
+    <release version="0.1.2" date="2026-10-10">
+      <description>
+        <p>Picks the USB badge before a computer's own serial port, and stops a send to a serial device that doesn't take the data instead of waiting forever.</p>
+      </description>
+    </release>
+    <release version="0.1.1" date="2026-10-08">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
   </releases>
 </component>

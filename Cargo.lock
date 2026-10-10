@@ -275,24 +275,6 @@ dependencies = [
 
 [[package]]
 name = "ashpd"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2f3f79755c74fd155000314eb349864caa787c6592eace6c6882dad873d9c39"
-dependencies = [
- "async-fs",
- "async-net",
- "enumflags2",
- "futures-channel",
- "futures-util",
- "rand 0.9.5",
- "serde",
- "serde_repr",
- "url",
- "zbus",
-]
-
-[[package]]
-name = "ashpd"
 version = "0.13.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb8421aaa9644a5faf26735f258b669b15f063313ef8f8e2bdb28912a1a6f111"
@@ -589,10 +571,10 @@ dependencies = [
 
 [[package]]
 name = "badge-app"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
- "ashpd 0.11.1",
+ "ashpd",
  "badge-core",
  "badge-formats",
  "badge-io",
@@ -616,7 +598,7 @@ dependencies = [
 
 [[package]]
 name = "badge-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -625,7 +607,7 @@ dependencies = [
 
 [[package]]
 name = "badge-formats"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "badge-core",
@@ -636,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "badge-io"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "badge-core",
  "chrono",
@@ -652,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "badge-render"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "badge-core",
@@ -667,7 +649,7 @@ dependencies = [
 
 [[package]]
 name = "badgectl"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "badge-core",
@@ -2437,7 +2419,7 @@ dependencies = [
  "accesskit_unix",
  "anyhow",
  "as-raw-xcb-connection",
- "ashpd 0.13.13",
+ "ashpd",
  "bytemuck",
  "calloop",
  "calloop-wayland-source",
@@ -4223,7 +4205,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78f2bfed90f1618b4b48dcad9307f25e14ae894e2949642c87c351601d62cebd"
 dependencies = [
  "aes",
- "ashpd 0.13.13",
+ "ashpd",
  "async-fs",
  "async-io",
  "async-lock",
@@ -6241,7 +6223,6 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
- "serde_derive",
 ]
 
 [[package]]
@@ -7776,7 +7757,6 @@ dependencies = [
  "enumflags2",
  "serde",
  "serde_bytes",
- "url",
  "winnow 1.0.4",
  "zcheapstr",
  "zvariant_derive",
