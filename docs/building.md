@@ -60,7 +60,9 @@ Flatpak itself, if it was missing. It:
 
 1. installs Flatpak with your package manager if needed, and adds Flathub;
 2. uses `flatpak-builder` if it's installed, or else installs Flathub's
-   `org.flatpak.Builder`;
+   `org.flatpak.Builder`. Flathub's runs in Flatpak's sandbox and needs a
+   desktop session; on a computer without one (a server, or GitHub's build
+   machines), install your distribution's `flatpak-builder` first;
 3. builds the app inside the Freedesktop SDK with the same Rust as outside
    Flatpak: it updates your Rust to the latest stable release first
    (`rustup update stable`), reads its version with `rustc --version`, and
@@ -208,6 +210,36 @@ password, so **Install Rule** in Badge Access works without typing commands.
 GitHub Actions is free for public repositories. Private repositories get a
 monthly allowance of minutes, in which macOS minutes count ten times and
 Windows minutes twice, so a full release build uses up a good part of it.
+
+## Releasing a new version
+
+1. **The version**: change `version` in [`Cargo.toml`](../Cargo.toml) (the
+   `[workspace.package]` section). Every crate, the About box,
+   `badgectl --version` and the Windows programs' details take it from
+   there.
+2. **`Cargo.lock`**: run `cargo update --workspace`, which changes only the
+   project's own crates to the new version.
+3. **The macOS `Info.plist`**: run
+   `cargo run --release --manifest-path packaging/branding/Cargo.toml` (any
+   build script does it too).
+4. **The release notes software centers show**: add a `<release>` at the top
+   of `<releases>` in
+   [`packaging/flatpak/dev.uint.LedBadgeStudio.metainfo.xml`](../packaging/flatpak/dev.uint.LedBadgeStudio.metainfo.xml),
+   newest first, keeping the older ones:
+
+   ```xml
+   <release version="0.1.3" date="2026-11-01">
+     <description>
+       <p>One or two sentences on what changed for people using the app.</p>
+     </description>
+   </release>
+   ```
+
+5. **Commit, then tag and push**: `git tag v0.1.3 && git push --tags`. The
+   tag builds the packages (above).
+6. **The GitHub release**: on the *Releases* page, create a release for the
+   tag, attach the packages from the run's *Artifacts*, and write its notes:
+   a short list, one line for each change people will notice.
 
 ## Regenerating generated files
 

@@ -141,20 +141,20 @@ All options, what the script does on each system, and how to build by hand:
 
 ## Documentation
 
-| Document                                            | What's in it                                                                                                                  |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [Features](docs/features.md)                        | Every feature in detail                                                                                                       |
-| [Installing](docs/installing.md)                    | Step by step for each system, the Flatpak's permissions, updating and uninstalling                                            |
-| [Troubleshooting](docs/troubleshooting.md)          | A badge stuck on its old messages, slow uploads, damaged files, blank windows on virtual machines                             |
-| [Building from source](docs/building.md)            | Build options, what the build does on each system, building by hand, automatic builds on GitHub, regenerating generated files |
-| [Badge access on Linux](docs/linux-badge-access.md) | The udev rule that lets you write to the badge, from the app, `badgectl` or by hand                                           |
-| [Project files (.badge)](docs/project-files.md)     | The file format, opening by double-click, and what happens with damaged or hand-edited files                                  |
-| [Using the command line](docs/command-line.md)      | `badgectl`: running it on each system, examples, and every command and option                                                 |
-| [Fonts and licenses](docs/fonts.md)                 | The built-in fonts, using the vendor's own fonts, license texts                                                               |
-| [Branding](docs/branding.md)                        | Building the app under your own name, copyright and icons; package names and IDs                                              |
-| [The badge protocol](docs/protocol.md)              | What's sent to the badge byte by byte, over USB and serial, how fast, and how to send safely on each system                   |
-| [Preview timing](docs/preview-timing.md)            | How the preview matches the badge's timing, what was measured, and how to measure a badge                                     |
-| [Development notes](docs/development.md)            | Project layout, how LEDs are drawn, and how the protocol was worked out                                                       |
+| Document                                            | What's in it                                                                                                                                           |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Features](docs/features.md)                        | Every feature in detail                                                                                                                                |
+| [Installing](docs/installing.md)                    | Step by step for each system, the Flatpak's permissions, updating and uninstalling                                                                     |
+| [Troubleshooting](docs/troubleshooting.md)          | A badge stuck on its old messages, slow uploads, damaged files, blank windows on virtual machines                                                      |
+| [Building from source](docs/building.md)            | Build options, what the build does on each system, building by hand, automatic builds on GitHub, releasing a new version, regenerating generated files |
+| [Badge access on Linux](docs/linux-badge-access.md) | The udev rule that lets you write to the badge, from the app, `badgectl` or by hand                                                                    |
+| [Project files (.badge)](docs/project-files.md)     | The file format, opening by double-click, and what happens with damaged or hand-edited files                                                           |
+| [Using the command line](docs/command-line.md)      | `badgectl`: running it on each system, examples, and every command and option                                                                          |
+| [Fonts and licenses](docs/fonts.md)                 | The built-in fonts, using the vendor's own fonts, license texts                                                                                        |
+| [Branding](docs/branding.md)                        | Building the app under your own name, copyright and icons; package names and IDs                                                                       |
+| [The badge protocol](docs/protocol.md)              | What's sent to the badge byte by byte, over USB and serial, how fast, and how to send safely on each system                                            |
+| [Preview timing](docs/preview-timing.md)            | How the preview matches the badge's timing, what was measured, and how to measure a badge                                                              |
+| [Development notes](docs/development.md)            | Project layout, how LEDs are drawn, and how the protocol was worked out                                                                                |
 
 ## Contributing
 

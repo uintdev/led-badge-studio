@@ -10,10 +10,8 @@ each build script applies the branding before it compiles.
 To update them:
 
 1. Edit the `[app]` section of `branding.toml` (table below).
-2. For a new version, change `version` in [`Cargo.toml`](../Cargo.toml) (the
-   `[workspace.package]` section), and add a `<release>` line for it to
-   `packaging/flatpak/dev.uint.LedBadgeStudio.metainfo.xml` (software centers
-   show that list).
+2. For a new version, see
+   [Releasing a new version](building.md#releasing-a-new-version).
 3. Build with your system's build script. It applies the details everywhere
    listed below; nothing else needs editing.
 
