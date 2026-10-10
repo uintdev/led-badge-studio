@@ -200,6 +200,8 @@
 - Notices badges as soon as they're plugged in or removed, from the
   system's device notifications (a check every 2 seconds where those aren't
   available, such as a Flatpak without network access)
+- A USB badge is picked over a serial port, which may be a computer's own
+  (the Steam Deck has one), unless you choose the port under **Badge** in the toolbar
 - A status light on the badge button in the toolbar: green when the badge
   is ready, amber when it needs [badge access](linux-badge-access.md) (Linux),
   red when none is connected; hover it for what it means

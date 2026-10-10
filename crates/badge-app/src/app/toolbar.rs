@@ -159,6 +159,7 @@ impl BadgeApp {
                         sel,
                         self.act(cx, move |t, _, cx| {
                             t.device = Some(id.clone());
+                            t.device_chosen = true;
                             t.update_access(cx);
                             t.offer_last_sent();
                         }),

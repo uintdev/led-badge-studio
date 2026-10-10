@@ -60,11 +60,14 @@ impl BadgeApp {
         if devices != self.devices {
             let had_device = self.selected_device().is_some();
             self.devices = devices;
-            let still_there = self
-                .device
-                .as_ref()
-                .is_some_and(|id| self.devices.iter().any(|d| &d.id == id));
-            if !still_there {
+            // A serial port is kept only when picked in this session, or with
+            // no USB badge around: any USB serial adapter shows up as one, as
+            // do some computers' own ports (the Steam Deck's, for one).
+            let usb = self.usb_badge_connected();
+            let keep = self
+                .selected_device()
+                .is_some_and(|d| d.kind == DeviceKind::Usb || self.device_chosen || !usb);
+            if !keep {
                 self.device = self
                     .devices
                     .iter()

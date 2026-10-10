@@ -713,6 +713,42 @@ fn getting_started_shows_until_a_badge_is_connected(cx: &mut TestAppContext) {
     });
 }
 
+/// A USB badge comes before a serial port remembered from the last send
+/// (the Steam Deck has one of its own), but a port picked in the device
+/// menu stays picked.
+#[gpui::test]
+fn a_usb_badge_is_preferred_to_a_remembered_serial_port(cx: &mut TestAppContext) {
+    let device = |kind, id: &str, label: &str| badge_io::DeviceInfo {
+        kind,
+        id: id.into(),
+        label: label.into(),
+    };
+    // Made-up IDs, not paths: a USB badge's path is opened to check access.
+    let serial = device(DeviceKind::Serial, "test-serial", "Serial ttyACM0");
+    let usb = device(DeviceKind::Usb, "test-usb-1", "USB badge 1");
+    let (app, cx) = open(cx);
+    app.update(cx, |app, cx| {
+        // At launch, with the serial port remembered.
+        app.device = Some(serial.id.clone());
+        app.set_devices(vec![usb.clone(), serial.clone()], cx);
+        assert_eq!(app.device.as_ref(), Some(&usb.id), "the USB badge at launch");
+
+        // Without a USB badge, the serial port is used; plugging the badge
+        // in then switches to it.
+        app.set_devices(vec![serial.clone()], cx);
+        assert_eq!(app.device.as_ref(), Some(&serial.id));
+        app.set_devices(vec![usb.clone(), serial.clone()], cx);
+        assert_eq!(app.device.as_ref(), Some(&usb.id), "the badge, once plugged in");
+
+        // Picked in the menu: kept, also when the devices change.
+        app.device = Some(serial.id.clone());
+        app.device_chosen = true;
+        let other = device(DeviceKind::Usb, "test-usb-2", "USB badge 2");
+        app.set_devices(vec![usb.clone(), other, serial.clone()], cx);
+        assert_eq!(app.device.as_ref(), Some(&serial.id), "the port picked");
+    });
+}
+
 /// The preview pauses while a system file dialog is open, and starts again
 /// once it's answered or canceled.
 #[gpui::test]
