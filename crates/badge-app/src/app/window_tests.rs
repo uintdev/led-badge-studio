@@ -395,6 +395,13 @@ fn typing_over_a_drawing_asks_first(cx: &mut TestAppContext) {
         assert!(matches!(app.dialog, Some(Dialog::Confirm { .. })));
         assert_eq!(app.msg().source, Source::Bitmap, "the drawing stays until confirmed");
     });
+    // Typing on while it asks doesn't reach the message, nor stay in the box.
+    input.update_in(cx, |input, window, cx| input.insert("y", window, cx));
+    cx.run_until_parked();
+    app.read_with(cx, |app, cx| {
+        assert_eq!(app.msg().source, Source::Bitmap);
+        assert_eq!(app.input.read(cx).text(), app.msg().text);
+    });
     // Keep Drawing: the keystroke is undone in the message box.
     cx.dispatch_action(ModalCancel);
     cx.run_until_parked();

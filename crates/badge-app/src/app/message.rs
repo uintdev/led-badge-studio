@@ -33,6 +33,8 @@ impl BadgeApp {
         let has_drawing = m.source == Source::Bitmap && m.bitmap.used_width() > 0;
         if has_drawing {
             if self.dialog.is_some() {
+                // Not typed into the message: the text box shows it as it is.
+                self.sync_input(cx);
                 return;
             }
             let n = self.current + 1;
