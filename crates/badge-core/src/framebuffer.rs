@@ -189,8 +189,12 @@ impl Serialize for Framebuffer {
 impl<'de> Deserialize<'de> for Framebuffer {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let r = FramebufferRepr::deserialize(d)?;
-        // Bounded for damaged files; the project sets the real height later.
-        Ok(Framebuffer::from_rows(r.height.min(MAX_HEIGHT), &r.rows))
+        // Every row, even past a damaged height; bounded for damaged files.
+        // The project sets the real height later (reporting rows it cuts).
+        Ok(Framebuffer::from_rows(
+            r.height.max(r.rows.len()).min(MAX_HEIGHT),
+            &r.rows,
+        ))
     }
 }
 
@@ -220,6 +224,14 @@ mod tests {
         assert_eq!(fb.column_byte(Plane::Red, 0, 0), 0x80);
         assert_eq!(fb.column_byte(Plane::Green, 0, 0), 0x01);
         assert_eq!(fb.column_byte(Plane::Blue, 1, 1), 0x80);
+    }
+
+    #[test]
+    fn rows_past_a_damaged_height_are_kept() {
+        let json = r#"{"height":0,"rows":["1","0","04"]}"#;
+        let fb: Framebuffer = serde_json::from_str(json).unwrap();
+        assert_eq!(fb.height(), 3);
+        assert_eq!(fb.get(1, 2), LedColor::RED);
     }
 
     #[test]
