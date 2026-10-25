@@ -540,6 +540,10 @@ impl Pacing {
 }
 
 pub fn send_serial(plan: &protocol::SerialPlan, port_name: &str, progress: Progress) -> Result<(), SendError> {
+    // How long one byte takes on the wire: a start bit, 8 data bits and the
+    // stop bits.
+    let bits: u32 = if plan.two_stop_bits { 11 } else { 10 };
+    let byte_time = Duration::from_secs(bits.into()) / plan.baud_rate;
     let mut port = serialport::new(port_name, plan.baud_rate)
         .data_bits(serialport::DataBits::Eight)
         .parity(serialport::Parity::None)
@@ -548,13 +552,9 @@ pub fn send_serial(plan: &protocol::SerialPlan, port_name: &str, progress: Progr
         } else {
             serialport::StopBits::One
         })
-        .timeout(Duration::from_secs(10))
+        .timeout(write_timeout(plan, byte_time))
         .open()?;
     port.write_data_terminal_ready(true)?;
-    // How long one byte takes on the wire: a start bit, 8 data bits and the
-    // stop bits.
-    let bits: u32 = if plan.two_stop_bits { 11 } else { 10 };
-    let byte_time = Duration::from_secs(bits.into()) / plan.baud_rate;
     let total = plan.packets.len();
     for (i, p) in plan.packets.iter().enumerate() {
         sleep(Duration::from_millis(plan.gap_ms));
@@ -576,6 +576,14 @@ pub fn send_serial(plan: &protocol::SerialPlan, port_name: &str, progress: Progr
         }
     }
     Ok(())
+}
+
+/// How long a write may take: 10 seconds, or more for packets that take
+/// longer than that on the wire (a mono badge's rows at 1200 baud: up to
+/// 2560 bytes, about 21 s), where writes wait for the data to go out.
+fn write_timeout(plan: &protocol::SerialPlan, byte_time: Duration) -> Duration {
+    let longest = plan.packets.iter().map(Vec::len).max().unwrap_or(0);
+    (byte_time * longest as u32 * 2 + Duration::from_secs(1)).max(Duration::from_secs(10))
 }
 
 /// A write that timed out: the device stopped taking data.
@@ -625,6 +633,25 @@ mod serial_tests {
 
     /// 100 bytes at 1 ms a byte: 0.1 s on the wire, so a 1.2 s deadline.
     const BYTE: Duration = Duration::from_millis(1);
+
+    #[test]
+    fn the_write_timeout_covers_the_longest_packet() {
+        let plan = |len| badge_core::protocol::SerialPlan {
+            baud_rate: 1200,
+            two_stop_bits: false,
+            packets: vec![vec![0; 6], vec![0; len]],
+            gap_ms: 30,
+            settle_ms: 1000,
+        };
+        let byte = Duration::from_secs(10) / 1200;
+        assert_eq!(super::write_timeout(&plan(47), byte), Duration::from_secs(10));
+        // 2560 bytes: about 21.3 s on the wire, so about 43.7 s.
+        let long = super::write_timeout(&plan(2560), byte);
+        assert!(
+            long > Duration::from_secs(43) && long < Duration::from_secs(44),
+            "{long:?}"
+        );
+    }
 
     #[test]
     fn a_queue_that_empties_is_sent() {
