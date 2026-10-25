@@ -26,16 +26,33 @@ fn properties(fraction: Option<f64>) -> HashMap<&'static str, Value<'static>> {
     props
 }
 
+/// An update for the thread that sends them: the bar, and whom to tell
+/// once it's sent.
+#[cfg(not(test))]
+type Update = (Option<f64>, Option<std::sync::mpsc::SyncSender<()>>);
+
+/// The thread that sends the updates, once there's been one.
+#[cfg(not(test))]
+static UPDATES: std::sync::OnceLock<std::sync::mpsc::Sender<Update>> = std::sync::OnceLock::new();
+
+/// Takes the bar away and waits (briefly) until that's sent: before
+/// quitting, so a bar isn't left behind on desktops that keep it.
+#[cfg(not(test))]
+pub(super) fn clear_before_quitting() {
+    let Some(updates) = UPDATES.get() else { return };
+    let (sent, done) = std::sync::mpsc::sync_channel(1);
+    if updates.send((None, Some(sent))).is_ok() {
+        let _ = done.recv_timeout(std::time::Duration::from_millis(300));
+    }
+}
+
 /// Shows `fraction` (0 to 1) on the app's taskbar button, or takes the bar
 /// away with `None`. Doesn't wait for it to be sent.
 #[cfg(not(test))]
 pub(super) fn set(fraction: Option<f64>) {
-    use std::sync::OnceLock;
-    use std::sync::mpsc::{Receiver, Sender, channel};
+    use std::sync::mpsc::{Receiver, channel};
 
-    static UPDATES: OnceLock<Sender<Option<f64>>> = OnceLock::new();
-
-    fn send_updates(updates: Receiver<Option<f64>>) {
+    fn send_updates(updates: Receiver<Update>) {
         let connection = match futures::executor::block_on(zbus::Connection::session()) {
             Ok(c) => c,
             Err(e) => {
@@ -44,10 +61,11 @@ pub(super) fn set(fraction: Option<f64>) {
             }
         };
         let uri = app_uri();
-        while let Ok(mut fraction) = updates.recv() {
+        while let Ok((mut fraction, mut waiting)) = updates.recv() {
             // Only the newest matters when several came in meanwhile.
-            while let Ok(newer) = updates.try_recv() {
+            while let Ok((newer, wait)) = updates.try_recv() {
                 fraction = newer;
+                waiting = wait.or(waiting);
             }
             let sent = futures::executor::block_on(connection.emit_signal(
                 None::<zbus::names::BusName<'_>>,
@@ -58,6 +76,9 @@ pub(super) fn set(fraction: Option<f64>) {
             ));
             if let Err(e) = sent {
                 log::debug!("couldn't update the taskbar progress: {e}");
+            }
+            if let Some(waiting) = waiting {
+                let _ = waiting.send(());
             }
         }
     }
@@ -73,7 +94,7 @@ pub(super) fn set(fraction: Option<f64>) {
         tx
     });
     // Fails only once the thread has given up (no session bus).
-    let _ = updates.send(fraction);
+    let _ = updates.send((fraction, None));
 }
 
 #[cfg(test)]

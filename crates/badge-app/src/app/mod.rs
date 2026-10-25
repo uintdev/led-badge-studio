@@ -788,6 +788,8 @@ impl BadgeApp {
         self.before_quitting(window, cx, |t, window, cx| {
             t.saved = Some(t.project.clone());
             t.keep_recovery_copy();
+            #[cfg(all(target_os = "linux", not(test)))]
+            launcher_entry::clear_before_quitting();
             // Closing this window quits the app. On Windows, quitting
             // straight away: removing the window first has GPUI log errors
             // about it as Windows deactivates it.
@@ -804,6 +806,8 @@ impl BadgeApp {
         self.before_quitting(window, cx, |t, _, cx| {
             t.saved = Some(t.project.clone());
             t.keep_recovery_copy();
+            #[cfg(all(target_os = "linux", not(test)))]
+            launcher_entry::clear_before_quitting();
             #[cfg(all(target_os = "macos", not(test)))]
             native_document::approve_quit();
             cx.quit();
