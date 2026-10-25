@@ -70,7 +70,7 @@ impl BadgeApp {
         // What message `msg` is now, to tell whether it's still the same
         // message when the image is ready (New, Open, Undo or a move may
         // have put another one there).
-        let target = (self.path.clone(), self.project.messages[msg].clone());
+        let target = (self.path.clone(), MessageContent::of(&self.project.messages[msg]));
         let path = path.to_path_buf();
         self.set_status(LOADING_IMAGE, Severity::Info);
         cx.notify();
@@ -95,10 +95,15 @@ impl BadgeApp {
                         "The badge type changed while the image was loading; load it again.",
                         Severity::Error,
                     ),
-                    Ok(_) if t.path != target.0 || t.project.messages.get(msg) != Some(&target.1) => t.set_status(
-                        "The messages changed while the image was loading; load it again.",
-                        Severity::Error,
-                    ),
+                    Ok(_)
+                        if t.path != target.0
+                            || t.project.messages.get(msg).map(MessageContent::of) != Some(target.1.clone()) =>
+                    {
+                        t.set_status(
+                            "The messages changed while the image was loading; load it again.",
+                            Severity::Error,
+                        )
+                    }
                     Ok((bytes, decoded)) => t.finish_import(msg, &path, bytes, (card, fit, decoded)),
                     Err(e) => t.set_status(format!("Could not load image: {e:#}"), Severity::Error),
                 }
@@ -695,5 +700,55 @@ mod cut_tests {
         assert_eq!(cut.content_width(), 16);
         assert!((0..16).all(|x| cut.is_on(x, 3)));
         assert_eq!(cut_to(&fb, 64), fb, "narrower: unchanged");
+    }
+}
+
+/// What tells one message from another: what it shows, not how (speed,
+/// effect, whether it's ticked), which can change while it's the same
+/// message.
+#[derive(Clone, PartialEq)]
+struct MessageContent {
+    source: Source,
+    text: String,
+    font: badge_core::FontChoice,
+    /// Only for drawings: text is drawn again from the text and font.
+    drawing: Option<Framebuffer>,
+}
+
+impl MessageContent {
+    fn of(m: &badge_core::Message) -> Self {
+        MessageContent {
+            source: m.source,
+            text: m.text.clone(),
+            font: m.font.clone(),
+            drawing: (m.source == Source::Bitmap).then(|| m.bitmap.clone()),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_message_stays_the_same_when_only_how_its_shown_changes() {
+        let m = badge_core::Message {
+            text: "Hi".into(),
+            ..Default::default()
+        };
+        let mut shown = m.clone();
+        shown.speed = 8;
+        shown.flash = true;
+        shown.selected = !m.selected;
+        assert!(MessageContent::of(&shown) == MessageContent::of(&m));
+        let mut other = m.clone();
+        other.text = "Bye".into();
+        assert!(MessageContent::of(&other) != MessageContent::of(&m));
+        let mut drawn = m.clone();
+        drawn.source = Source::Bitmap;
+        drawn.bitmap.set(0, 0, LedColor::RED);
+        let mut redrawn = drawn.clone();
+        redrawn.bitmap.set(1, 0, LedColor::RED);
+        assert!(MessageContent::of(&redrawn) != MessageContent::of(&drawn));
     }
 }
