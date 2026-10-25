@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.0 (2026-10-25)
+
+### All platforms
+
+- Each open copy of the app keeps its own unsaved work for crash recovery.
+- Unsaved work is still kept while recovered work is offered.
+- A slow image import no longer lands in the wrong message.
+- Drawings keep all their rows in damaged files.
+- Text that isn't UTF-8 is now reported as a repair.
+- Saving and exporting keep symlinks and file permissions.
+- Export uses the format of the typed file extension.
+- A failed export no longer destroys the earlier file.
+- An Off LED color in the settings goes back to red.
+- Fixed stray letters in the text box when typing over a drawing.
+- Less work per frame while the preview plays.
+
+### Linux
+
+- The taskbar button shows send progress (KDE Plasma, Ubuntu's dock).
+- Empty or relative XDG folders are ignored.
+
+### macOS
+
+- Fixed a possible hang when stopping the device watcher.
+
+### Windows
+
+- Long uploads to mono serial badges no longer time out.
+
 ## 0.1.2 (2026-10-10)
 
 - A USB badge is now picked over a computer's own serial port (such as the Steam Deck's), unless you choose the port yourself.

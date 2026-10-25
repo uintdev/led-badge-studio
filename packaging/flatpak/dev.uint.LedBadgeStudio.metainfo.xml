@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.0" date="2026-10-25">
+      <description>
+        <p>Shows the send's progress on the taskbar button on KDE Plasma and Ubuntu's dock, keeps unsaved work safe with several windows open, exports in the format of the typed file name, and fixes saving through links, damaged files and long serial uploads.</p>
+      </description>
+    </release>
     <release version="0.1.2" date="2026-10-10">
       <description>
         <p>Picks the USB badge before a computer's own serial port, and stops a send to a serial device that doesn't take the data instead of waiting forever.</p>

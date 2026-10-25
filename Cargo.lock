@@ -559,7 +559,7 @@ dependencies = [
 
 [[package]]
 name = "badge-app"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -587,7 +587,7 @@ dependencies = [
 
 [[package]]
 name = "badge-core"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "badge-formats"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "badge-core",
@@ -607,7 +607,7 @@ dependencies = [
 
 [[package]]
 name = "badge-io"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "badge-core",
  "chrono",
@@ -623,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "badge-render"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "badge-core",
@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "badgectl"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "badge-core",
