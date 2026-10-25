@@ -754,12 +754,13 @@ impl Render for BadgeApp {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.commit_history();
         // Runs every animation frame: only update the title when it changes.
+        let dirty = self.is_dirty();
         if self
             .title_inputs
             .as_ref()
-            .is_none_or(|(dirty, path)| *dirty != self.is_dirty() || *path != self.path)
+            .is_none_or(|(was_dirty, path)| *was_dirty != dirty || *path != self.path)
         {
-            self.title_inputs = Some((self.is_dirty(), self.path.clone()));
+            self.title_inputs = Some((dirty, self.path.clone()));
             self.window_title = self.title().into();
             #[cfg(not(all(target_os = "macos", not(test))))]
             window.set_window_title(&self.window_title);
