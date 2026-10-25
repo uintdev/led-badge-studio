@@ -27,7 +27,9 @@ unsaved work) and `versions.rs` (File → Revert To). On macOS only:
 are made in `app_menu` in `main.rs`), `native_document.rs` (the window as a
 Mac document: its title, "Edited", and answering macOS when it asks to
 quit) and `dock_progress.rs` (the send's progress on the Dock icon). On
-Windows only: `taskbar.rs` (the same on the taskbar button).
+Windows only: `taskbar.rs` (the same on the taskbar button). On Linux only:
+`launcher_entry.rs` (the same through the Unity LauncherEntry signal, which
+KDE Plasma and Ubuntu's dock show, and other desktops ignore).
 
 `window_tests.rs` there tests the window's behavior in GPUI's test mode,
 without a real window, badge or settings file: the modified indicator,

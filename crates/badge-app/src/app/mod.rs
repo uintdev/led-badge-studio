@@ -8,6 +8,8 @@ mod dock_progress;
 mod editor;
 mod files;
 mod history;
+#[cfg(target_os = "linux")]
+mod launcher_entry;
 #[cfg(target_os = "macos")]
 mod menu_bar;
 mod menus;

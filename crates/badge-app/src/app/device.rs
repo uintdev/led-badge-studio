@@ -380,10 +380,12 @@ impl BadgeApp {
 }
 
 /// Shows how far a send is on the app's Dock icon (macOS) or taskbar button
-/// (Windows), or takes it away with `None`.
+/// (Windows, and Linux desktops that show it), or takes it away with `None`.
 fn show_send_progress(_fraction: Option<f64>) {
     #[cfg(all(target_os = "macos", not(test)))]
     dock_progress::set(_fraction);
     #[cfg(all(windows, not(test)))]
     taskbar::set_progress(_fraction);
+    #[cfg(all(target_os = "linux", not(test)))]
+    launcher_entry::set(_fraction);
 }

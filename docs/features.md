@@ -52,8 +52,9 @@
   forced to quit, the computer shutting down), a banner offers it back the
   next time: **Recover** opens it, unsaved, and **Discard** throws it away
 - While sending, the status bar says about how long it will take; the app's
-  Dock icon (macOS) or taskbar button (Windows) also shows a progress bar,
-  to follow a long upload from another app
+  Dock icon (macOS) or taskbar button (Windows, and Linux desktops that
+  show it, such as KDE Plasma) also shows a progress bar, to follow a long
+  upload from another app
 - In the message list: **drag** a message to move it; its **⋯** button or a
   right-click offers **Duplicate** (into the next empty slot), **Copy**,
   **Paste**, **Move Up**, **Move Down** and **Clear**. Copied messages can
