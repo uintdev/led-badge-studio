@@ -240,11 +240,13 @@ into practice. An agent has to show a diff of everything it changes or
 proposes, check its code changes for bugs and test them, and explain what
 each one does, how it works and what it affects. The person operating it
 then has to explain each code change back in their own words before it
-counts as done; until they can, the change is held back, and if their
-explanations keep missing the point, it's set aside until they understand
-it. Pull requests and comments made with an agent say so, and questions in
+counts as done, unless they type a fixed sentence agreeing that they
+understand the session's changes; until they do either, the change is held
+back, and if their explanations keep missing the point, it's set aside
+until they understand it. Pull requests and comments made with an agent say so, and questions in
 a review are answered by the person, not the agent. AI can still help write
-the code, but nothing goes in that a human hasn't seen and understood.
+the code, but nothing goes in that a human hasn't seen and said they
+understood.
 
 ## License
 
