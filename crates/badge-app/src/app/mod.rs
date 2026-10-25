@@ -445,7 +445,7 @@ impl BadgeApp {
             jump_list: None,
             recovery_path: recovery::default_path(),
             recovery_written: None,
-            recovered: recovery::default_path().as_deref().and_then(recovery::read),
+            recovered: recovery::find_left_behind(),
             last_sent_offer: None,
             font_notice_dismissed: false,
             history,

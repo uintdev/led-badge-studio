@@ -3,13 +3,19 @@
 //! the work being saved or discarded (a crash, being forced to quit, the
 //! computer shutting down), the copy is offered back when it next starts.
 //!
+//! Each running copy of the app keeps its own file, next to a lock file it
+//! holds while it runs, so one copy never offers (or deletes) the unsaved
+//! work of another that's still running.
 
 use std::time::{Duration, SystemTime};
 
 use super::files::file_name;
 use super::*;
 
-const FILE_NAME: &str = "unsaved-work.json";
+/// The folder of copies, one per running app.
+const DIR_NAME: &str = "unsaved-work";
+/// The single copy earlier versions kept; still offered.
+const LEGACY_FILE_NAME: &str = "unsaved-work.json";
 
 /// How often the copy is brought up to date.
 const INTERVAL: Duration = Duration::from_secs(2);
@@ -20,15 +26,82 @@ pub(super) struct Recovered {
     /// The project's file, if it had one.
     pub file: Option<PathBuf>,
     pub when: SystemTime,
+    /// The copy it was read from, removed once it's recovered or discarded.
+    pub path: PathBuf,
 }
 
-/// Where the copy is kept; `None` in tests, which set their own.
+/// Where this app keeps its copy, locked for as long as it runs; `None` in
+/// tests, which set their own.
 pub(super) fn default_path() -> Option<PathBuf> {
     if cfg!(test) {
         return None;
     }
+    static OWN: std::sync::OnceLock<Option<(PathBuf, std::fs::File)>> = std::sync::OnceLock::new();
+    OWN.get_or_init(|| {
+        let dir = copies_dir()?;
+        std::fs::create_dir_all(&dir).ok()?;
+        let started = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        let id = format!("{}-{started}", std::process::id());
+        let lock = std::fs::File::create(dir.join(format!("{id}.lock"))).ok()?;
+        lock.try_lock().ok()?;
+        Some((dir.join(format!("{id}.json")), lock))
+    })
+    .as_ref()
+    .map(|(path, _)| path.clone())
+}
+
+fn copies_dir() -> Option<PathBuf> {
     use badge_formats::dirs;
-    dirs::data_base().map(|base| dirs::user_file(&base, FILE_NAME))
+    dirs::data_base().map(|base| dirs::user_file(&base, DIR_NAME))
+}
+
+/// The newest copy left by an app that isn't running any more (none in
+/// tests).
+pub(super) fn find_left_behind() -> Option<Recovered> {
+    if cfg!(test) {
+        return None;
+    }
+    use badge_formats::dirs;
+    let own = default_path();
+    let dir = copies_dir()?;
+    // Lock files of apps that closed with nothing to keep.
+    for entry in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
+        let lock = entry.path();
+        if lock.extension().is_some_and(|x| x == "lock")
+            && !lock.with_extension("json").exists()
+            && !in_use(&lock.with_extension("json"))
+        {
+            let _ = std::fs::remove_file(lock);
+        }
+    }
+    let mut found: Vec<Recovered> = std::fs::read_dir(&dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "json") && Some(p) != own.as_ref() && !in_use(p))
+        .chain(dirs::data_base().map(|b| dirs::user_file(&b, LEGACY_FILE_NAME)))
+        .filter_map(|p| read(&p))
+        .collect();
+    found.sort_by_key(|r| std::cmp::Reverse(r.when));
+    found.into_iter().next()
+}
+
+/// Whether the app that keeps the copy at `path` is still running (holds
+/// its lock).
+fn in_use(path: &Path) -> bool {
+    std::fs::File::open(path.with_extension("lock")).is_ok_and(|f| f.try_lock().is_err())
+}
+
+/// Removes a copy, and the lock file of the app that kept it.
+fn remove(path: &Path) {
+    let _ = std::fs::remove_file(path);
+    if path.extension().is_some_and(|x| x == "json") && !in_use(path) {
+        let _ = std::fs::remove_file(path.with_extension("lock"));
+    }
 }
 
 /// Reads the copy at `path`; `None` if there's none (or it can't be read).
@@ -39,7 +112,12 @@ pub(super) fn read(path: &Path) -> Option<Recovered> {
         let value: serde_json::Value = serde_json::from_str(&text)?;
         let project = badge_formats::project_from_json(&value["project"].to_string())?;
         let file = value["file"].as_str().map(PathBuf::from);
-        Ok(Recovered { project, file, when })
+        Ok(Recovered {
+            project,
+            file,
+            when,
+            path: path.to_path_buf(),
+        })
     };
     read()
         .inspect_err(|e| log::warn!("ignoring the unsaved-work copy {}: {e:#}", path.display()))
@@ -57,10 +135,12 @@ fn write(path: &Path, project: &Project, file: Option<&Path>) -> anyhow::Result<
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir)?;
     }
-    // Written aside, then moved over the old copy, so a crash while writing
-    // leaves the old one.
+    // Written aside and onto the disk, then moved over the old copy, so a
+    // crash or power cut while writing leaves the old one.
     let tmp = path.with_extension("json.tmp");
-    std::fs::write(&tmp, serde_json::to_string(&value)?)?;
+    let mut out = std::fs::File::create(&tmp)?;
+    std::io::Write::write_all(&mut out, serde_json::to_string(&value)?.as_bytes())?;
+    out.sync_all()?;
     std::fs::rename(&tmp, path)?;
     Ok(())
 }
@@ -80,15 +160,12 @@ impl BadgeApp {
     }
 
     /// Writes the copy if the work changed since, or removes it once there's
-    /// nothing to keep. Left alone while a copy from before is offered,
-    /// which would be lost.
+    /// nothing to keep. A copy from before that's offered is another file,
+    /// so it's kept meanwhile.
     pub(super) fn keep_recovery_copy(&mut self) {
         let Some(path) = self.recovery_path.clone() else {
             return;
         };
-        if self.recovered.is_some() {
-            return;
-        }
         if !self.is_dirty() {
             if self.recovery_written.take().is_some() {
                 let _ = std::fs::remove_file(&path);
@@ -115,7 +192,7 @@ impl BadgeApp {
             let Some(recovered) = t.recovered.take() else {
                 return;
             };
-            t.forget_recovery_copy();
+            t.forget_recovered(&recovered.path);
             t.replace_project(recovered.project, recovered.file, cx);
             // Unsaved until saved.
             t.saved = None;
@@ -127,17 +204,20 @@ impl BadgeApp {
 
     /// The banner's Discard.
     pub(super) fn discard_recovered_work(&mut self, cx: &mut Context<Self>) {
-        self.recovered = None;
-        self.forget_recovery_copy();
+        if let Some(recovered) = self.recovered.take() {
+            self.forget_recovered(&recovered.path);
+        }
         self.keep_recovery_copy();
         cx.notify();
     }
 
-    fn forget_recovery_copy(&mut self) {
-        self.recovery_written = None;
-        if let Some(path) = &self.recovery_path {
-            let _ = std::fs::remove_file(path);
+    /// Removes the copy a recovered work came from; if it was this app's
+    /// own, the next update writes it again.
+    fn forget_recovered(&mut self, path: &Path) {
+        if self.recovery_path.as_deref() == Some(path) {
+            self.recovery_written = None;
         }
+        remove(path);
     }
 
     /// The banner offering back work from when the app last closed without
@@ -202,5 +282,28 @@ fn ago(when: SystemTime) -> String {
         60..3600 => format!("{} min ago", secs / 60),
         3600..86400 => format!("{} h ago", secs / 3600),
         _ => format!("{} days ago", secs / 86400),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_copy_is_in_use_while_its_app_holds_the_lock() {
+        let dir = std::env::temp_dir().join(format!("lbs-recovery-lock-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let copy = dir.join("1-2.json");
+        std::fs::write(&copy, "{}").unwrap();
+        // No lock file: an app from before, or one that closed.
+        assert!(!in_use(&copy));
+        let lock = std::fs::File::create(copy.with_extension("lock")).unwrap();
+        lock.try_lock().unwrap();
+        assert!(in_use(&copy));
+        drop(lock);
+        assert!(!in_use(&copy));
+        remove(&copy);
+        assert!(!copy.exists() && !copy.with_extension("lock").exists());
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

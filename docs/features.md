@@ -51,6 +51,8 @@
   if the app closes without it being saved or discarded (a crash, being
   forced to quit, the computer shutting down), a banner offers it back the
   next time: **Recover** opens it, unsaved, and **Discard** throws it away
+  (with the app open more than once, each keeps its own copy, and only
+  work from one that's no longer running is offered)
 - While sending, the status bar says about how long it will take; the app's
   Dock icon (macOS) or taskbar button (Windows, and Linux desktops that
   show it, such as KDE Plasma) also shows a progress bar, to follow a long

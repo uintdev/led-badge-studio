@@ -1094,19 +1094,29 @@ fn unsaved_work_is_kept_until_saved_and_can_be_recovered(cx: &mut TestAppContext
     save(&app, cx, &dir.join("saved.badge"));
     assert!(!copy.exists(), "nothing unsaved to keep");
 
-    // Found at the start: offered, and left alone until answered.
+    // Left by an app that closed: offered, and left alone until answered,
+    // while the current work still gets its own copy.
+    let earlier = dir.join("earlier.json");
     app.update_in(cx, |app, window, cx| app.new_project(&NewProject, window, cx));
     type_text(&app, cx, "From before");
     app.update(cx, |app, _| {
+        app.recovery_path = Some(earlier.clone());
         app.keep_recovery_copy();
-        app.recovered = recovery::read(&copy);
+        app.recovered = recovery::read(&earlier);
+        app.recovery_path = Some(copy.clone());
+        app.recovery_written = None;
     });
     type_text(&app, cx, "Something else");
     app.update(cx, |app, _| app.keep_recovery_copy());
     assert_eq!(
-        recovery::read(&copy).unwrap().project.messages[0].text,
+        recovery::read(&earlier).unwrap().project.messages[0].text,
         "From before",
         "not overwritten while offered"
+    );
+    assert_eq!(
+        recovery::read(&copy).unwrap().project.messages[0].text,
+        "Something else",
+        "the current work is kept meanwhile"
     );
 
     // Recover brings it back, unsaved (the current project's changes are
@@ -1118,6 +1128,7 @@ fn unsaved_work_is_kept_until_saved_and_can_be_recovered(cx: &mut TestAppContext
         assert!(app.is_dirty());
         assert!(app.recovered.is_none());
     });
+    assert!(!earlier.exists(), "the recovered copy is removed");
     let _ = std::fs::remove_dir_all(dir);
 }
 
