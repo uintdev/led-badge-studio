@@ -8,7 +8,7 @@ whole change. Remove a copy (and its `[patch.crates-io]` line) once the fix
 is released upstream; when updating the dependency, copy the new version and
 apply the patch again.
 
-## gpui-pre-wgpu 0.3.8
+## gpui-pre-wgpu 0.3.9
 
 GPUI's renderer (Zed's `gpui_wgpu`, Apache-2.0, see `LICENSE-APACHE`).
 

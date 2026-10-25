@@ -435,7 +435,7 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * powerfmt 0.2.0 - https://github.com/jhpratt/powerfmt
+  * powerfmt 0.2.1 - https://github.com/jhpratt/powerfmt
     Authors: Jacob Pratt <jacob@jhpratt.dev>
 
 
@@ -647,7 +647,7 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * deranged 0.5.8 - https://github.com/jhpratt/deranged
+  * deranged 0.5.9 - https://github.com/jhpratt/deranged
     Authors: Jacob Pratt <jacob@jhpratt.dev>
 
 
@@ -879,7 +879,7 @@ Used by:
     Authors: Uli Schlachter <psychon@znc.in>; Eduardo Sánchez Muñoz <eduardosm-dev@e64.io>; notgull <jtnunley01@gmail.com>
   * x11rb 0.13.2 - https://github.com/psychon/x11rb
     Authors: Uli Schlachter <psychon@znc.in>; Eduardo Sánchez Muñoz <eduardosm-dev@e64.io>; notgull <jtnunley01@gmail.com>
-  * zeroize 1.9.0 - https://github.com/RustCrypto/utils
+  * zeroize 1.9.1 - https://github.com/RustCrypto/utils
     Authors: The RustCrypto Project Developers
   * zeroize_derive 1.5.0 - https://github.com/RustCrypto/utils
     Authors: The RustCrypto Project Developers
@@ -1526,26 +1526,15 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * windows-collections 0.2.0 - https://github.com/microsoft/windows-rs
   * windows-collections 0.3.2 - https://github.com/microsoft/windows-rs
-  * windows-core 0.61.2 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-core 0.62.2 - https://github.com/microsoft/windows-rs
-  * windows-future 0.2.1 - https://github.com/microsoft/windows-rs
   * windows-future 0.3.2 - https://github.com/microsoft/windows-rs
   * windows-implement 0.60.2 - https://github.com/microsoft/windows-rs
   * windows-interface 0.59.3 - https://github.com/microsoft/windows-rs
-  * windows-link 0.1.3 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-link 0.2.1 - https://github.com/microsoft/windows-rs
-  * windows-numerics 0.2.0 - https://github.com/microsoft/windows-rs
   * windows-numerics 0.3.1 - https://github.com/microsoft/windows-rs
   * windows-registry 0.6.1 - https://github.com/microsoft/windows-rs
-  * windows-result 0.3.4 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-result 0.4.1 - https://github.com/microsoft/windows-rs
-  * windows-strings 0.4.2 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-strings 0.5.1 - https://github.com/microsoft/windows-rs
   * windows-sys 0.48.0 - https://github.com/microsoft/windows-rs
     Authors: Microsoft
@@ -1556,12 +1545,8 @@ Used by:
     Authors: Microsoft
   * windows-targets 0.52.6 - https://github.com/microsoft/windows-rs
     Authors: Microsoft
-  * windows-threading 0.1.0 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-threading 0.2.1 - https://github.com/microsoft/windows-rs
   * windows-version 0.1.7 - https://github.com/microsoft/windows-rs
-  * windows 0.61.3 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows 0.62.2 - https://github.com/microsoft/windows-rs
   * windows_aarch64_msvc 0.48.5 - https://github.com/microsoft/windows-rs
     Authors: Microsoft
@@ -1784,8 +1769,8 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * zerocopy-derive 0.8.59 - https://github.com/google/zerocopy
-  * zerocopy 0.8.59 - https://github.com/google/zerocopy
+  * zerocopy-derive 0.8.63 - https://github.com/google/zerocopy
+  * zerocopy 0.8.63 - https://github.com/google/zerocopy
 
 
                                  Apache License
@@ -2643,6 +2628,9 @@ Used by:
   * clap_builder 4.6.7 - https://github.com/clap-rs/clap
   * clap_derive 4.6.7 - https://github.com/clap-rs/clap
   * clap_lex 1.1.1 - https://github.com/clap-rs/clap
+  * toml_datetime 1.1.2+spec-1.1.0 - https://github.com/toml-rs/toml
+  * toml_edit 0.25.17+spec-1.1.0 - https://github.com/toml-rs/toml
+  * toml_parser 1.1.5+spec-1.1.0 - https://github.com/toml-rs/toml
 
 
                                  Apache License
@@ -3066,7 +3054,7 @@ Apache License 2.0
 Used by:
   * bit_field 0.10.3 - https://github.com/phil-opp/rust-bit-field
     Authors: Philipp Oppermann <dev@phil-opp.com>
-  * notify-rust 4.18.1 - https://github.com/hoodie/notify-rust
+  * notify-rust 4.18.2 - https://github.com/hoodie/notify-rust
     Authors: Hendrik Sollich <hendrik@hoodie.de>
   * winapi 0.3.9 - https://github.com/retep998/winapi-rs
     Authors: Peter Atashian <retep998@gmail.com>
@@ -3287,7 +3275,7 @@ Used by:
   * anstyle-wincon 3.0.11 - https://github.com/rust-cli/anstyle.git
   * anstyle 1.0.14 - https://github.com/rust-cli/anstyle.git
   * colorchoice 1.0.5 - https://github.com/rust-cli/anstyle.git
-  * crc32fast 1.5.2 - https://github.com/srijs/rust-crc32fast
+  * crc32fast 1.5.3 - https://github.com/srijs/rust-crc32fast
     Authors: Sam Rijs <srijs@airpost.net>; Alex Crichton <alex@alexcrichton.com>
   * env_filter 2.0.0 - https://github.com/rust-cli/env_logger
   * env_logger 0.11.11 - https://github.com/rust-cli/env_logger
@@ -3305,9 +3293,6 @@ Used by:
   * once_cell_polyfill 1.70.2 - https://github.com/polyfill-rs/once_cell_polyfill
   * quick-error 2.0.1 - http://github.com/tailhook/quick-error
     Authors: Paul Colomiets <paul@colomiets.name>; Colin Kiegel <kiegel@gmx.de>
-  * toml_datetime 1.1.1+spec-1.1.0 - https://github.com/toml-rs/toml
-  * toml_edit 0.25.15+spec-1.1.0 - https://github.com/toml-rs/toml
-  * toml_parser 1.1.3+spec-1.1.0 - https://github.com/toml-rs/toml
 
 
                                  Apache License
@@ -3520,8 +3505,6 @@ Apache License 2.0
 Used by:
   * async-broadcast 0.7.2 - https://github.com/smol-rs/async-broadcast
     Authors: Stjepan Glavina <stjepang@gmail.com>; Yoshua Wuyts <yoshuawuyts@gmail.com>; Zeeshan Ali Khan <zeeshanak@gnome.org>
-  * futures-concurrency 7.7.1 - https://github.com/yoshuawuyts/futures-concurrency
-    Authors: Yoshua Wuyts <yoshuawuyts@gmail.com>
 
 
                                  Apache License
@@ -4992,7 +4975,7 @@ limitations under the License.
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * memmap2 0.9.11 - https://github.com/RazrFalcon/memmap2-rs
+  * memmap2 0.9.12 - https://github.com/RazrFalcon/memmap2-rs
     Authors: Dan Burkert <dan@danburkert.com>; Yevhenii Reizner <razrfalcon@gmail.com>; The Contributors
 
 
@@ -5424,8 +5407,6 @@ Used by:
     Authors: bluss
   * async-channel 2.5.0 - https://github.com/smol-rs/async-channel
     Authors: Stjepan Glavina <stjepang@gmail.com>
-  * async-compression 0.4.50 - https://github.com/Nullus157/async-compression
-    Authors: Wim Looman <wim@nemo157.com>; Allen Bui <fairingrey@gmail.com>
   * async-executor 1.14.0 - https://github.com/smol-rs/async-executor
     Authors: Stjepan Glavina <stjepang@gmail.com>; John Nunley <dev@notgull.net>
   * async-fs 2.2.0 - https://github.com/smol-rs/async-fs
@@ -5444,8 +5425,6 @@ Used by:
     Authors: Stjepan Glavina <stjepang@gmail.com>
   * atomic-waker 1.1.2 - https://github.com/smol-rs/atomic-waker
     Authors: Stjepan Glavina <stjepang@gmail.com>; Contributors to futures-rs
-  * atomic 0.5.3 - https://github.com/Amanieu/atomic-rs
-    Authors: Amanieu d'Antras <amanieu@gmail.com>
   * backtrace 0.3.76 - https://github.com/rust-lang/backtrace-rs
     Authors: The Rust Project Developers
   * base64 0.22.1 - https://github.com/marshallpierce/rust-base64
@@ -5455,19 +5434,12 @@ Used by:
   * bitflags 2.13.2 - https://github.com/bitflags/bitflags
     Authors: The Rust Project Developers
   * blocking 1.7.0 - https://github.com/smol-rs/blocking
-  * bzip2 0.6.1 - https://github.com/trifectatechfoundation/bzip2-rs
   * cfg-if 1.0.5 - https://github.com/rust-lang/cfg-if
     Authors: Alex Crichton <alex@alexcrichton.com>
-  * cgl 0.3.2 - https://github.com/servo/cgl-rs
+  * cocoa-foundation 0.2.1 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
-  * cocoa-foundation 0.2.0 - https://github.com/servo/core-foundation-rs
+  * cocoa 0.26.1 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
-  * cocoa 0.26.0 - https://github.com/servo/core-foundation-rs
-    Authors: The Servo Project Developers
-  * compression-codecs 0.4.45 - https://github.com/Nullus157/async-compression
-    Authors: Wim Looman <wim@nemo157.com>; Allen Bui <fairingrey@gmail.com>
-  * compression-core 0.4.33 - https://github.com/Nullus157/async-compression
-    Authors: Wim Looman <wim@nemo157.com>; Allen Bui <fairingrey@gmail.com>
   * concurrent-queue 2.5.0 - https://github.com/smol-rs/concurrent-queue
     Authors: Stjepan Glavina <stjepang@gmail.com>; Taiki Endo <te316e89@gmail.com>; John Nunley <dev@notgull.net>
   * const-random-macro 0.1.16 - https://github.com/tkaitchuck/constrandom
@@ -5476,28 +5448,23 @@ Used by:
     Authors: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
   * core-foundation-sys 0.8.7 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
-  * core-foundation 0.10.0 - https://github.com/servo/core-foundation-rs
+  * core-foundation 0.10.1 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
   * core-graphics-types 0.2.0 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
-  * core-graphics2 0.5.2 - https://github.com/rust-media/apple-media-rs
-    Authors: Zhou Wei <zhouwei@ehom.net>
   * core-graphics 0.24.0 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
   * core-text 21.0.0 - https://github.com/servo/core-foundation-rs
     Authors: The Servo Project Developers
-  * core-video 0.5.2 - https://github.com/rust-media/apple-media-rs
-    Authors: Zhou Wei <zhouwei@ehom.net>
   * crossbeam-deque 0.8.8 - https://github.com/crossbeam-rs/crossbeam
   * crossbeam-epoch 0.9.21 - https://github.com/crossbeam-rs/crossbeam
-  * crossbeam-queue 0.3.14 - https://github.com/crossbeam-rs/crossbeam
   * crossbeam-utils 0.8.23 - https://github.com/crossbeam-rs/crossbeam
   * data-url 0.3.2 - https://github.com/servo/rust-url
     Authors: Simon Sapin <simon.sapin@exyr.org>
   * displaydoc 0.2.7 - https://github.com/yaahc/displaydoc
     Authors: Jane Lusby <jlusby@yaah.dev>
-  * either 1.18.0 - https://github.com/rayon-rs/either
-  * equivalent 1.0.2 - https://github.com/indexmap-rs/equivalent
+  * either 1.19.0 - https://github.com/rayon-rs/either
+  * equivalent 1.0.3 - https://github.com/indexmap-rs/equivalent
   * errno 0.3.14 - https://github.com/lambda-fairy/rust-errno
     Authors: Chris Wong <lambda.fairy@gmail.com>; Dan Gohman <dev@sunfishcode.online>
   * euclid 0.22.14 - https://github.com/servo/euclid
@@ -5508,8 +5475,6 @@ Used by:
     Authors: Stjepan Glavina <stjepang@gmail.com>; John Nunley <dev@notgull.net>
   * fastrand 2.5.0 - https://github.com/smol-rs/fastrand
     Authors: Stjepan Glavina <stjepang@gmail.com>
-  * fixedbitset 0.5.7 - https://github.com/petgraph/fixedbitset
-    Authors: bluss
   * flate2 1.1.9 - https://github.com/rust-lang/flate2-rs
     Authors: Alex Crichton <alex@alexcrichton.com>; Josh Triplett <josh@joshtriplett.org>
   * form_urlencoded 1.2.2 - https://github.com/servo/rust-url
@@ -5536,8 +5501,6 @@ Used by:
   * idna_adapter 1.2.2 - https://github.com/hsivonen/idna_adapter
     Authors: The rust-url developers
   * indexmap 2.14.2 - https://github.com/indexmap-rs/indexmap
-  * io-surface 0.16.1 - https://github.com/servo/core-foundation-rs
-    Authors: The Servo Project Developers
   * itertools 0.14.0 - https://github.com/rust-itertools/itertools
     Authors: bluss
   * khronos-egl 6.0.0 - https://github.com/timothee-haudebourg/khronos-egl
@@ -5591,8 +5554,6 @@ Used by:
     Authors: The image-rs Developers
   * polling 3.11.0 - https://github.com/smol-rs/polling
     Authors: Stjepan Glavina <stjepang@gmail.com>; John Nunley <dev@notgull.net>
-  * pollster 0.2.5 - https://github.com/zesterer/pollster
-    Authors: Joshua Barretto <joshua.s.barretto@gmail.com>
   * pollster 0.4.0 - https://github.com/zesterer/pollster
     Authors: Joshua Barretto <joshua.s.barretto@gmail.com>
   * rayon-core 1.13.0 - https://github.com/rayon-rs/rayon
@@ -5607,7 +5568,7 @@ Used by:
     Authors: Eyal Kalderon <ebkalderon@gmail.com>
   * roxmltree 0.20.0 - https://github.com/RazrFalcon/roxmltree
     Authors: Yevhenii Reizner <razrfalcon@gmail.com>
-  * roxmltree 0.21.1 - https://github.com/RazrFalcon/roxmltree
+  * roxmltree 0.21.2 - https://github.com/RazrFalcon/roxmltree
     Authors: Yevhenii Reizner <razrfalcon@gmail.com>
   * rustc-demangle 0.1.28 - https://github.com/rust-lang/rustc-demangle
     Authors: Alex Crichton <alex@alexcrichton.com>
@@ -5619,16 +5580,14 @@ Used by:
     Authors: Alex Crichton <alex@alexcrichton.com>
   * scopeguard 1.2.0 - https://github.com/bluss/scopeguard
     Authors: bluss
-  * serde_fmt 1.1.0 - https://github.com/KodrAus/serde_fmt.git
-    Authors: Ashley Mannix <ashleymannix@live.com.au>
   * signal-hook-registry 1.4.8 - https://github.com/vorner/signal-hook
     Authors: Michal 'vorner' Vaner <vorner@vorner.cz>; Masaki Hara <ackie.h.gmai@gmail.com>
   * simplecss 0.2.2 - https://github.com/linebender/simplecss
-  * smallvec 1.16.2 - https://github.com/servo/rust-smallvec
+  * smallvec 1.16.4 - https://github.com/servo/rust-smallvec
     Authors: The Servo Project Developers
   * smol 2.0.2 - https://github.com/smol-rs/smol
     Authors: Stjepan Glavina <stjepang@gmail.com>
-  * smol_str 0.3.6 - https://github.com/rust-lang/rust-analyzer/tree/master/lib/smol_str
+  * smol_str 0.3.7 - https://github.com/rust-lang/rust-analyzer/tree/master/lib/smol_str
     Authors: Aleksey Kladov <aleksey.kladov@gmail.com>; Lukas Wirth <lukastw97@gmail.com>
   * stable_deref_trait 1.2.1 - https://github.com/storyyeller/stable_deref_trait
     Authors: Robert Grosse <n210241048576@gmail.com>
@@ -5637,8 +5596,6 @@ Used by:
     Authors: Chad Brokaw <cbrokaw@gmail.com>
   * tempfile 3.27.0 - https://github.com/Stebalien/tempfile
     Authors: Steven Allen <steven@stebalien.com>; The Rust Project Developers; Ashley Mannix <ashleymannix@live.com.au>; Jason White <me@jasonwhite.io>
-  * thread_local 1.1.10 - https://github.com/Amanieu/thread_local-rs
-    Authors: Amanieu d'Antras <amanieu@gmail.com>
   * ttf-parser 0.25.1 - https://github.com/harfbuzz/ttf-parser
     Authors: Caleb Maclennan <caleb@alerque.com>; Laurenz Stampfl <laurenz.stampfl@gmail.com>; Yevhenii Reizner <razrfalcon@gmail.com>; خالد حسني (Khaled Hosny) <khaled@aliftype.com>
   * unicode-bidi-mirroring 0.4.0 - https://github.com/RazrFalcon/unicode-bidi-mirroring
@@ -5655,16 +5612,10 @@ Used by:
     Authors: Evgeniy Reizner <razrfalcon@gmail.com>
   * unicode-width 0.2.2 - https://github.com/unicode-rs/unicode-width
     Authors: kwantam <kwantam@gmail.com>; Manish Goregaokar <manishsmail@gmail.com>
-  * unicode-xid 0.2.6 - https://github.com/unicode-rs/unicode-xid
-    Authors: erick.tryzelaar <erick.tryzelaar@gmail.com>; kwantam <kwantam@gmail.com>; Manish Goregaokar <manishsmail@gmail.com>
   * url 2.5.8 - https://github.com/servo/rust-url
     Authors: The rust-url developers
-  * uuid 1.27.0 - https://github.com/uuid-rs/uuid
+  * uuid 1.29.0 - https://github.com/uuid-rs/uuid
     Authors: Ashley Mannix<ashleymannix@live.com.au>; Dylan DPC<dylan.dpc@gmail.com>; Hunar Roop Kahlon<hunar.roop@gmail.com>
-  * value-bag-serde1 1.14.1
-    Authors: Ashley Mannix <ashleymannix@live.com.au>
-  * value-bag 1.14.1 - https://github.com/sval-rs/value-bag
-    Authors: Ashley Mannix <ashleymannix@live.com.au>
   * waker-fn 1.2.0 - https://github.com/smol-rs/waker-fn
     Authors: Stjepan Glavina <stjepang@gmail.com>
   * zed-font-kit 0.14.1-zed - https://github.com/servo/font-kit
@@ -8013,7 +7964,7 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * font-types 0.12.6 - https://github.com/googlefonts/fontations
+  * font-types 0.12.7 - https://github.com/googlefonts/fontations
   * read-fonts 0.41.0 - https://github.com/googlefonts/fontations
   * skrifa 0.44.0 - https://github.com/googlefonts/fontations
 
@@ -9132,7 +9083,7 @@ Used by:
     Authors: David Tolnay <dtolnay@gmail.com>
   * async-trait 0.1.92 - https://github.com/dtolnay/async-trait
     Authors: David Tolnay <dtolnay@gmail.com>
-  * basic-udev 0.1.2 - https://github.com/xobs/basic-udev
+  * basic-udev 0.1.3 - https://github.com/xobs/basic-udev
     Authors: Sean Cross <sean@xobs.io>
   * dirs-sys 0.4.1 - https://github.com/dirs-dev/dirs-sys-rs
     Authors: Simon Ochsenreither <simon@ochsenreither.de>
@@ -9148,8 +9099,6 @@ Used by:
     Authors: David Tolnay <dtolnay@gmail.com>
   * enumn 0.1.14 - https://github.com/dtolnay/enumn
     Authors: David Tolnay <dtolnay@gmail.com>
-  * erased-serde 0.4.10 - https://github.com/dtolnay/erased-serde
-    Authors: David Tolnay <dtolnay@gmail.com>
   * etagere 0.2.15 - https://github.com/nical/etagere
     Authors: Nicolas Silva <nical@fastmail.com>
   * fdeflate 0.3.7 - https://github.com/image-rs/fdeflate
@@ -9163,32 +9112,28 @@ Used by:
   * image-webp 0.2.4 - https://github.com/image-rs/image-webp
   * image 0.25.10 - https://github.com/image-rs/image
     Authors: The image-rs Developers
-  * inventory 0.3.24 - https://github.com/dtolnay/inventory
+  * inventory 0.3.25 - https://github.com/dtolnay/inventory
     Authors: David Tolnay <dtolnay@gmail.com>
   * itoa 1.0.18 - https://github.com/dtolnay/itoa
     Authors: David Tolnay <dtolnay@gmail.com>
-  * leak 0.1.2 - https://github.com/jmesmon/leak.git
-    Authors: Cody P Schafer <dev@codyps.com>
-  * leaky-cow 0.1.1 - https://github.com/notriddle/rust-leaky-cow
-    Authors: Michael Howell <michael@notriddle.com>
-  * libc 0.2.190 - https://github.com/rust-lang/libc
+  * libc 0.2.191 - https://github.com/rust-lang/libc
   * linebender_resource_handle 0.1.1 - https://github.com/linebender/raw_resource_handle
-  * litrs 1.0.0 - https://github.com/LukasKalbertodt/litrs
+  * litrs 1.0.1 - https://github.com/LukasKalbertodt/litrs
     Authors: Lukas Kalbertodt <lukas.kalbertodt@gmail.com>
   * lyon 1.0.19 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
-  * lyon_algorithms 1.0.21 - https://github.com/nical/lyon
+  * lyon_algorithms 1.0.22 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
-  * lyon_geom 1.0.19 - https://github.com/nical/lyon
+  * lyon_geom 1.0.20 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
   * lyon_path 1.0.19 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
-  * lyon_tessellation 1.0.22 - https://github.com/nical/lyon
+  * lyon_tessellation 1.0.23 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
   * mac-notification-sys 0.6.15 - https://github.com/h4llow3En/mac-notification-sys
     Authors: Felix Döring <development@felixdoering.com>; Hendrik Sollich <hendrik@hoodie.de>
   * mach2 0.4.3 - https://github.com/JohnTitor/mach2
-  * mach2 0.5.0 - https://github.com/JohnTitor/mach2
+  * mach2 0.6.0 - https://github.com/JohnTitor/mach2
   * miniz_oxide 0.8.9 - https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide
     Authors: Frommi <daniil.liferenko@gmail.com>; oyvindln <oyvindln@users.noreply.github.com>; Rich Geldreich richgel99@gmail.com
   * naga 29.0.4 - https://github.com/gfx-rs/wgpu
@@ -9197,13 +9142,11 @@ Used by:
     Authors: Jacob Pratt <jacob@jhpratt.dev>
   * objc2-app-kit 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-core-foundation 0.3.2 - https://github.com/madsmtm/objc2
-  * objc2-core-graphics 0.3.2 - https://github.com/madsmtm/objc2
-  * objc2-core-location 0.3.2 - https://github.com/madsmtm/objc2
-  * objc2-core-media 0.3.2 - https://github.com/madsmtm/objc2
+  * objc2-core-text 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-core-video 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-metal 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-quartz-core 0.3.2 - https://github.com/madsmtm/objc2
-  * objc2-screen-capture-kit 0.3.2 - https://github.com/madsmtm/objc2
+  * objc2-security 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-user-notifications 0.3.2 - https://github.com/madsmtm/objc2
   * paste 1.0.15 - https://github.com/dtolnay/paste
     Authors: David Tolnay <dtolnay@gmail.com>
@@ -9251,8 +9194,7 @@ Used by:
     Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>; David Tolnay <dtolnay@gmail.com>
   * serde_derive_internals 0.30.0 - https://github.com/serde-rs/serde
     Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>; David Tolnay <dtolnay@gmail.com>
-  * serde_json 1.0.151 - https://github.com/serde-rs/json
-    Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>; David Tolnay <dtolnay@gmail.com>
+  * serde_json 1.0.154 - https://github.com/serde-rs/json
   * serde_path_to_error 0.1.20 - https://github.com/dtolnay/path-to-error
     Authors: David Tolnay <dtolnay@gmail.com>
   * serde_repr 0.1.21 - https://github.com/dtolnay/serde-repr
@@ -9267,7 +9209,7 @@ Used by:
     Authors: Nicolas Silva <nical@fastmail.com>
   * syn 2.0.119 - https://github.com/dtolnay/syn
     Authors: David Tolnay <dtolnay@gmail.com>
-  * syn 3.0.6 - https://github.com/dtolnay/syn
+  * syn 3.0.9 - https://github.com/dtolnay/syn
     Authors: David Tolnay <dtolnay@gmail.com>
   * tauri-winrt-notification 0.8.1 - https://github.com/tauri-apps/winrt-notification
     Authors: allenbenz; Tauri Programme within The Commons Conservancy
@@ -9283,9 +9225,7 @@ Used by:
     Authors: Jacob Pratt <open-source@jhpratt.dev>; Time contributors
   * time 0.3.55 - https://github.com/time-rs/time
     Authors: Jacob Pratt <open-source@jhpratt.dev>; Time contributors
-  * typeid 1.0.3 - https://github.com/dtolnay/typeid
-    Authors: David Tolnay <dtolnay@gmail.com>
-  * unicode-ident 1.0.26 - https://github.com/dtolnay/unicode-ident
+  * unicode-ident 1.0.27 - https://github.com/dtolnay/unicode-ident
     Authors: David Tolnay <dtolnay@gmail.com>
   * usvg 0.46.0 - https://github.com/linebender/resvg
   * utf8parse 0.2.2 - https://github.com/alacritty/vte
@@ -9386,27 +9326,24 @@ limitations under the License.
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * gpui-pre-wgpu 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-apple 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-collections 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-derive-refineable 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-http-client 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-linux 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-macos 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-macros 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-perf 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-platform 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-refineable 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-scheduler 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-shared-string 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-sum-tree 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-util-macros 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-util 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-windows 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-zlog 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-ztracing-macro 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre-ztracing 0.3.8 - https://github.com/zed-industries/zed
-  * gpui-pre 0.3.8 - https://github.com/zed-industries/zed
+  * gpui-pre-wgpu 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-apple 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-collections 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-derive-refineable 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-http-client 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-linux 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-macos 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-macros 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-platform 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-refineable 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-scheduler 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-shared-string 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-sum-tree 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-util 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-windows 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-ztracing-macro 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-ztracing 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre 0.3.9 - https://github.com/zed-industries/zed
     Authors: Nathan Sobo <nathan@zed.dev>
 
 
@@ -10468,7 +10405,7 @@ endef
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * schemars 1.2.2 - https://github.com/GREsau/schemars
+  * schemars 1.2.3 - https://github.com/GREsau/schemars
     Authors: Graham Esau <gesau@hotmail.co.uk>
 
 
@@ -11003,7 +10940,7 @@ THE SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * ordered-float 5.5.0 - https://github.com/reem/rust-ordered-float
+  * ordered-float 5.5.1 - https://github.com/reem/rust-ordered-float
     Authors: Jonathan Reem <jonathan.reem@gmail.com>; Matt Brubeck <mbrubeck@limpet.net>
 
 
@@ -11257,43 +11194,10 @@ DEALINGS IN THE SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * sharded-slab 0.1.7 - https://github.com/hawkw/sharded-slab
-    Authors: Eliza Weisman <eliza@buoyant.io>
-
-
-Copyright (c) 2019 Eliza Weisman
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License
---------------------------------------------------------------------------------
-Used by:
   * tracing-attributes 0.1.31 - https://github.com/tokio-rs/tracing
     Authors: Tokio Contributors <team@tokio.rs>; Eliza Weisman <eliza@buoyant.io>; David Barsky <dbarsky@amazon.com>
   * tracing-core 0.1.36 - https://github.com/tokio-rs/tracing
     Authors: Tokio Contributors <team@tokio.rs>
-  * tracing-log 0.2.0 - https://github.com/tokio-rs/tracing
-    Authors: Tokio Contributors <team@tokio.rs>
-  * tracing-subscriber 0.3.23 - https://github.com/tokio-rs/tracing
-    Authors: Eliza Weisman <eliza@buoyant.io>; David Barsky <me@davidbarsky.com>; Tokio Contributors <team@tokio.rs>
   * tracing 0.1.44 - https://github.com/tokio-rs/tracing
     Authors: Eliza Weisman <eliza@buoyant.io>; Tokio Contributors <team@tokio.rs>
 
@@ -11455,13 +11359,13 @@ Used by:
     Authors: Zeeshan Ali Khan <zeeshanak@gnome.org>
   * zbus_macros 5.19.0 - https://github.com/z-galaxy/zbus/
     Authors: Marc-André Lureau <marcandre.lureau@redhat.com>; Zeeshan Ali Khan <zeeshanak@gnome.org>
-  * zbus_names 4.3.4 - https://github.com/z-galaxy/zbus/
+  * zbus_names 4.3.5 - https://github.com/z-galaxy/zbus/
     Authors: Zeeshan Ali Khan <zeeshanak@gnome.org>
   * zbus_xml 5.2.1 - https://github.com/z-galaxy/zbus/
     Authors: Zeeshan Ali Khan <zeeshanak@gnome.org>
-  * zvariant 5.15.0 - https://github.com/z-galaxy/zbus/
+  * zvariant 5.15.1 - https://github.com/z-galaxy/zbus/
     Authors: Zeeshan Ali Khan <zeeshanak@gnome.org>
-  * zvariant_derive 5.15.0 - https://github.com/z-galaxy/zbus/
+  * zvariant_derive 5.15.1 - https://github.com/z-galaxy/zbus/
     Authors: Zeeshan Ali Khan <zeeshanak@gnome.org>
 
 
@@ -11696,9 +11600,9 @@ SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * schemars 1.2.2 - https://github.com/GREsau/schemars
+  * schemars 1.2.3 - https://github.com/GREsau/schemars
     Authors: Graham Esau <gesau@hotmail.co.uk>
-  * schemars_derive 1.2.2 - https://github.com/GREsau/schemars
+  * schemars_derive 1.2.3 - https://github.com/GREsau/schemars
     Authors: Graham Esau <gesau@hotmail.co.uk>
 
 
@@ -11793,8 +11697,6 @@ SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * ashpd 0.11.1 - https://github.com/bilelmoussaoui/ashpd
-    Authors: Bilal Elmoussaoui <bil.elmoussaoui@gmail.com>
   * ashpd 0.13.13 - https://github.com/bilelmoussaoui/ashpd
     Authors: Bilal Elmoussaoui <bil.elmoussaoui@gmail.com>
 
@@ -11928,37 +11830,6 @@ Used by:
 MIT License
 
 Copyright (c) 2021 sarah
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License
---------------------------------------------------------------------------------
-Used by:
-  * postage 0.5.0 - https://github.com/austinjones/postage-rs
-    Authors: Austin Jones <implAustin@gmail.com>
-
-
-MIT License
-
-Copyright (c) 2022 Austin Jones
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -12169,12 +12040,12 @@ SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * badge-app 0.1.0
-  * badge-core 0.1.0
-  * badge-formats 0.1.0
-  * badge-io 0.1.0
-  * badge-render 0.1.0
-  * badgectl 0.1.0
+  * badge-app 0.2.0 - https://github.com/uintdev/led-badge-studio
+  * badge-core 0.2.0 - https://github.com/uintdev/led-badge-studio
+  * badge-formats 0.2.0 - https://github.com/uintdev/led-badge-studio
+  * badge-io 0.2.0 - https://github.com/uintdev/led-badge-studio
+  * badge-render 0.2.0 - https://github.com/uintdev/led-badge-studio
+  * badgectl 0.2.0 - https://github.com/uintdev/led-badge-studio
   * block2 0.6.2 - https://github.com/madsmtm/objc2
     Authors: Mads Marquart <mads@marquart.dk>
   * block 0.1.6 - http://github.com/SSheldon/rust-block
@@ -12191,9 +12062,9 @@ Used by:
     Authors: Mads Marquart <mads@marquart.dk>
   * objc2-foundation 0.2.2 - https://github.com/madsmtm/objc2
   * objc2-foundation 0.3.2 - https://github.com/madsmtm/objc2
-  * objc2 0.5.2 - https://github.com/madsmtm/objc2
+  * objc2 0.5.3 - https://github.com/madsmtm/objc2
     Authors: Steven Sheldon; Mads Marquart <mads@marquart.dk>
-  * objc2 0.6.4 - https://github.com/madsmtm/objc2
+  * objc2 0.6.5 - https://github.com/madsmtm/objc2
     Authors: Mads Marquart <mads@marquart.dk>
   * pulp-wasm-simd-flag 0.1.1 - https://github.com/sarah-quinones/pulp/
     Authors: sarah quiñones <sarah@veganb.tw>
@@ -12589,7 +12460,7 @@ Used by:
     Authors: Andrew Gallant <jamslam@gmail.com>
   * jiff-core 0.1.1 - https://github.com/BurntSushi/jiff
     Authors: Andrew Gallant <jamslam@gmail.com>
-  * jiff 0.2.37 - https://github.com/BurntSushi/jiff
+  * jiff 0.2.38 - https://github.com/BurntSushi/jiff
     Authors: Andrew Gallant <jamslam@gmail.com>
   * memchr 2.8.3 - https://github.com/BurntSushi/memchr
     Authors: Andrew Gallant <jamslam@gmail.com>; bluss
@@ -12977,7 +12848,7 @@ SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * open 5.4.4 - https://github.com/Byron/open-rs
+  * open 5.4.5 - https://github.com/Byron/open-rs
     Authors: Sebastian Thiel <byronimo@gmail.com>
 
 
@@ -13006,38 +12877,6 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License
---------------------------------------------------------------------------------
-Used by:
-  * nu-ansi-term 0.50.3 - https://github.com/nushell/nu-ansi-term
-    Authors: ogham@bsago.me; Ryan Scheel (Havvy) <ryan.havvy@gmail.com>; Josh Triplett <josh@joshtriplett.org>; The Nushell Project Developers
-
-
-The MIT License (MIT)
-
-Copyright (c) 2014 Benjamin Sago
-Copyright (c) 2021-2022 The Nushell Project Developers
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 
 
 --------------------------------------------------------------------------------
@@ -13493,7 +13332,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 Unicode License v3
 --------------------------------------------------------------------------------
 Used by:
-  * unicode-ident 1.0.26 - https://github.com/dtolnay/unicode-ident
+  * unicode-ident 1.0.27 - https://github.com/dtolnay/unicode-ident
     Authors: David Tolnay <dtolnay@gmail.com>
 
 
@@ -13542,31 +13381,31 @@ authorization of the copyright holder.
 Unicode License v3
 --------------------------------------------------------------------------------
 Used by:
-  * icu_collections 2.3.0 - https://github.com/unicode-org/icu4x
+  * icu_collections 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * icu_locale_core 2.3.0 - https://github.com/unicode-org/icu4x
+  * icu_locale_core 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * icu_normalizer 2.3.0 - https://github.com/unicode-org/icu4x
+  * icu_normalizer 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * icu_normalizer_data 2.3.0 - https://github.com/unicode-org/icu4x
+  * icu_normalizer_data 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * icu_properties 2.3.0 - https://github.com/unicode-org/icu4x
+  * icu_properties 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * icu_properties_data 2.3.0 - https://github.com/unicode-org/icu4x
+  * icu_properties_data 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * icu_provider 2.3.1 - https://github.com/unicode-org/icu4x
+  * icu_provider 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * litemap 0.8.3 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * potential_utf 0.1.6 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * tinystr 0.8.4 - https://github.com/unicode-org/icu4x
+  * tinystr 0.8.5 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * writeable 0.6.4 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * yoke-derive 0.8.4 - https://github.com/unicode-org/icu4x
     Authors: Manish Goregaokar <manishsmail@gmail.com>
-  * yoke 0.8.3 - https://github.com/unicode-org/icu4x
+  * yoke 0.8.4 - https://github.com/unicode-org/icu4x
     Authors: Manish Goregaokar <manishsmail@gmail.com>
   * zerofrom-derive 0.1.8 - https://github.com/unicode-org/icu4x
     Authors: Manish Goregaokar <manishsmail@gmail.com>
@@ -13574,9 +13413,9 @@ Used by:
     Authors: The ICU4X Project Developers
   * zerotrie 0.2.5 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
-  * zerovec-derive 0.11.6 - https://github.com/unicode-org/icu4x
+  * zerovec-derive 0.11.7 - https://github.com/unicode-org/icu4x
     Authors: Manish Goregaokar <manishsmail@gmail.com>
-  * zerovec 0.11.8 - https://github.com/unicode-org/icu4x
+  * zerovec 0.11.9 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
 
 
@@ -13686,61 +13525,4 @@ the following restrictions:
     misrepresented as being the original software.
 
 3. This notice may not be removed or altered from any source distribution.
-
---------------------------------------------------------------------------------
-bzip2 and libbzip2 License v1.0.6
---------------------------------------------------------------------------------
-Used by:
-  * libbz2-rs-sys 0.2.5 - https://github.com/trifectatechfoundation/libbzip2-rs
-
-
-
---------------------------------------------------------------------------
-
-The original program, "bzip2", the associated library "libbzip2", and all
-documentation, are
-
-Copyright (C) 1996-2021 Julian R Seward.
-Copyright (C) 2019-2020 Federico Mena Quintero
-Copyright (C) 2021 Micah Snyder
-
-This Rust translation, "libbzip2-rs" is a derived work based on "bzip2" and
-"libbzip2", and is Copyright (C) 2024-2025 Trifecta Tech Foundation and contributors
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-1. Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-
-2. The origin of this software must not be misrepresented; you must
-   not claim that you wrote the original software.  If you use this
-   software in a product, an acknowledgment in the product
-   documentation would be appreciated but is not required.
-
-3. Altered source versions must be plainly marked as such, and must
-   not be misrepresented as being the original software.
-
-4. The name of the author may not be used to endorse or promote
-   products derived from this software without specific prior written
-   permission.
-
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
-OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-Julian Seward, jseward@acm.org
-bzip2/libbzip2 version 1.1.0 of 6 September 2010
-
---------------------------------------------------------------------------
-
 

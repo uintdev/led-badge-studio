@@ -26,8 +26,8 @@ anyhow.workspace = true
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-gpui = { package = "gpui-pre", version = "=0.3.8" }
-gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["font-kit", "wayland", "x11"] }
+gpui = { package = "gpui-pre", version = "=0.3.9" }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.9", features = ["font-kit", "wayland", "x11"] }
 futures = "0.3"
 log = "0.4"
 env_logger = { version = "0.11", default-features = false, features = ["auto-color", "humantime"] }
@@ -35,13 +35,13 @@ unicode-segmentation = "1"
 
 [dev-dependencies]
 # GPUI's test mode: runs the app's window logic without a real window.
-gpui = { package = "gpui-pre", version = "=0.3.8", features = ["test-support"] }
-gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["test-support"] }
+gpui = { package = "gpui-pre", version = "=0.3.9", features = ["test-support"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.9", features = ["test-support"] }
 
 # Compile GPUI's Metal shaders when the app starts instead of at build time,
 # so building on macOS needs only the Command Line Tools, not all of Xcode.
 [target.'cfg(target_os = "macos")'.dependencies]
-gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["runtime_shaders"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.9", features = ["runtime_shaders"] }
 # The app's light or dark appearance for the native window frames.
 objc = "0.2"
 # The window's NSWindow, for the document title (native_document.rs).
