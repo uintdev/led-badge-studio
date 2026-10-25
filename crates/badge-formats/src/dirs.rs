@@ -9,7 +9,8 @@ const LEGACY_APP_DIR: &str = "led-badge";
 
 /// A per-user base folder: `%APPDATA%` on Windows,
 /// `~/Library/Application Support` on macOS, and elsewhere `$xdg_var` or
-/// `~/fallback`.
+/// `~/fallback` (also when `$xdg_var` is empty or relative, which the XDG
+/// spec says to ignore).
 fn user_base(xdg_var: &str, fallback: &str) -> Option<PathBuf> {
     let home = || std::env::var_os("HOME").map(PathBuf::from);
     if cfg!(windows) {
@@ -19,6 +20,7 @@ fn user_base(xdg_var: &str, fallback: &str) -> Option<PathBuf> {
     } else {
         std::env::var_os(xdg_var)
             .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
             .or_else(|| home().map(|h| h.join(fallback)))
     }
 }
