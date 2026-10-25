@@ -43,6 +43,7 @@ kind but outside what the badge supports.
 | `led_color` (mono badges) outside 1-7, including 0 (off) | Red |
 | More than 8 messages | The first 8 |
 | A drawing taller than the badge, wider than 4096 columns, or with pixel values outside 0-7 | Cut to fit; invalid pixels turned off |
+| Text that isn't UTF-8 (for example, saved by another program in Latin-1) | Those characters become � |
 
 **Refused** (the file doesn't open; nothing changes): anything without one
 sensible reading. The messages below are as `badgectl` prints them; the app

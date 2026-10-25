@@ -185,7 +185,20 @@ pub fn open_checked(path: &Path) -> Result<Loaded> {
     let bytes = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
     let text = String::from_utf8_lossy(&bytes);
     // Tolerate a UTF-8 byte order mark added by some editors.
-    project_from_json_checked(text.trim_start_matches('\u{feff}'))
+    let mut loaded = project_from_json_checked(text.trim_start_matches('\u{feff}'))?;
+    if std::str::from_utf8(&bytes).is_err() {
+        loaded.fixes.insert(
+            0,
+            Fix {
+                message: None,
+                setting: "Text".into(),
+                before: "characters that aren't UTF-8".into(),
+                after: "\u{fffd}".into(),
+                reason: "project files are UTF-8 (it may have been saved by another program)".into(),
+            },
+        );
+    }
+    Ok(loaded)
 }
 
 /// Opens a `.badge` project file; repairs are made but not reported.
@@ -571,6 +584,21 @@ mod tests {
         // Saving it again gives a clean file.
         let again = project_from_json_checked(&project_to_json(&l.project).unwrap()).unwrap();
         assert!(again.fixes.is_empty(), "{:?}", again.fixes);
+    }
+
+    #[test]
+    fn text_that_isnt_utf8_is_reported() {
+        let dir = std::env::temp_dir().join(format!("lbs-utf8-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("latin1.badge");
+        let mut json = project_to_json(&Project::new(CardType::Mono11)).unwrap().into_bytes();
+        let at = json.windows(5).position(|w| w == b"Hello").unwrap();
+        json[at + 1] = 0xE9; // "é" in Latin-1
+        std::fs::write(&path, &json).unwrap();
+        let loaded = open_checked(&path).unwrap();
+        assert_eq!(loaded.project.messages[0].text, "H\u{fffd}llo");
+        assert_eq!(loaded.fixes[0].setting, "Text");
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
