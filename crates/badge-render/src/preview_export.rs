@@ -119,11 +119,19 @@ pub fn busiest_frame(part: &Part) -> Framebuffer {
         .unwrap_or_else(|| Framebuffer::new(part.bitmap.height()))
 }
 
-/// Encodes in memory first, so a failed export leaves no half file.
+/// Encodes in memory first, then writes beside `path` and moves it over,
+/// so a failed export leaves no half file and keeps an earlier one.
 fn write(path: &Path, encode: impl FnOnce(&mut Vec<u8>) -> Result<()>) -> Result<()> {
     let mut bytes = Vec::new();
     encode(&mut bytes).with_context(|| format!("encoding {}", path.display()))?;
-    std::fs::write(path, bytes).with_context(|| format!("writing {}", path.display()))
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = std::path::PathBuf::from(tmp);
+    let written = std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    written.with_context(|| format!("writing {}", path.display()))
 }
 
 fn write_gif(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
@@ -457,6 +465,29 @@ mod tests {
     use badge_core::LedColor;
     use badge_core::Mode;
     use image::AnimationDecoder;
+
+    #[test]
+    fn writing_replaces_the_file_whole_or_not_at_all() {
+        let dir = std::env::temp_dir().join(format!("lbs-export-write-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("out.gif");
+        std::fs::write(&path, b"earlier").unwrap();
+        // An encoder that fails keeps the earlier file.
+        assert!(write(&path, |_| anyhow::bail!("no")).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"earlier");
+        write(&path, |out| {
+            out.extend_from_slice(b"new");
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"new");
+        assert!(!dir.join("out.gif.tmp").exists());
+        // A write that fails leaves nothing behind.
+        let missing = dir.join("missing/out.gif");
+        assert!(write(&missing, |_| Ok(())).is_err());
+        assert!(!dir.join("missing").exists());
+        let _ = std::fs::remove_dir_all(dir);
+    }
 
     fn scrolling() -> (Framebuffer, PreviewParams) {
         let mut fb = Framebuffer::new(11);
