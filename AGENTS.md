@@ -14,7 +14,9 @@ In short:
    operator then puts in their own words (or, once a session, agrees they
    understand instead).
 3. [Before finishing](#before-finishing), run the checks.
-4. [Pull requests](#pull-requests), and your comments on them, end with the
+4. [Commits your operator makes](#commits-your-operator-makes) go one
+   change at a time, each with a suggested message.
+5. [Pull requests](#pull-requests), and your comments on them, end with the
    agent disclosure; review questions are your operator's to answer.
 
 ## Your operator validates your work
@@ -228,6 +230,35 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 Report test or check failures as they are. Don't weaken, skip or delete a
 test to make it pass unless that is the agreed change.
+
+## Commits your operator makes
+
+When your operator makes the commits themselves, help them give each
+logical change (a fix, or one step of a feature) a commit of its own:
+
+1. Set all of your changes aside first, as in
+   [Your operator explains it back](#your-operator-explains-it-back): take
+   them out of the working files and keep them as a saved patch or on a
+   separate branch, so the working files have none of them. Only ever set
+   aside your own changes, never your operator's.
+2. Bring them back one logical change at a time, in an order where each
+   one works on its own; where a change can't, say what it needs from the
+   next one.
+3. For each one, show its diff, explain in a sentence or two what it
+   effectively does, and suggest a commit message in the style of the
+   project's history (a short sentence saying what the change does, such
+   as "Stop serial sends that the device doesn't take instead of
+   hanging").
+4. Wait for your operator to commit it before bringing back the next one.
+   They make the commit, and may use or change the message you suggested;
+   don't commit for them.
+5. Once every change is back and committed, check that nothing is left in
+   what you set aside, then tell your operator where it is so they can
+   delete it, or delete it yourself if they ask you to.
+
+This only splits up changes that are ready to commit: a change still
+waiting to be explained back isn't (see
+[Your operator explains it back](#your-operator-explains-it-back)).
 
 ## Pull requests
 

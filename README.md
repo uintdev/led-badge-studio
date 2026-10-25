@@ -243,8 +243,11 @@ then has to explain each code change back in their own words before it
 counts as done, unless they type a fixed sentence agreeing that they
 understand the session's changes; until they do either, the change is held
 back, and if their explanations keep missing the point, it's set aside
-until they understand it. Pull requests and comments made with an agent say so, and questions in
-a review are answered by the person, not the agent. AI can still help write
+until they understand it. When the person makes the commits, the agent hands
+the changes back one at a time, each with a suggested message, so every
+change gets a commit of its own. Pull requests and comments made with an
+agent say so, and questions in a review are answered by the person, not the
+agent. AI can still help write
 the code, but nothing goes in that a human hasn't seen and said they
 understood.
 
