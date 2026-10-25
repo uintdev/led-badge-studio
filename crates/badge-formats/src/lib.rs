@@ -167,17 +167,28 @@ pub fn project_from_json(s: &str) -> Result<Project> {
 
 pub fn save_project(project: &Project, path: &Path) -> Result<()> {
     let json = project_to_json(project)?;
+    // A link is followed, so the file it points to is the one replaced.
+    let path = &std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
     let tmp = path.with_extension("badge.tmp");
     // On the disk before it replaces the file, so a power cut right after
     // can't leave an empty file in its place.
     let write = || -> std::io::Result<()> {
         let mut file = std::fs::File::create(&tmp)?;
         file.write_all(json.as_bytes())?;
-        file.sync_all()
+        file.sync_all()?;
+        // The file it replaces keeps its permissions.
+        if let Ok(old) = std::fs::metadata(path) {
+            std::fs::set_permissions(&tmp, old.permissions())?;
+        }
+        Ok(())
     };
-    write().with_context(|| format!("writing {}", tmp.display()))?;
-    std::fs::rename(&tmp, path).with_context(|| format!("writing {}", path.display()))?;
-    Ok(())
+    let saved = write()
+        .with_context(|| format!("writing {}", tmp.display()))
+        .and_then(|()| std::fs::rename(&tmp, path).with_context(|| format!("writing {}", path.display())));
+    if saved.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    saved
 }
 
 /// Opens a `.badge` project file, reporting repairs.
@@ -584,6 +595,30 @@ mod tests {
         // Saving it again gives a clean file.
         let again = project_from_json_checked(&project_to_json(&l.project).unwrap()).unwrap();
         assert!(again.fixes.is_empty(), "{:?}", again.fixes);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn saving_keeps_links_and_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("lbs-save-link-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let target = dir.join("real.badge");
+        let link = dir.join("link.badge");
+        save_project(&Project::new(CardType::Mono11), &target).unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o600)).unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let mut p = Project::new(CardType::Mono11);
+        p.messages[0].text = "Changed".into();
+        save_project(&p, &link).unwrap();
+        assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(open(&target).unwrap().messages[0].text, "Changed");
+        assert_eq!(std::fs::metadata(&target).unwrap().permissions().mode() & 0o777, 0o600);
+        // A failed save leaves no temporary file behind.
+        assert!(save_project(&p, &dir.join("missing/x.badge")).is_err());
+        assert!(!dir.join("missing").exists());
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
