@@ -10,7 +10,6 @@
 pub mod dirs;
 pub mod last_sent;
 
-use std::io::Write;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -167,28 +166,8 @@ pub fn project_from_json(s: &str) -> Result<Project> {
 
 pub fn save_project(project: &Project, path: &Path) -> Result<()> {
     let json = project_to_json(project)?;
-    // A link is followed, so the file it points to is the one replaced.
-    let path = &std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    let tmp = path.with_extension("badge.tmp");
-    // On the disk before it replaces the file, so a power cut right after
-    // can't leave an empty file in its place.
-    let write = || -> std::io::Result<()> {
-        let mut file = std::fs::File::create(&tmp)?;
-        file.write_all(json.as_bytes())?;
-        file.sync_all()?;
-        // The file it replaces keeps its permissions.
-        if let Ok(old) = std::fs::metadata(path) {
-            std::fs::set_permissions(&tmp, old.permissions())?;
-        }
-        Ok(())
-    };
-    let saved = write()
-        .with_context(|| format!("writing {}", tmp.display()))
-        .and_then(|()| std::fs::rename(&tmp, path).with_context(|| format!("writing {}", path.display())));
-    if saved.is_err() {
-        let _ = std::fs::remove_file(&tmp);
-    }
-    saved
+    // Whole or not at all, through links, keeping the file's permissions.
+    badge_core::files::replace_file(path, json.as_bytes()).with_context(|| format!("writing {}", path.display()))
 }
 
 /// Opens a `.badge` project file, reporting repairs.

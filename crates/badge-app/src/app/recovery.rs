@@ -135,13 +135,9 @@ fn write(path: &Path, project: &Project, file: Option<&Path>) -> anyhow::Result<
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir)?;
     }
-    // Written aside and onto the disk, then moved over the old copy, so a
-    // crash or power cut while writing leaves the old one.
-    let tmp = path.with_extension("json.tmp");
-    let mut out = std::fs::File::create(&tmp)?;
-    std::io::Write::write_all(&mut out, serde_json::to_string(&value)?.as_bytes())?;
-    out.sync_all()?;
-    std::fs::rename(&tmp, path)?;
+    // Whole or not at all: a crash or power cut while writing leaves the
+    // old copy.
+    badge_core::files::replace_file(path, serde_json::to_string(&value)?.as_bytes())?;
     Ok(())
 }
 

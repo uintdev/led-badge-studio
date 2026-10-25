@@ -146,9 +146,8 @@ impl Settings {
             let _ = std::fs::create_dir_all(dir);
         }
         if let Ok(s) = serde_json::to_string_pretty(self) {
-            // Via a temporary file, so a crash can't leave half a file.
-            let tmp = p.with_extension("json.tmp");
-            if let Err(e) = std::fs::write(&tmp, s).and_then(|()| std::fs::rename(&tmp, &p)) {
+            // Whole or not at all, so a crash can't leave half a file.
+            if let Err(e) = badge_core::files::replace_file(&p, s.as_bytes()) {
                 log::warn!("could not save settings to {}: {e}", p.display());
             }
         }

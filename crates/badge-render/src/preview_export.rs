@@ -119,19 +119,13 @@ pub fn busiest_frame(part: &Part) -> Framebuffer {
         .unwrap_or_else(|| Framebuffer::new(part.bitmap.height()))
 }
 
-/// Encodes in memory first, then writes beside `path` and moves it over,
-/// so a failed export leaves no half file and keeps an earlier one.
+/// Encodes in memory first, then replaces the file whole (see
+/// [`badge_core::files::replace_file`]), so a failed export leaves no half
+/// file and keeps an earlier one.
 fn write(path: &Path, encode: impl FnOnce(&mut Vec<u8>) -> Result<()>) -> Result<()> {
     let mut bytes = Vec::new();
     encode(&mut bytes).with_context(|| format!("encoding {}", path.display()))?;
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = std::path::PathBuf::from(tmp);
-    let written = std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path));
-    if written.is_err() {
-        let _ = std::fs::remove_file(&tmp);
-    }
-    written.with_context(|| format!("writing {}", path.display()))
+    badge_core::files::replace_file(path, &bytes).with_context(|| format!("writing {}", path.display()))
 }
 
 fn write_gif(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
