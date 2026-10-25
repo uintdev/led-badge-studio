@@ -115,8 +115,8 @@ impl Settings {
         let Ok(text) = std::fs::read_to_string(&p) else {
             return (Settings::default(), None); // first run
         };
-        match serde_json::from_str(&text) {
-            Ok(s) => (s, None),
+        match serde_json::from_str::<Settings>(&text) {
+            Ok(s) => (s.repaired(), None),
             Err(e) => {
                 let kept = p.with_extension("json.damaged");
                 log::warn!(
@@ -128,6 +128,16 @@ impl Settings {
                 (Settings::default(), moved.then_some(kept))
             }
         }
+    }
+
+    /// Puts values a hand-edited file may have outside their range back to
+    /// the defaults.
+    fn repaired(mut self) -> Self {
+        // Off isn't an LED color.
+        if !self.mono_tint.is_on() {
+            self.mono_tint = Settings::default().mono_tint;
+        }
+        self
     }
 
     pub fn save(&self) {
@@ -148,5 +158,20 @@ impl Settings {
         self.recent_files.retain(|f| f != &file);
         self.recent_files.insert(0, file);
         self.recent_files.truncate(MAX_RECENT);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_off_mono_tint_is_put_back_to_the_default() {
+        let with = |mono_tint| Settings {
+            mono_tint,
+            ..Default::default()
+        };
+        assert_eq!(with(LedColor::OFF).repaired().mono_tint, LedColor::RED);
+        assert_eq!(with(LedColor::BLUE).repaired().mono_tint, LedColor::BLUE);
     }
 }
