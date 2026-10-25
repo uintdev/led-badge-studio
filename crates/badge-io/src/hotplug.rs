@@ -409,8 +409,11 @@ cfg_select! {
                         return;
                     }
                     let _ = ready.send(Some(RunLoop(run_loop)));
+                    // In one-second turns: a CFRunLoopStop that comes just
+                    // before the run loop starts is lost, and `stop` is
+                    // then noticed at the end of the turn.
                     while !stop.load(Ordering::Relaxed) {
-                        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1.0e10, 0);
+                        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1.0, 0);
                     }
                     iterators.into_iter().for_each(|it| _ = IOObjectRelease(it));
                     IONotificationPortDestroy(port);
