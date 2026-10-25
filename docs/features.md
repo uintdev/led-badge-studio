@@ -109,7 +109,8 @@
 - **Export…** in the Preview card saves the preview as an image, exactly
   as the preview shows it (LED color and shape, Glow, Show brightness):
   - **Format**: GIF, PNG (animated PNG) or WebP (lossless). WebP is usually
-    the smallest by far; GIF works everywhere.
+    the smallest by far; GIF works everywhere. Typing a file name ending in
+    `.gif`, `.png` or `.webp` picks that format.
   - **Animation**: one full cycle at the badge's own speed, looping (every
     ticked message in turn with **All ticked**). **Current frame**: the
     frame shown when you clicked Export, as a still (pause the preview to

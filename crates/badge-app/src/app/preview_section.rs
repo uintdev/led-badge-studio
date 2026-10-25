@@ -222,7 +222,6 @@ impl BadgeApp {
             (false, true) => format!("messages.{ext}"),
             (false, false) => format!("message{}.{ext}", messages[0] + 1),
         };
-        let what = format!("{}{}", format.label(), if still { " image" } else { " animation" });
         let rx = cx.prompt_for_new_path(&self.default_dir(), Some(&name));
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
@@ -230,6 +229,9 @@ impl BadgeApp {
             if path.extension().is_none() {
                 path.set_extension(ext);
             }
+            // A typed extension of another format picks that format.
+            let format = ExportFormat::from_path(&path).unwrap_or(format);
+            let what = format!("{}{}", format.label(), if still { " image" } else { " animation" });
             this.update(cx, |t, cx| {
                 t.set_status(format!("Saving the {what}\u{2026}"), Severity::Info);
                 cx.notify();
