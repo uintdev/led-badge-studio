@@ -46,8 +46,15 @@ pub(super) fn default_path() -> Option<PathBuf> {
             .as_millis();
         let id = format!("{}-{started}", std::process::id());
         let lock = std::fs::File::create(dir.join(format!("{id}.lock"))).ok()?;
-        lock.try_lock().ok()?;
-        Some((dir.join(format!("{id}.json")), lock))
+        // Another app starting may be checking this lock at this moment
+        // (`in_use`), holding it for an instant.
+        for _ in 0..20 {
+            if lock.try_lock().is_ok() {
+                return Some((dir.join(format!("{id}.json")), lock));
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        None
     })
     .as_ref()
     .map(|(path, _)| path.clone())
@@ -67,27 +74,48 @@ pub(super) fn find_left_behind() -> Option<Recovered> {
     use badge_formats::dirs;
     let own = default_path();
     let dir = copies_dir()?;
-    // Lock files of apps that closed with nothing to keep.
-    for entry in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
-        let lock = entry.path();
-        if lock.extension().is_some_and(|x| x == "lock")
-            && !lock.with_extension("json").exists()
-            && !in_use(&lock.with_extension("json"))
-        {
-            let _ = std::fs::remove_file(lock);
-        }
-    }
-    let mut found: Vec<Recovered> = std::fs::read_dir(&dir)
+    clean_up(&dir);
+    let modified = |p: &Path| std::fs::metadata(p).and_then(|m| m.modified()).ok();
+    let mut copies: Vec<(SystemTime, PathBuf)> = std::fs::read_dir(&dir)
         .into_iter()
         .flatten()
         .flatten()
         .map(|e| e.path())
         .filter(|p| p.extension().is_some_and(|x| x == "json") && Some(p) != own.as_ref() && !in_use(p))
         .chain(dirs::data_base().map(|b| dirs::user_file(&b, LEGACY_FILE_NAME)))
-        .filter_map(|p| read(&p))
+        .filter_map(|p| Some((modified(&p)?, p)))
         .collect();
-    found.sort_by_key(|r| std::cmp::Reverse(r.when));
-    found.into_iter().next()
+    // Only the newest that can be read is opened.
+    copies.sort_by_key(|(when, _)| std::cmp::Reverse(*when));
+    copies.into_iter().find_map(|(_, p)| read(&p))
+}
+
+/// Removes what apps that are gone left behind besides copies: lock files
+/// of ones that closed with nothing to keep, and half-written copies of
+/// ones that crashed while writing. Only files a minute old or older, so
+/// an app starting at the same moment keeps its new lock file.
+fn clean_up(dir: &Path) {
+    let old = |p: &Path| {
+        std::fs::metadata(p)
+            .and_then(|m| m.modified())
+            .is_ok_and(|t| t.elapsed().is_ok_and(|age| age >= Duration::from_secs(60)))
+    };
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+        // The copy each leftover belongs to.
+        let copy = if let Some(id) = name.strip_suffix(".lock") {
+            dir.join(format!("{id}.json"))
+        } else if let Some(id) = name.strip_suffix(".json.tmp") {
+            dir.join(format!("{id}.json"))
+        } else {
+            continue;
+        };
+        let lone_lock = name.ends_with(".lock") && !copy.exists();
+        if (lone_lock || name.ends_with(".tmp")) && old(&path) && !in_use(&copy) {
+            let _ = std::fs::remove_file(&path);
+        }
+    }
 }
 
 /// Whether the app that keeps the copy at `path` is still running (holds
@@ -300,6 +328,40 @@ mod tests {
         assert!(!in_use(&copy));
         remove(&copy);
         assert!(!copy.exists() && !copy.with_extension("lock").exists());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn only_old_leftovers_of_apps_that_are_gone_are_cleaned_up() {
+        let dir = std::env::temp_dir().join(format!("lbs-recovery-clean-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let make = |name: &str, age_secs: u64| {
+            let path = dir.join(name);
+            let file = std::fs::File::create(&path).unwrap();
+            file.set_modified(SystemTime::now() - Duration::from_secs(age_secs))
+                .unwrap();
+            path
+        };
+        let gone_lock = make("1-1.lock", 120);
+        let new_lock = make("2-2.lock", 0);
+        let kept_copy_lock = make("3-3.lock", 120);
+        let kept_copy = make("3-3.json", 120);
+        let gone_tmp = make("4-4.json.tmp", 120);
+        let held_tmp = make("5-5.json.tmp", 120);
+        let held_lock = make("5-5.lock", 120);
+        let lock = std::fs::File::open(&held_lock).unwrap();
+        lock.try_lock().unwrap();
+        clean_up(&dir);
+        assert!(!gone_lock.exists(), "a lone, old lock file");
+        assert!(new_lock.exists(), "an app may be starting");
+        assert!(
+            kept_copy_lock.exists() && kept_copy.exists(),
+            "its copy is still offered"
+        );
+        assert!(!gone_tmp.exists(), "a half-written copy");
+        assert!(held_tmp.exists(), "its app is running");
+        drop(lock);
         let _ = std::fs::remove_dir_all(dir);
     }
 }
