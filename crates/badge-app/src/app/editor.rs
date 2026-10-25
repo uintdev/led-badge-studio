@@ -67,6 +67,10 @@ impl BadgeApp {
         self.import_gen += 1;
         let generation = self.import_gen;
         let (card, fit, msg) = (self.project.card, self.settings.import_fit_height, self.current);
+        // What message `msg` is now, to tell whether it's still the same
+        // message when the image is ready (New, Open, Undo or a move may
+        // have put another one there).
+        let target = (self.path.clone(), self.project.messages[msg].clone());
         let path = path.to_path_buf();
         self.set_status(LOADING_IMAGE, Severity::Info);
         cx.notify();
@@ -89,6 +93,10 @@ impl BadgeApp {
                     // Decoded for another badge type's height.
                     Ok(_) if t.project.card != card => t.set_status(
                         "The badge type changed while the image was loading; load it again.",
+                        Severity::Error,
+                    ),
+                    Ok(_) if t.path != target.0 || t.project.messages.get(msg) != Some(&target.1) => t.set_status(
+                        "The messages changed while the image was loading; load it again.",
                         Severity::Error,
                     ),
                     Ok((bytes, decoded)) => t.finish_import(msg, &path, bytes, (card, fit, decoded)),
