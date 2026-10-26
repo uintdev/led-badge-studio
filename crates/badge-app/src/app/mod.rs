@@ -506,6 +506,13 @@ impl BadgeApp {
                 t.check_file_changed_elsewhere(cx);
             }
         }));
+        // Quitting some other way (on macOS, from the Dock or by logging out)
+        // tidies up the unsaved-work copy too. The app's own Quit and Close
+        // already have by then, and doing it again changes nothing.
+        app._subs.push(cx.on_app_quit(|t, _| {
+            t.settle_recovery_before_quitting();
+            async {}
+        }));
         app.apply_theme(Some(window), cx);
         app.rerender_all();
         // After redrawing: pixels redrawn from text aren't a change.
@@ -863,6 +870,9 @@ impl BadgeApp {
                 this.update(cx, |t, cx| t.request_close(window, cx));
                 return false;
             }
+            // Nothing to ask about, and closing quits the app: its lock file
+            // goes now, as when the app closes the window itself.
+            this.update(cx, |t, _| t.settle_recovery_before_quitting());
             true
         });
     }

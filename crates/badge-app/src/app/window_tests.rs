@@ -1194,6 +1194,38 @@ fn quitting_removes_the_copy_and_its_lock_file(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn closing_the_window_with_nothing_to_ask_removes_the_lock_file(cx: &mut TestAppContext) {
+    let dir = temp_dir("recovery-close");
+    let copy = dir.join("1-2-0.json");
+    let lock = copy.with_extension("lock");
+    std::fs::write(&lock, "").unwrap();
+    cx.update(|cx| cx.bind_keys(bindings()));
+    let (app, cx) = cx.add_window_view(|window, cx| {
+        BadgeApp::install_close_guard(window, cx);
+        BadgeApp::new(None, window, cx)
+    });
+    app.update(cx, |app, _| app.recovery_path = Some(copy.clone()));
+    // The system's close (the red button, Alt+F4), with nothing unsaved.
+    cx.simulate_close();
+    assert!(!lock.exists());
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[gpui::test]
+fn quitting_from_outside_the_app_removes_the_lock_file(cx: &mut TestAppContext) {
+    let dir = temp_dir("recovery-outside");
+    let copy = dir.join("1-2-0.json");
+    let lock = copy.with_extension("lock");
+    std::fs::write(&lock, "").unwrap();
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| app.recovery_path = Some(copy.clone()));
+    // As macOS's quit from the Dock does when there's nothing to ask.
+    cx.cx.update(|cx| cx.shutdown());
+    assert!(!lock.exists());
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[gpui::test]
 fn recovered_work_stays_on_disk_when_it_cant_be_kept_again(cx: &mut TestAppContext) {
     let dir = temp_dir("recovery-unkept");
     let earlier = dir.join("earlier.json");
