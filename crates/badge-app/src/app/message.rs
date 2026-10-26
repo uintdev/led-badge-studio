@@ -3,6 +3,7 @@
 use super::dialogs::sentence_case;
 use super::menus::popup;
 use super::*;
+pub(super) use badge_core::protocol::messages_phrase;
 
 impl BadgeApp {
     pub(super) fn sync_input(&mut self, cx: &mut Context<Self>) {
@@ -555,12 +556,12 @@ impl BadgeApp {
                             })),
                     )
                     .when(used > cap, |d| {
-                        d.child(
-                            div()
-                                .text_caption()
-                                .text_color(theme::danger())
-                                .child("Too long: the end will be cut off"),
-                        )
+                        d.child(div().text_caption().text_color(theme::danger()).child(
+                            match badge_core::protocol::memory_cut(&self.project) {
+                                Some(cut) => format!("Too long: sending {cut}"),
+                                None => "Too long: the end will be cut off".into(),
+                            },
+                        ))
                     })
                     .when(used <= cap, |d| {
                         d.child(
@@ -1368,16 +1369,6 @@ pub(super) fn short_mode(m: Mode) -> &'static str {
         Mode::Snow => "snow",
         Mode::Curtain => "curtain",
         Mode::Laser => "laser",
-    }
-}
-
-/// "message 2", "messages 2 and 5", "messages 1, 3 and 4".
-pub(super) fn messages_phrase(indices: impl Iterator<Item = usize>) -> String {
-    let n: Vec<String> = indices.map(|i| (i + 1).to_string()).collect();
-    match n.as_slice() {
-        [one] => format!("message {one}"),
-        [rest @ .., last] => format!("messages {} and {last}", rest.join(", ")),
-        [] => "no messages".into(),
     }
 }
 

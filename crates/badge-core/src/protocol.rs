@@ -40,38 +40,53 @@ pub fn message_columns(project: &Project) -> [usize; MESSAGE_COUNT] {
 /// they need, and what sending them does about it (which messages are cut
 /// short and which left out, by `message_columns`).
 pub fn memory_overflow(project: &Project) -> Option<String> {
-    let used = project.used_columns();
-    if used <= MAX_TOTAL_COLUMNS {
+    let cut = memory_cut(project)?;
+    Some(format!(
+        "The ticked messages need {} columns, more than the {} the badge holds: sending {cut}.",
+        project.used_columns() * 8,
+        MAX_TOTAL_COLUMNS * 8
+    ))
+}
+
+/// What sending does to ticked messages that don't fit in the badge's
+/// memory ("cuts message 6 short and leaves out messages 7 and 8"), by
+/// `message_columns`; `None` when they fit.
+pub fn memory_cut(project: &Project) -> Option<String> {
+    if project.used_columns() <= MAX_TOTAL_COLUMNS {
         return None;
     }
     let cols = message_columns(project);
     let (mut short, mut left) = (Vec::new(), Vec::new());
     for (i, m) in project.messages.iter().take(MESSAGE_COUNT).enumerate() {
         if m.selected && cols[i] < m.bitmap.used_width() / 8 {
-            if cols[i] > 0 { &mut short } else { &mut left }.push(i + 1);
+            if cols[i] > 0 {
+                short.push(i);
+            } else {
+                left.push(i);
+            }
         }
     }
-    let cut = match (numbered(&short), numbered(&left)) {
-        (Some(s), Some(l)) => format!("cuts {s} short and leaves out {l}"),
-        (Some(s), None) => format!("cuts {s} short"),
-        (None, Some(l)) => format!("leaves out {l}"),
-        (None, None) => return None,
-    };
-    Some(format!(
-        "The ticked messages need {} columns, more than the {} the badge holds: sending {cut}.",
-        used * 8,
-        MAX_TOTAL_COLUMNS * 8
-    ))
+    let (s, l) = (
+        messages_phrase(short.iter().copied()),
+        messages_phrase(left.iter().copied()),
+    );
+    Some(match (short.is_empty(), left.is_empty()) {
+        (false, false) => format!("cuts {s} short and leaves out {l}"),
+        (false, true) => format!("cuts {s} short"),
+        (true, false) => format!("leaves out {l}"),
+        (true, true) => return None,
+    })
 }
 
-/// "message 6", "messages 6 and 7", "messages 6, 7 and 8"; `None` for none.
-fn numbered(numbers: &[usize]) -> Option<String> {
-    let (last, rest) = numbers.split_last()?;
-    if rest.is_empty() {
-        return Some(format!("message {last}"));
+/// Messages by index, counted from 1: "message 2", "messages 2 and 5",
+/// "messages 1, 3 and 4".
+pub fn messages_phrase(indices: impl Iterator<Item = usize>) -> String {
+    let n: Vec<String> = indices.map(|i| (i + 1).to_string()).collect();
+    match n.as_slice() {
+        [one] => format!("message {one}"),
+        [rest @ .., last] => format!("messages {} and {last}", rest.join(", ")),
+        [] => "no messages".into(),
     }
-    let rest: Vec<String> = rest.iter().map(usize::to_string).collect();
-    Some(format!("messages {} and {last}", rest.join(", ")))
 }
 
 /// Returns true when nothing would be sent.

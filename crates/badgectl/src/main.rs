@@ -324,9 +324,10 @@ fn check(files: &[PathBuf], fix: bool) -> i32 {
     let mut status = 0;
     for path in files {
         let name = path.display();
-        match badge_formats::open_checked(path) {
-            Ok(l) if l.fixes.is_empty() => println!("{name}: OK"),
-            Ok(l) => {
+        let loaded = badge_formats::open_checked(path);
+        match loaded {
+            Ok(ref l) if l.fixes.is_empty() => println!("{name}: OK"),
+            Ok(ref l) => {
                 let n = l.fixes.len();
                 let s = if n == 1 { "" } else { "s" };
                 if fix {
@@ -347,9 +348,17 @@ fn check(files: &[PathBuf], fix: bool) -> i32 {
                     println!("  - {f}");
                 }
             }
-            Err(e) => {
+            Err(ref e) => {
                 println!("{name}: can't be opened: {e:#}");
                 status = 1;
+            }
+        }
+        // Not a problem with the file, so it doesn't change the exit status.
+        if let Ok(l) = loaded {
+            let mut project = l.project;
+            render_all(&mut project);
+            if let Some(over) = badge_core::protocol::memory_overflow(&project) {
+                println!("  warning: {over}");
             }
         }
     }
