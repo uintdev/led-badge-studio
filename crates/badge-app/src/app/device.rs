@@ -267,6 +267,11 @@ impl BadgeApp {
             return;
         }
         if !cut_ok && let Some(over) = badge_core::protocol::memory_overflow(&self.project) {
+            // The shortcut works with another dialog open; asking would
+            // replace (and cancel) it.
+            if self.dialog.is_some() {
+                return;
+            }
             self.ask(
                 "The messages don't all fit on the badge",
                 &format!("{over} Untick or shorten messages to send them whole."),

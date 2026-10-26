@@ -756,6 +756,25 @@ fn sending_past_the_badges_memory_asks_first(cx: &mut TestAppContext) {
         };
         assert!(title.contains("don't all fit"));
         assert_eq!(confirm_label.as_ref(), "Send Anyway");
+
+        // Cancel sends nothing.
+        app.close_dialog(window, cx);
+        assert!(!app.is_sending());
+
+        // The shortcut with another dialog open leaves that dialog be.
+        app.notice("Something else", "", Vec::new(), false, window, cx);
+        app.send(&SendToBadge, window, cx);
+        assert!(matches!(&app.dialog, Some(Dialog::Notice { title, .. }) if title == "Something else"));
+        app.close_dialog(window, cx);
+
+        // Send Anyway goes on with the send, checks and all, without asking
+        // again: the badge unplugged meanwhile is noticed.
+        app.send(&SendToBadge, window, cx);
+        app.set_devices(Vec::new(), cx);
+        app.accept_dialog(window, cx);
+        assert!(app.dialog.is_none() && !app.is_sending());
+        let (status, _) = app.status.clone().unwrap();
+        assert!(status.starts_with("No badge connected"), "{status}");
     });
 }
 
