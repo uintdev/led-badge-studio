@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.1" date="2026-10-26">
+      <description>
+        <p>Keeps unsaved work more reliably after a crash, keeps editing smooth while it's saved, stops saves from following links other users planted, and puts a slowly loading image into the right message.</p>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-10-25">
       <description>
         <p>Shows the send's progress on the taskbar button on KDE Plasma and Ubuntu's dock, keeps unsaved work safe with several windows open, exports in the format of the typed file name, and fixes saving through links, damaged files and long serial uploads.</p>

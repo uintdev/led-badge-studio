@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.1 (2026-10-26)
+
+### All platforms
+
+- Editing no longer stutters while unsaved work is kept.
+- Work lost in a crash is offered in one window only.
+- Recovered work is kept on disk until it's safe again.
+- No lock files are left behind after quitting.
+- A failed Save Image keeps the earlier file.
+- A loading image follows its message when it's moved.
+- Changing image options while it loads no longer drops it.
+- No stray letter in the text box when a dialog appears.
+- Two windows saving settings at once no longer damage them.
+- Non-UTF-8 repairs name the field that changed.
+
+### Linux
+
+- Unsaved work is offered after a crash on NFS home folders.
+- Each Flatpak window keeps its own unsaved work.
+- Saving never writes through links other users planted.
+- Saving works where file permissions can't be copied.
+
+### macOS
+
+- Saving never writes through links other users planted.
+- Saving works where file permissions can't be copied.
+
 ## 0.2.0 (2026-10-25)
 
 ### All platforms
