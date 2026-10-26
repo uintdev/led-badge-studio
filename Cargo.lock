@@ -589,6 +589,7 @@ dependencies = [
 name = "badge-core"
 version = "0.2.0"
 dependencies = [
+ "libc",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
