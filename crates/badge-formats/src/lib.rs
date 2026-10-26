@@ -177,18 +177,39 @@ pub fn open_checked(path: &Path) -> Result<Loaded> {
     // Tolerate a UTF-8 byte order mark added by some editors.
     let mut loaded = project_from_json_checked(text.trim_start_matches('\u{feff}'))?;
     if std::str::from_utf8(&bytes).is_err() {
-        loaded.fixes.insert(
-            0,
-            Fix {
-                message: None,
-                setting: "Text".into(),
-                before: "characters that aren't UTF-8".into(),
-                after: "\u{fffd}".into(),
-                reason: "project files are UTF-8 (it may have been saved by another program)".into(),
-            },
-        );
+        let fixes = not_utf8_fixes(&loaded.project);
+        loaded.fixes.splice(0..0, fixes);
     }
     Ok(loaded)
+}
+
+/// The repairs of a file that isn't UTF-8: where in the project the
+/// characters that aren't ended up, each replaced with U+FFFD.
+fn not_utf8_fixes(project: &Project) -> Vec<Fix> {
+    let replaced = |s: &str| s.contains('\u{fffd}');
+    let fix = |message, setting: &str| Fix {
+        message,
+        setting: setting.into(),
+        before: "characters that aren't UTF-8".into(),
+        after: "\u{fffd}".into(),
+        reason: "project files are UTF-8 (it may have been saved by another program)".into(),
+    };
+    let mut fixes = Vec::new();
+    for (i, m) in project.messages.iter().enumerate() {
+        if replaced(&m.text) {
+            fixes.push(fix(Some(i + 1), "Text"));
+        }
+        if let badge_core::FontChoice::System { family, .. } = &m.font
+            && replaced(family)
+        {
+            fixes.push(fix(Some(i + 1), "Font"));
+        }
+    }
+    if fixes.is_empty() {
+        // In parts of the file the app doesn't use.
+        fixes.push(fix(None, "File"));
+    }
+    fixes
 }
 
 /// Opens a `.badge` project file; repairs are made but not reported.
@@ -612,6 +633,21 @@ mod tests {
         let loaded = open_checked(&path).unwrap();
         assert_eq!(loaded.project.messages[0].text, "H\u{fffd}llo");
         assert_eq!(loaded.fixes[0].setting, "Text");
+        assert_eq!(loaded.fixes[0].message, Some(1));
+        // In a font's name, it's the font that's reported.
+        let mut p = Project::new(CardType::Mono11);
+        p.messages[2].font = badge_core::FontChoice::System {
+            family: "M\u{fffd}nch Sans".into(),
+            size_px: 11,
+            bold: false,
+            italic: false,
+        };
+        let fixes = not_utf8_fixes(&p);
+        assert_eq!(fixes.len(), 1, "{fixes:?}");
+        assert_eq!((fixes[0].message, fixes[0].setting.as_str()), (Some(3), "Font"));
+        // Nowhere it's used.
+        let fixes = not_utf8_fixes(&Project::new(CardType::Mono11));
+        assert_eq!((fixes[0].message, fixes[0].setting.as_str()), (None, "File"));
         let _ = std::fs::remove_dir_all(dir);
     }
 
