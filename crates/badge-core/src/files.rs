@@ -22,10 +22,12 @@ pub fn replace_file(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         file.write_all(bytes)?;
         file.sync_all()?;
         // Not on Windows, where the only permission is read-only: a
-        // read-only copy couldn't replace the file or be removed.
+        // read-only copy couldn't replace the file or be removed. Where
+        // permissions can't be set (some network and FUSE folders), it's
+        // saved with the ones it was created with, never more.
         #[cfg(unix)]
         if let Some(old) = &old {
-            std::fs::set_permissions(&tmp, old.permissions())?;
+            let _ = std::fs::set_permissions(&tmp, old.permissions());
         }
         std::fs::rename(&tmp, path)
     };
