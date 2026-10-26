@@ -1144,6 +1144,40 @@ fn unsaved_work_is_kept_until_saved_and_can_be_recovered(cx: &mut TestAppContext
     let _ = std::fs::remove_dir_all(dir);
 }
 
+/// Quitting with nothing to keep removes the copy and the lock file; one
+/// that can't be removed is left (for a later start) without trouble.
+#[gpui::test]
+fn quitting_removes_the_copy_and_its_lock_file(cx: &mut TestAppContext) {
+    let dir = temp_dir("recovery-quit");
+    let copy = dir.join("1-2-0.json");
+    let lock = copy.with_extension("lock");
+    std::fs::write(&lock, "").unwrap();
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| app.recovery_path = Some(copy.clone()));
+    type_text(&app, cx, "Unsaved");
+    app.update(cx, |app, _| app.keep_recovery_copy());
+    assert!(copy.exists());
+    // What quitting does once its question is answered (Don't Save).
+    app.update(cx, |app, _| {
+        app.saved = Some(app.project.clone());
+        app.settle_recovery_before_quitting();
+    });
+    assert!(!copy.exists() && !lock.exists());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::write(&lock, "").unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555)).unwrap();
+        // Root may change the folder anyway.
+        let root = std::fs::write(dir.join("probe"), "").is_ok();
+        app.update(cx, |app, _| app.settle_recovery_before_quitting());
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(lock.exists() || root);
+    }
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 #[gpui::test]
 fn recovered_work_stays_on_disk_when_it_cant_be_kept_again(cx: &mut TestAppContext) {
     let dir = temp_dir("recovery-unkept");

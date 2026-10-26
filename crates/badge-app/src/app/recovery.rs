@@ -350,6 +350,24 @@ impl BadgeApp {
         settle()
     }
 
+    /// Before quitting: the copy as it should be on the disk and, once
+    /// there's none to keep, this app's lock file removed too. A lock file
+    /// that can't be removed (no permission, or still held open on Windows)
+    /// is left for a later start to clean up; it holds nothing.
+    pub(super) fn settle_recovery_before_quitting(&mut self) {
+        if !self.keep_recovery_copy_now() || self.recovery_written.is_some() {
+            return;
+        }
+        if let Some(path) = &self.recovery_path {
+            let lock = path.with_extension("lock");
+            if let Err(e) = std::fs::remove_file(&lock)
+                && e.kind() != std::io::ErrorKind::NotFound
+            {
+                log::debug!("left the lock file {} for later: {e}", lock.display());
+            }
+        }
+    }
+
     /// The banner's Recover: the work as it was, unsaved (saving it is up to
     /// you), in place of the current project (saved or asked about first).
     pub(super) fn recover_unsaved_work(&mut self, window: &mut Window, cx: &mut Context<Self>) {

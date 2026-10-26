@@ -787,7 +787,7 @@ impl BadgeApp {
     fn request_close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.before_quitting(window, cx, |t, window, cx| {
             t.saved = Some(t.project.clone());
-            t.keep_recovery_copy_now();
+            t.settle_recovery_before_quitting();
             #[cfg(all(target_os = "linux", not(test)))]
             launcher_entry::clear_before_quitting();
             // Closing this window quits the app. On Windows, quitting
@@ -805,7 +805,7 @@ impl BadgeApp {
     fn quit(&mut self, _: &Quit, window: &mut Window, cx: &mut Context<Self>) {
         self.before_quitting(window, cx, |t, _, cx| {
             t.saved = Some(t.project.clone());
-            t.keep_recovery_copy_now();
+            t.settle_recovery_before_quitting();
             #[cfg(all(target_os = "linux", not(test)))]
             launcher_entry::clear_before_quitting();
             #[cfg(all(target_os = "macos", not(test)))]
