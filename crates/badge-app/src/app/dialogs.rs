@@ -17,6 +17,7 @@ impl BadgeApp {
         then: impl FnOnce(&mut Self, &mut Window, &mut Context<Self>) + 'static,
     ) {
         self.menu = None;
+        self.replace_dialog(window, cx);
         self.dialog = Some(Dialog::Confirm {
             title: title.to_string().into(),
             detail: detail.to_string().into(),
@@ -26,8 +27,6 @@ impl BadgeApp {
             destructive,
         });
         self.pending_confirm = Some(Box::new(then));
-        self.pending_cancel = None;
-        self.pending_alternate = None;
         self.focus_dialog(window, cx);
         cx.notify();
     }
@@ -287,6 +286,16 @@ impl BadgeApp {
             .iter()
             .find(|c| families.iter().any(|f| f == *c))
             .map_or_else(|| "monospace".into(), |c| SharedString::from(*c))
+    }
+
+    /// Makes way for another dialog: the open one's choices are forgotten,
+    /// and it counts as cancelled (Keep Drawing puts the text box back).
+    pub(super) fn replace_dialog(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.pending_confirm = None;
+        self.pending_alternate = None;
+        if let Some(cancel) = self.pending_cancel.take() {
+            cancel(self, window, cx);
+        }
     }
 
     pub(super) fn close_dialog(&mut self, window: &mut Window, cx: &mut Context<Self>) {

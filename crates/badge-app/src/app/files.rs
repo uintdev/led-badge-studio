@@ -127,6 +127,7 @@ impl BadgeApp {
         cx: &mut Context<Self>,
     ) {
         self.menu = None;
+        self.replace_dialog(window, cx);
         self.dialog = Some(Dialog::Notice {
             title: title.into(),
             detail: detail.into(),
@@ -136,9 +137,6 @@ impl BadgeApp {
                 .collect(),
             error,
         });
-        self.pending_confirm = None;
-        self.pending_cancel = None;
-        self.pending_alternate = None;
         self.focus_dialog(window, cx);
         cx.notify();
     }
@@ -222,15 +220,13 @@ impl BadgeApp {
         cx: &mut Context<Self>,
     ) {
         self.menu = None;
+        self.replace_dialog(window, cx);
         self.dialog = Some(Dialog::Repair {
             path,
             fixes: loaded.fixes.clone(),
             opening,
         });
         self.pending_repair = Some(loaded);
-        self.pending_confirm = None;
-        self.pending_cancel = None;
-        self.pending_alternate = None;
         self.focus_dialog(window, cx);
         cx.notify();
     }

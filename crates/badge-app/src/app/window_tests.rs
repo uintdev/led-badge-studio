@@ -402,6 +402,21 @@ fn typing_over_a_drawing_asks_first(cx: &mut TestAppContext) {
         assert_eq!(app.msg().source, Source::Bitmap);
         assert_eq!(app.input.read(cx).text(), app.msg().text);
     });
+    // Another question taking its place counts as Keep Drawing.
+    cx.dispatch_action(ModalCancel);
+    input.update_in(cx, |input, window, cx| input.insert("z", window, cx));
+    cx.run_until_parked();
+    app.read_with(cx, |app, cx| assert_ne!(app.input.read(cx).text(), app.msg().text));
+    app.update_in(cx, |app, window, cx| {
+        app.notice("Elsewhere", "", Vec::new(), false, window, cx)
+    });
+    app.read_with(cx, |app, cx| {
+        assert_eq!(app.msg().source, Source::Bitmap);
+        assert_eq!(app.input.read(cx).text(), app.msg().text);
+    });
+    app.update_in(cx, |app, window, cx| app.close_dialog(window, cx));
+    input.update_in(cx, |input, window, cx| input.insert("x", window, cx));
+    cx.run_until_parked();
     // Keep Drawing: the keystroke is undone in the message box.
     cx.dispatch_action(ModalCancel);
     cx.run_until_parked();
