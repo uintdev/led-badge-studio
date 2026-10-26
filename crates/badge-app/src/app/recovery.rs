@@ -32,6 +32,9 @@ pub(super) struct Recovered {
     pub when: SystemTime,
     /// The copy it was read from, removed once it's recovered or discarded.
     pub path: PathBuf,
+    /// The lock of the app that left it, held while it's offered so another
+    /// app starting meanwhile doesn't offer it too.
+    claim: Option<std::fs::File>,
 }
 
 /// Where this app keeps its copy, locked for as long as it runs; `None` in
@@ -101,13 +104,31 @@ pub(super) fn find_left_behind() -> Option<Recovered> {
         .flatten()
         .flatten()
         .map(|e| e.path())
-        .filter(|p| p.extension().is_some_and(|x| x == "json") && Some(p) != own.as_ref() && !in_use(p))
+        .filter(|p| p.extension().is_some_and(|x| x == "json") && Some(p) != own.as_ref())
         .chain(dirs::data_base().map(|b| dirs::user_file(&b, LEGACY_FILE_NAME)))
         .filter_map(|p| Some((modified(&p)?, p)))
         .collect();
-    // Only the newest that can be read is opened.
+    // Only the newest that's free and can be read is opened.
     copies.sort_by_key(|(when, _)| std::cmp::Reverse(*when));
-    copies.into_iter().find_map(|(_, p)| read(&p))
+    copies.into_iter().find_map(|(_, p)| {
+        let claim = claim(&p)?;
+        read(&p).map(|r| Recovered { claim, ..r })
+    })
+}
+
+/// Takes the lock of the app that left the copy at `path`, so no other app
+/// offers it meanwhile: `None` if that app is still running, or another one
+/// offers it. A copy without one (from an earlier version), or where locks
+/// don't work, is offered without one.
+fn claim(path: &Path) -> Option<Option<std::fs::File>> {
+    let lock = std::fs::OpenOptions::new()
+        .write(true)
+        .open(path.with_extension("lock"));
+    match lock.map(|f| (f.try_lock(), f)) {
+        Ok((Ok(()), f)) => Some(Some(f)),
+        Ok((Err(std::fs::TryLockError::WouldBlock), _)) => None,
+        _ => Some(None),
+    }
 }
 
 /// Removes what apps that are gone left behind besides copies: lock files
@@ -171,6 +192,7 @@ pub(super) fn read(path: &Path) -> Option<Recovered> {
             file,
             when,
             path: path.to_path_buf(),
+            claim: None,
         })
     };
     read()
@@ -335,7 +357,14 @@ impl BadgeApp {
             let Some(recovered) = t.recovered.take() else {
                 return;
             };
-            t.replace_project(recovered.project, recovered.file, cx);
+            let Recovered {
+                project,
+                file,
+                path,
+                claim,
+                ..
+            } = recovered;
+            t.replace_project(project, file, cx);
             // Unsaved until saved.
             t.saved = None;
             t.set_status("Recovered the unsaved work; save it to keep it", Severity::Success);
@@ -345,8 +374,9 @@ impl BadgeApp {
                 && t.recovery_written
                     .as_ref()
                     .is_some_and(|(project, file)| project == &t.project && file == &t.path);
-            if kept && t.recovery_path.as_deref() != Some(recovered.path.as_path()) {
-                remove(&recovered.path);
+            drop(claim);
+            if kept && t.recovery_path.as_deref() != Some(path.as_path()) {
+                remove(&path);
             }
             cx.notify();
         });
@@ -355,7 +385,7 @@ impl BadgeApp {
     /// The banner's Discard.
     pub(super) fn discard_recovered_work(&mut self, cx: &mut Context<Self>) {
         if let Some(recovered) = self.recovered.take() {
-            self.forget_recovered(&recovered.path);
+            self.forget_recovered(recovered);
         }
         self.keep_recovery_copy();
         cx.notify();
@@ -363,12 +393,13 @@ impl BadgeApp {
 
     /// Removes the copy a recovered work came from; if it was this app's
     /// own, the next update writes it again.
-    fn forget_recovered(&mut self, path: &Path) {
-        if self.recovery_path.as_deref() == Some(path) {
+    fn forget_recovered(&mut self, recovered: Recovered) {
+        if self.recovery_path.as_ref() == Some(&recovered.path) {
             self.recovery_written = None;
-            submit((Some(Change::Remove(path.to_path_buf())), None));
+            submit((Some(Change::Remove(recovered.path)), None));
         } else {
-            remove(path);
+            drop(recovered.claim);
+            remove(&recovered.path);
         }
     }
 
@@ -490,6 +521,25 @@ mod tests {
         assert!(!gone_tmp.exists(), "a half-written copy");
         assert!(held_tmp.exists(), "its app is running");
         drop(lock);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_copy_offered_by_one_app_isnt_offered_by_another() {
+        let dir = std::env::temp_dir().join(format!("lbs-recovery-claim-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let copy = dir.join("1-2-0.json");
+        std::fs::write(&copy, "{}").unwrap();
+        // Without a lock file (an earlier version's): offered, unclaimed.
+        assert!(matches!(claim(&copy), Some(None)));
+        // Its app is gone: the first to look takes it.
+        std::fs::write(copy.with_extension("lock"), "").unwrap();
+        let first = claim(&copy).expect("free").expect("locked");
+        assert!(claim(&copy).is_none(), "offered by the first");
+        assert!(in_use(&copy));
+        drop(first);
+        assert!(claim(&copy).is_some(), "free again once it's not offered");
         let _ = std::fs::remove_dir_all(dir);
     }
 
