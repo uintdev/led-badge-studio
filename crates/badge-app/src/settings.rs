@@ -146,6 +146,15 @@ impl Settings {
             let _ = std::fs::create_dir_all(dir);
         }
         if let Ok(s) = serde_json::to_string_pretty(self) {
+            // One running app at a time: two saving at once would write
+            // through the same temporary file. Where locks don't work, it's
+            // saved anyway.
+            let lock = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(p.with_extension("json.lock"));
+            let _held = lock.ok().filter(|f| f.lock().is_ok());
             // Whole or not at all, so a crash can't leave half a file.
             if let Err(e) = badge_core::files::replace_file(&p, s.as_bytes()) {
                 log::warn!("could not save settings to {}: {e}", p.display());
