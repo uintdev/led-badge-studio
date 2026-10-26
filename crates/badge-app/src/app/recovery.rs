@@ -39,22 +39,38 @@ pub(super) fn default_path() -> Option<PathBuf> {
     static OWN: std::sync::OnceLock<Option<(PathBuf, std::fs::File)>> = std::sync::OnceLock::new();
     OWN.get_or_init(|| {
         let dir = copies_dir()?;
-        std::fs::create_dir_all(&dir).ok()?;
-        let started = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis();
-        let id = format!("{}-{started}", std::process::id());
-        let lock = std::fs::File::create(dir.join(format!("{id}.lock"))).ok()?;
-        // Another app starting may be checking this lock at this moment
-        // (`in_use`), holding it for an instant.
-        for _ in 0..20 {
-            if lock.try_lock().is_ok() {
-                return Some((dir.join(format!("{id}.json")), lock));
+        let own = || -> std::io::Result<(PathBuf, std::fs::File)> {
+            std::fs::create_dir_all(&dir)?;
+            let started = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis();
+            // A lock file no other app has: the process id isn't enough on
+            // its own (each Flatpak sandbox counts its own from 1).
+            for n in 0..100 {
+                let id = format!("{}-{started}-{n}", std::process::id());
+                let lock_path = dir.join(format!("{id}.lock"));
+                let lock = match std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&lock_path)
+                {
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                    opened => opened?,
+                };
+                // Nothing else looks at a new lock file (`clean_up` waits a
+                // minute), so it fails only where locks don't work.
+                if let Err(e) = lock.try_lock() {
+                    let _ = std::fs::remove_file(&lock_path);
+                    return Err(e.into());
+                }
+                return Ok((dir.join(format!("{id}.json")), lock));
             }
-            std::thread::sleep(Duration::from_millis(5));
-        }
-        None
+            Err(std::io::Error::other("no free name for a lock file"))
+        };
+        own()
+            .inspect_err(|e| log::warn!("no copies of unsaved work will be kept in {}: {e}", dir.display()))
+            .ok()
     })
     .as_ref()
     .map(|(path, _)| path.clone())
