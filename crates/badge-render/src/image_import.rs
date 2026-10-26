@@ -166,11 +166,13 @@ pub fn to_image(fb: &Framebuffer, color: bool, scale: u32) -> RgbaImage {
     img
 }
 
-/// Saves a framebuffer as PNG/BMP (chosen from the extension).
+/// Saves a framebuffer as PNG/BMP (chosen from the extension), replacing an
+/// earlier file whole or not at all, as exports do.
 pub fn export_png(fb: &Framebuffer, color: bool, path: &Path, scale: u32) -> Result<()> {
-    to_image(fb, color, scale)
-        .save(path)
-        .with_context(|| format!("writing {}", path.display()))
+    let format = ImageFormat::from_path(path).with_context(|| format!("writing {}", path.display()))?;
+    crate::preview_export::write(path, |out| {
+        Ok(to_image(fb, color, scale).write_to(&mut Cursor::new(out), format)?)
+    })
 }
 
 #[cfg(test)]
@@ -267,5 +269,23 @@ mod tests {
         img.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png).unwrap();
         let fb = import_image_bytes(&bytes, CardType::Rgb12, &ImportOptions::default()).unwrap();
         assert_eq!(fb.get(0, 0), LedColor::YELLOW);
+    }
+
+    #[test]
+    fn saving_an_image_replaces_the_file_whole() {
+        let dir = std::env::temp_dir().join(format!("lbs-save-image-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("message1.png");
+        std::fs::write(&path, b"earlier").unwrap();
+        let mut fb = Framebuffer::new(11);
+        fb.set(2, 3, LedColor::RED);
+        // A format it can't tell keeps the earlier file.
+        assert!(export_png(&fb, false, &dir.join("message1.xyz"), 1).is_err());
+        export_png(&fb, false, &path, 1).unwrap();
+        let saved = image::load_from_memory(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(saved.to_rgba8().get_pixel(2, 3), &Rgba([255, 0, 0, 255]));
+        assert!(!dir.join("message1.png.tmp").exists());
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

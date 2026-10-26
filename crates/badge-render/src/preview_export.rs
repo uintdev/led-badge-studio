@@ -122,7 +122,7 @@ pub fn busiest_frame(part: &Part) -> Framebuffer {
 /// Encodes in memory first, then replaces the file whole (see
 /// [`badge_core::files::replace_file`]), so a failed export leaves no half
 /// file and keeps an earlier one.
-fn write(path: &Path, encode: impl FnOnce(&mut Vec<u8>) -> Result<()>) -> Result<()> {
+pub(crate) fn write(path: &Path, encode: impl FnOnce(&mut Vec<u8>) -> Result<()>) -> Result<()> {
     let mut bytes = Vec::new();
     encode(&mut bytes).with_context(|| format!("encoding {}", path.display()))?;
     badge_core::files::replace_file(path, &bytes).with_context(|| format!("writing {}", path.display()))
