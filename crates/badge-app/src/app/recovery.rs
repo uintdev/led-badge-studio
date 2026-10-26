@@ -335,12 +335,19 @@ impl BadgeApp {
             let Some(recovered) = t.recovered.take() else {
                 return;
             };
-            t.forget_recovered(&recovered.path);
             t.replace_project(recovered.project, recovered.file, cx);
             // Unsaved until saved.
             t.saved = None;
             t.set_status("Recovered the unsaved work; save it to keep it", Severity::Success);
-            t.keep_recovery_copy();
+            // The copy it came from goes once this app keeps the work in its
+            // own; without that, it stays for the next start.
+            let kept = t.keep_recovery_copy_now()
+                && t.recovery_written
+                    .as_ref()
+                    .is_some_and(|(project, file)| project == &t.project && file == &t.path);
+            if kept && t.recovery_path.as_deref() != Some(recovered.path.as_path()) {
+                remove(&recovered.path);
+            }
             cx.notify();
         });
     }

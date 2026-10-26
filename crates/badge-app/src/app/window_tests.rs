@@ -1136,6 +1136,32 @@ fn unsaved_work_is_kept_until_saved_and_can_be_recovered(cx: &mut TestAppContext
         assert!(app.recovered.is_none());
     });
     assert!(!earlier.exists(), "the recovered copy is removed");
+    assert_eq!(
+        recovery::read(&copy).unwrap().project.messages[0].text,
+        "From before",
+        "once it's kept in this app's own"
+    );
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[gpui::test]
+fn recovered_work_stays_on_disk_when_it_cant_be_kept_again(cx: &mut TestAppContext) {
+    let dir = temp_dir("recovery-unkept");
+    let earlier = dir.join("earlier.json");
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "From before");
+    app.update(cx, |app, _| {
+        app.recovery_path = Some(earlier.clone());
+        app.keep_recovery_copy();
+        app.recovered = recovery::read(&earlier);
+        // This app has nowhere to keep a copy (its lock failed).
+        app.recovery_path = None;
+        app.recovery_written = None;
+    });
+    app.update_in(cx, |app, window, cx| app.recover_unsaved_work(window, cx));
+    app.update_in(cx, |app, window, cx| app.accept_alternate(window, cx));
+    app.read_with(cx, |app, _| assert_eq!(app.msg().text, "From before"));
+    assert!(earlier.exists(), "still there for the next start");
     let _ = std::fs::remove_dir_all(dir);
 }
 
