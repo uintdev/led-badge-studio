@@ -183,25 +183,29 @@ fn attach(window: &mut Window, cx: &mut Context<BadgeApp>) -> bool {
 extern "C" fn should_terminate(_: &Object, _: Sel, _: Id) -> usize {
     const TERMINATE_CANCEL: usize = 0;
     const TERMINATE_NOW: usize = 1;
-    if quit_needs_asking() {
+    if have_app_ask_before_quitting() {
         TERMINATE_CANCEL
     } else {
         TERMINATE_NOW
     }
 }
 
-/// Whether a quit from macOS has to wait for the app to ask first (unsaved
-/// changes, or a send), unless the app already decided to quit; when it
-/// does, the app is told to ask.
-fn quit_needs_asking() -> bool {
+/// Set while the app has been told to ask before quitting and hasn't yet;
+/// macOS can ask twice in one quit (the document, then the app).
+static QUIT_ASK_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// A quit from macOS: whether it has to wait for the app to ask first
+/// (unsaved changes, or a send), unless the app already decided to quit.
+/// If so, tells the app to ask, once (`Event::QuitRequested`).
+fn have_app_ask_before_quitting() -> bool {
     if QUIT_APPROVED.load(Ordering::Relaxed) {
         return false;
     }
     STATE.with_borrow(|state| {
-        state
-            .as_ref()
-            .filter(|s| s.edited || s.sending)
-            .is_some_and(|s| s.events.unbounded_send(Event::QuitRequested).is_ok())
+        let Some(s) = state.as_ref().filter(|s| s.edited || s.sending) else {
+            return false;
+        };
+        QUIT_ASK_PENDING.swap(true, Ordering::Relaxed) || s.events.unbounded_send(Event::QuitRequested).is_ok()
     })
 }
 
@@ -227,7 +231,10 @@ impl BadgeApp {
                 self.check_file_changed_elsewhere(cx);
             }
             Event::ChangedElsewhere(_) => {}
-            Event::QuitRequested => self.quit(&Quit, window, cx),
+            Event::QuitRequested => {
+                QUIT_ASK_PENDING.store(false, Ordering::Relaxed);
+                self.quit(&Quit, window, cx);
+            }
         }
         cx.notify();
     }
@@ -388,8 +395,9 @@ extern "C" fn should_close_window(
 /// `applicationShouldTerminate:`. A yes would have macOS close the window
 /// without the app's question, so for a project with no file yet it's the
 /// same answer as `should_terminate`: yes once there's nothing to ask about,
-/// otherwise no (which calls the quit off) and the app's own Quit asks. A
-/// project with a file is left to NSDocument.
+/// otherwise no (which calls the quit off) and the app's own Quit asks. AppKit
+/// asks this only when quitting: the app has no Close All. A project with a
+/// file is left to NSDocument.
 #[allow(unexpected_cfgs)] // from the objc macros
 extern "C" fn can_close(this: &Object, _: Sel, delegate: Id, selector: Sel, context: *mut std::ffi::c_void) {
     // SAFETY: as in `should_close_window`.
@@ -397,7 +405,7 @@ extern "C" fn can_close(this: &Object, _: Sel, delegate: Id, selector: Sel, cont
         if has_file(this) {
             let _: () = msg_send![super(this, class!(NSDocument)), canCloseDocumentWithDelegate: delegate shouldCloseSelector: selector contextInfo: context];
         } else {
-            let yes = if quit_needs_asking() { NO } else { YES };
+            let yes = if have_app_ask_before_quitting() { NO } else { YES };
             answer(this, delegate, selector, yes, context);
         }
     }
