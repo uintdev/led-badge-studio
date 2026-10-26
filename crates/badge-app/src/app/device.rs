@@ -229,7 +229,13 @@ impl BadgeApp {
         .detach();
     }
 
-    pub(super) fn send(&mut self, _: &SendToBadge, _window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn send(&mut self, _: &SendToBadge, window: &mut Window, cx: &mut Context<Self>) {
+        self.send_checked(false, window, cx);
+    }
+
+    /// Sends, asking first if the ticked messages don't all fit in the
+    /// badge's memory, unless `cut_ok` (that was asked already).
+    fn send_checked(&mut self, cut_ok: bool, window: &mut Window, cx: &mut Context<Self>) {
         log::info!(
             "send requested (device {:?}, {} devices known)",
             self.device,
@@ -258,6 +264,18 @@ impl BadgeApp {
                 Severity::Error,
             );
             cx.notify();
+            return;
+        }
+        if !cut_ok && let Some(over) = badge_core::protocol::memory_overflow(&self.project) {
+            self.ask(
+                "The messages don't all fit on the badge",
+                &format!("{over} Untick or shorten messages to send them whole."),
+                "Send Anyway",
+                false,
+                window,
+                cx,
+                |t, window, cx| t.send_checked(true, window, cx),
+            );
             return;
         }
         let project = self.project.clone();

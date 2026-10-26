@@ -542,7 +542,6 @@ fn run(cli: Cli) -> Result<()> {
             }
         }
         Command::Send { content, target } => {
-            let device = pick_device(target.device.as_deref())?;
             let mut last = 0;
             let mut progress = |done: usize, total: usize| {
                 let pct = done * 100 / total.max(1);
@@ -553,6 +552,10 @@ fn run(cli: Cli) -> Result<()> {
                 true
             };
             let project = build_project(&content)?;
+            if let Some(over) = badge_core::protocol::memory_overflow(&project) {
+                eprintln!("warning: {over}");
+            }
+            let device = pick_device(target.device.as_deref())?;
             let address = match (target.write_address, target.to_address) {
                 (Some(a), _) => AddressMode::Write(a.min(badge_core::MAX_ADDRESS)),
                 (_, Some(a)) => AddressMode::SendTo(a.min(badge_core::MAX_ADDRESS)),

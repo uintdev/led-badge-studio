@@ -170,6 +170,15 @@ impl BadgeApp {
                 Severity::Info,
             );
         }
+        // Made elsewhere, or for fonts that draw wider here: editing can't
+        // get a project past the badge's memory, but opening one can.
+        if let Some(over) = badge_core::protocol::memory_overflow(&self.project) {
+            let opened = self.status.take().map(|(s, _)| s).unwrap_or_default();
+            self.set_status(
+                format!("{opened}. {over} Untick or shorten messages to fit."),
+                Severity::Error,
+            );
+        }
         cx.notify();
     }
 

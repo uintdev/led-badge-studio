@@ -704,6 +704,61 @@ fn the_settings_and_shortcuts_keys_work(cx: &mut TestAppContext) {
     }
 }
 
+/// Ticks every message, drawn as wide as a message can be: more than the
+/// badge's memory holds (which editing can't get to, but a file can).
+fn fill_past_memory(app: &mut BadgeApp) {
+    for m in &mut app.project.messages {
+        m.source = Source::Bitmap;
+        m.selected = true;
+        m.bitmap.set(badge_core::MAX_WIDTH - 1, 0, LedColor::RED);
+    }
+}
+
+#[gpui::test]
+fn opening_a_project_past_the_badges_memory_says_what_is_cut(cx: &mut TestAppContext) {
+    let dir = temp_dir("past-memory");
+    let path = dir.join("big.badge");
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| fill_past_memory(app));
+    save(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.new_project(&NewProject, window, cx));
+    open_file(&app, cx, &path);
+    app.read_with(cx, |app, _| {
+        let (status, sev) = app.status.clone().unwrap();
+        assert!(matches!(sev, Severity::Error));
+        assert!(status.starts_with("Opened big.badge."), "{status}");
+        assert!(status.contains("leaves out messages 6, 7 and 8"), "{status}");
+    });
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[gpui::test]
+fn sending_past_the_badges_memory_asks_first(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    app.update_in(cx, |app, window, cx| {
+        app.set_devices(
+            vec![badge_io::DeviceInfo {
+                id: "test".into(),
+                label: "USB badge 1".into(),
+                kind: DeviceKind::Usb,
+            }],
+            cx,
+        );
+        app.device = Some("test".into());
+        fill_past_memory(app);
+        app.send(&SendToBadge, window, cx);
+        assert!(!app.is_sending(), "not sent before it's answered");
+        let Some(Dialog::Confirm {
+            title, confirm_label, ..
+        }) = &app.dialog
+        else {
+            panic!("no question");
+        };
+        assert!(title.contains("don't all fit"));
+        assert_eq!(confirm_label.as_ref(), "Send Anyway");
+    });
+}
+
 #[gpui::test]
 fn getting_started_shows_until_a_badge_is_connected(cx: &mut TestAppContext) {
     let (app, cx) = open(cx);

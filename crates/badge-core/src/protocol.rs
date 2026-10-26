@@ -36,6 +36,44 @@ pub fn message_columns(project: &Project) -> [usize; MESSAGE_COUNT] {
     out
 }
 
+/// When the ticked messages need more than the badge's memory: how much
+/// they need, and what sending them does about it (which messages are cut
+/// short and which left out, by `message_columns`).
+pub fn memory_overflow(project: &Project) -> Option<String> {
+    let used = project.used_columns();
+    if used <= MAX_TOTAL_COLUMNS {
+        return None;
+    }
+    let cols = message_columns(project);
+    let (mut short, mut left) = (Vec::new(), Vec::new());
+    for (i, m) in project.messages.iter().take(MESSAGE_COUNT).enumerate() {
+        if m.selected && cols[i] < m.bitmap.used_width() / 8 {
+            if cols[i] > 0 { &mut short } else { &mut left }.push(i + 1);
+        }
+    }
+    let cut = match (numbered(&short), numbered(&left)) {
+        (Some(s), Some(l)) => format!("cuts {s} short and leaves out {l}"),
+        (Some(s), None) => format!("cuts {s} short"),
+        (None, Some(l)) => format!("leaves out {l}"),
+        (None, None) => return None,
+    };
+    Some(format!(
+        "The ticked messages need {} columns, more than the {} the badge holds: sending {cut}.",
+        used * 8,
+        MAX_TOTAL_COLUMNS * 8
+    ))
+}
+
+/// "message 6", "messages 6 and 7", "messages 6, 7 and 8"; `None` for none.
+fn numbered(numbers: &[usize]) -> Option<String> {
+    let (last, rest) = numbers.split_last()?;
+    if rest.is_empty() {
+        return Some(format!("message {last}"));
+    }
+    let rest: Vec<String> = rest.iter().map(usize::to_string).collect();
+    Some(format!("messages {} and {last}", rest.join(", ")))
+}
+
 /// Returns true when nothing would be sent.
 pub fn is_empty(project: &Project) -> bool {
     message_columns(project).iter().all(|&c| c == 0)
@@ -319,6 +357,41 @@ mod tests {
         let c = message_columns(&p);
         assert_eq!(c[..5], [512, 512, 512, 512, 512]);
         assert_eq!(c[5..], [0, 0, 0]);
+        assert_eq!(
+            memory_overflow(&p).as_deref(),
+            Some(
+                "The ticked messages need 32768 columns, more than the 20480 the badge holds: \
+                 sending leaves out messages 6, 7 and 8."
+            )
+        );
+    }
+
+    #[test]
+    fn memory_overflow_names_what_is_cut() {
+        let mut p = Project::new(CardType::Mono11);
+        assert_eq!(memory_overflow(&p), None);
+        // 500 byte-columns each: five fit, the sixth gets 60, the rest none.
+        for m in &mut p.messages {
+            m.selected = true;
+            m.bitmap.set(3999, 0, LedColor::RED);
+        }
+        p.messages[7].selected = false;
+        assert_eq!(
+            memory_overflow(&p).as_deref(),
+            Some(
+                "The ticked messages need 28000 columns, more than the 20480 the badge holds: \
+                 sending cuts message 6 short and leaves out message 7."
+            )
+        );
+        // Exactly full is fine.
+        for m in &mut p.messages[5..] {
+            m.selected = false;
+        }
+        p.messages[5].bitmap.clear();
+        p.messages[5].bitmap.set(479, 0, LedColor::RED);
+        p.messages[5].selected = true;
+        assert_eq!(p.used_columns(), MAX_TOTAL_COLUMNS);
+        assert_eq!(memory_overflow(&p), None);
     }
 
     #[test]
