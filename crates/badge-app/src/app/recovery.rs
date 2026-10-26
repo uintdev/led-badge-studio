@@ -121,7 +121,13 @@ fn clean_up(dir: &Path) {
 /// Whether the app that keeps the copy at `path` is still running (holds
 /// its lock).
 fn in_use(path: &Path) -> bool {
-    std::fs::File::open(path.with_extension("lock")).is_ok_and(|f| f.try_lock().is_err())
+    // Opened for writing: on NFS, locks are made with ones that need it. A
+    // folder where locks fail can't have copies of running apps (they
+    // couldn't lock their own), so only a lock that's held counts.
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(path.with_extension("lock"))
+        .is_ok_and(|f| matches!(f.try_lock(), Err(std::fs::TryLockError::WouldBlock)))
 }
 
 /// Removes a copy, and the lock file of the app that kept it.
