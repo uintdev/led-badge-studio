@@ -1279,8 +1279,11 @@ fn closing_the_window_with_nothing_to_ask_removes_the_lock_file(cx: &mut TestApp
         BadgeApp::new(None, window, cx)
     });
     app.update(cx, |app, _| app.recovery_path = Some(copy.clone()));
-    // The system's close (the red button, Alt+F4), with nothing unsaved.
-    cx.simulate_close();
+    drop(app);
+    // The system's close (the red button, Alt+F4), with nothing unsaved,
+    // then the quit that follows it (main.rs).
+    assert!(cx.simulate_close());
+    cx.cx.update(|cx| cx.shutdown());
     assert!(!lock.exists());
     let _ = std::fs::remove_dir_all(dir);
 }

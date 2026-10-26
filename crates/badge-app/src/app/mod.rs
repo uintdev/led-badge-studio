@@ -506,9 +506,11 @@ impl BadgeApp {
                 t.check_file_changed_elsewhere(cx);
             }
         }));
-        // Quitting some other way (on macOS, from the Dock or by logging out)
-        // tidies up the unsaved-work copy too. The app's own Quit and Close
-        // already have by then, and doing it again changes nothing.
+        // However the app ends, the unsaved-work copy is settled and the lock
+        // file removed: when the window goes (it quits the app), or when the
+        // app quits with the window still open (its own Quit, or on macOS
+        // from the Dock or by logging out). Doing it twice changes nothing.
+        cx.on_release(|t, _| t.settle_recovery_before_quitting()).detach();
         app._subs.push(cx.on_app_quit(|t, _| {
             t.settle_recovery_before_quitting();
             async {}
@@ -799,7 +801,6 @@ impl BadgeApp {
     fn request_close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.before_quitting(window, cx, |t, window, cx| {
             t.saved = Some(t.project.clone());
-            t.settle_recovery_before_quitting();
             #[cfg(all(target_os = "linux", not(test)))]
             launcher_entry::clear_before_quitting();
             // Closing this window quits the app. On Windows, quitting
@@ -817,7 +818,6 @@ impl BadgeApp {
     fn quit(&mut self, _: &Quit, window: &mut Window, cx: &mut Context<Self>) {
         self.before_quitting(window, cx, |t, _, cx| {
             t.saved = Some(t.project.clone());
-            t.settle_recovery_before_quitting();
             #[cfg(all(target_os = "linux", not(test)))]
             launcher_entry::clear_before_quitting();
             #[cfg(all(target_os = "macos", not(test)))]
@@ -870,9 +870,6 @@ impl BadgeApp {
                 this.update(cx, |t, cx| t.request_close(window, cx));
                 return false;
             }
-            // Nothing to ask about, and closing quits the app: its lock file
-            // goes now, as when the app closes the window itself.
-            this.update(cx, |t, _| t.settle_recovery_before_quitting());
             true
         });
     }
