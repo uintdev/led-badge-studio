@@ -293,6 +293,10 @@ fn document_class() -> &'static Class {
                 sel!(readFromURL:ofType:error:),
                 read_from_url as extern "C" fn(&Object, Sel, Id, Id, *mut std::ffi::c_void) -> BOOL,
             );
+            decl.add_method(
+                sel!(canCloseDocumentWithDelegate:shouldCloseSelector:contextInfo:),
+                can_close as extern "C" fn(&Object, Sel, Id, Sel, *mut std::ffi::c_void),
+            );
             decl.add_method(sel!(setFileURL:), set_file_url as extern "C" fn(&Object, Sel, Id));
             decl.add_method(
                 sel!(validateUserInterfaceItem:),
@@ -338,6 +342,23 @@ extern "C" fn refuse_to_write(_: &Object, _: Sel, _: Id, _: Id, error: *mut std:
         }
     }
     NO
+}
+
+/// Closing is the app's to ask about. Without this, macOS asks first about
+/// a project that has no file yet ("Do you want to keep this new
+/// document?"), and then the app asks again. The answer goes straight to
+/// `delegate`'s `document:shouldClose:contextInfo:`: it may close; the
+/// window's close then asks the app (`install_close_guard`).
+extern "C" fn can_close(this: &Object, _: Sel, delegate: Id, selector: Sel, context: *mut std::ffi::c_void) {
+    if delegate.is_null() || selector.as_ptr().is_null() {
+        return;
+    }
+    // SAFETY: AppKit's delegate answers `selector`, which takes the
+    // document, a BOOL and the context it was given.
+    unsafe {
+        let doc = this as *const Object as Id;
+        let _: Result<(), _> = objc::Message::send_message(&*delegate, selector, (doc, YES, context));
+    }
 }
 
 /// macOS asks for the file to be read again: another program changed it
