@@ -230,6 +230,12 @@ impl BadgeApp {
     }
 
     pub(super) fn send(&mut self, _: &SendToBadge, window: &mut Window, cx: &mut Context<Self>) {
+        // The shortcut reaches here with a dialog open too: the dialog is
+        // answered first.
+        if self.dialog.is_some() {
+            log::info!("send ignored: a dialog is open");
+            return;
+        }
         self.send_checked(false, window, cx);
     }
 
@@ -267,11 +273,6 @@ impl BadgeApp {
             return;
         }
         if !cut_ok && let Some(over) = badge_core::protocol::memory_overflow(&self.project) {
-            // The shortcut works with another dialog open; asking would
-            // replace (and cancel) it.
-            if self.dialog.is_some() {
-                return;
-            }
             self.ask(
                 "The messages don't all fit on the badge",
                 &format!("{over} Untick or shorten messages to send them whole."),
