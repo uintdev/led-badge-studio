@@ -1279,11 +1279,13 @@ fn closing_the_window_with_nothing_to_ask_removes_the_lock_file(cx: &mut TestApp
         BadgeApp::new(None, window, cx)
     });
     app.update(cx, |app, _| app.recovery_path = Some(copy.clone()));
+    // Only the window holds the app then, as when it runs.
     drop(app);
-    // The system's close (the red button, Alt+F4), with nothing unsaved,
-    // then the quit that follows it (main.rs).
+    // The system's close (the red button, Alt+F4), with nothing unsaved. The
+    // test window only asks, so it's removed here as the system would.
     assert!(cx.simulate_close());
-    cx.cx.update(|cx| cx.shutdown());
+    cx.update(|window, _| window.remove_window());
+    cx.run_until_parked();
     assert!(!lock.exists());
     let _ = std::fs::remove_dir_all(dir);
 }
