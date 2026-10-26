@@ -322,6 +322,7 @@ fn watch_devices() -> Result<()> {
 /// `badgectl check`: returns the exit status.
 fn check(files: &[PathBuf], fix: bool) -> i32 {
     let mut status = 0;
+    let mut renderer: Option<Renderer> = None;
     for path in files {
         let name = path.display();
         let loaded = badge_formats::open_checked(path);
@@ -356,8 +357,16 @@ fn check(files: &[PathBuf], fix: bool) -> i32 {
         // Not a problem with the file, so it doesn't change the exit status.
         if let Ok(l) = loaded {
             let mut project = l.project;
-            render_all(&mut project);
-            if let Some(over) = badge_core::protocol::memory_overflow(&project) {
+            // Text is drawn with this computer's fonts, as sending would;
+            // they're loaded once, and only for ticked text.
+            if project.messages.iter().any(|m| m.selected && m.source == Source::Text) {
+                let r = renderer.get_or_insert_with(|| Renderer::new(FontLibrary::discover()));
+                let card = project.card;
+                for m in &mut project.messages {
+                    m.bitmap = r.render(m, card);
+                }
+            }
+            if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 println!("  warning: {over}");
             }
         }
@@ -561,7 +570,7 @@ fn run(cli: Cli) -> Result<()> {
                 true
             };
             let project = build_project(&content)?;
-            if let Some(over) = badge_core::protocol::memory_overflow(&project) {
+            if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 eprintln!("warning: {over}");
             }
             let device = pick_device(target.device.as_deref())?;

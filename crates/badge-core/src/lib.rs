@@ -5,6 +5,7 @@ pub mod files;
 mod framebuffer;
 mod model;
 pub mod protocol;
+pub mod wording;
 
 pub use framebuffer::{Framebuffer, MAX_WIDTH};
 pub use model::*;

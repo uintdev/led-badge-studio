@@ -3,7 +3,7 @@
 use super::dialogs::sentence_case;
 use super::menus::popup;
 use super::*;
-pub(super) use badge_core::protocol::messages_phrase;
+pub(super) use badge_core::wording::messages_phrase;
 
 impl BadgeApp {
     pub(super) fn sync_input(&mut self, cx: &mut Context<Self>) {
@@ -461,6 +461,10 @@ impl BadgeApp {
         let used = self.project.used_columns() * 8;
         let cap = badge_core::protocol::MAX_TOTAL_COLUMNS * 8;
         let pct = (used as f32 / cap as f32).min(1.0);
+        // What sending cuts off, when it's over (`None` while it fits).
+        let cut = (used > cap)
+            .then(|| badge_core::wording::memory_cut(&self.project))
+            .flatten();
         let style = LedStyle {
             look: LedLook {
                 cell: 2.5,
@@ -555,13 +559,13 @@ impl BadgeApp {
                                 theme::accent()
                             })),
                     )
-                    .when(used > cap, |d| {
-                        d.child(div().text_caption().text_color(theme::danger()).child(
-                            match badge_core::protocol::memory_cut(&self.project) {
-                                Some(cut) => format!("Too long: sending {cut}"),
-                                None => "Too long: the end will be cut off".into(),
-                            },
-                        ))
+                    .when_some(cut, |d, cut| {
+                        d.child(
+                            div()
+                                .text_caption()
+                                .text_color(theme::danger())
+                                .child(format!("Too long: sending {cut}")),
+                        )
                     })
                     .when(used <= cap, |d| {
                         d.child(

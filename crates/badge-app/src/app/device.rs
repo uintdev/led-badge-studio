@@ -272,7 +272,7 @@ impl BadgeApp {
             cx.notify();
             return;
         }
-        if !cut_ok && let Some(over) = badge_core::protocol::memory_overflow(&self.project) {
+        if !cut_ok && let Some(over) = badge_core::wording::memory_overflow(&self.project) {
             self.ask(
                 "The messages don't all fit on the badge",
                 &format!("{over} Untick or shorten messages to send them whole."),
