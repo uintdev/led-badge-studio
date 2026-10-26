@@ -285,7 +285,8 @@ impl BadgeApp {
             return;
         }
         let project = self.project.clone();
-        let sent_copy = self.project.clone();
+        // What the badge gets, for Load What Was Last Sent.
+        let sent_copy = badge_core::protocol::as_sent(&self.project);
         let address = self.address_mode();
         let (tx, mut rx) = futures::channel::mpsc::unbounded::<SendMsg>();
         log::info!(

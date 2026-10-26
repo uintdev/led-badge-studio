@@ -571,7 +571,7 @@ fn run(cli: Cli) -> Result<()> {
                 _ => AddressMode::Ignore,
             };
             badge_io::send(&project, address, &device, &mut progress)?;
-            badge_formats::last_sent::LastSent::record(&project);
+            badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             eprintln!("\rSent to {}.        ", device.label);
         }
     }
