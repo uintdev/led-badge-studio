@@ -183,16 +183,26 @@ fn attach(window: &mut Window, cx: &mut Context<BadgeApp>) -> bool {
 extern "C" fn should_terminate(_: &Object, _: Sel, _: Id) -> usize {
     const TERMINATE_CANCEL: usize = 0;
     const TERMINATE_NOW: usize = 1;
-    if QUIT_APPROVED.load(Ordering::Relaxed) {
-        return TERMINATE_NOW;
+    if quit_needs_asking() {
+        TERMINATE_CANCEL
+    } else {
+        TERMINATE_NOW
     }
-    let asked = STATE.with_borrow(|state| {
+}
+
+/// Whether a quit from macOS has to wait for the app to ask first (unsaved
+/// changes, or a send), unless the app already decided to quit; when it
+/// does, the app is told to ask.
+fn quit_needs_asking() -> bool {
+    if QUIT_APPROVED.load(Ordering::Relaxed) {
+        return false;
+    }
+    STATE.with_borrow(|state| {
         state
             .as_ref()
             .filter(|s| s.edited || s.sending)
             .is_some_and(|s| s.events.unbounded_send(Event::QuitRequested).is_ok())
-    });
-    if asked { TERMINATE_CANCEL } else { TERMINATE_NOW }
+    })
 }
 
 impl BadgeApp {
@@ -294,6 +304,10 @@ fn document_class() -> &'static Class {
                 read_from_url as extern "C" fn(&Object, Sel, Id, Id, *mut std::ffi::c_void) -> BOOL,
             );
             decl.add_method(
+                sel!(shouldCloseWindowController:delegate:shouldCloseSelector:contextInfo:),
+                should_close_window as extern "C" fn(&Object, Sel, Id, Id, Sel, *mut std::ffi::c_void),
+            );
+            decl.add_method(
                 sel!(canCloseDocumentWithDelegate:shouldCloseSelector:contextInfo:),
                 can_close as extern "C" fn(&Object, Sel, Id, Sel, *mut std::ffi::c_void),
             );
@@ -344,20 +358,69 @@ extern "C" fn refuse_to_write(_: &Object, _: Sel, _: Id, _: Id, error: *mut std:
     NO
 }
 
-/// Closing is the app's to ask about. Without this, macOS asks first about
-/// a project that has no file yet ("Do you want to keep this new
-/// document?"), and then the app asks again. The answer goes straight to
-/// `delegate`'s `document:shouldClose:contextInfo:`: it may close; the
-/// window's close then asks the app (`install_close_guard`).
+/// The window's close button, for a project that has no file yet: macOS
+/// would ask whether to keep the new document, and then the app asked
+/// again. The window may close as far as the document goes; the window's
+/// close then asks the app (`install_close_guard`). A project with a file
+/// is left to NSDocument, which doesn't ask.
+#[allow(unexpected_cfgs)] // from the objc macros
+extern "C" fn should_close_window(
+    this: &Object,
+    _: Sel,
+    controller: Id,
+    delegate: Id,
+    selector: Sel,
+    context: *mut std::ffi::c_void,
+) {
+    // SAFETY: NSDocument's own method, on the same object, with what AppKit
+    // passed; `answer` as below.
+    unsafe {
+        if has_file(this) {
+            let _: () = msg_send![super(this, class!(NSDocument)), shouldCloseWindowController: controller delegate: delegate shouldCloseSelector: selector contextInfo: context];
+        } else {
+            answer(this, delegate, selector, YES, context);
+        }
+    }
+}
+
+/// macOS asking whether the document may close other than from its window:
+/// when the app is quitting (from the Dock, or by logging out), before
+/// `applicationShouldTerminate:`. A yes would have macOS close the window
+/// without the app's question, so for a project with no file yet it's the
+/// same answer as `should_terminate`: yes once there's nothing to ask about,
+/// otherwise no (which calls the quit off) and the app's own Quit asks. A
+/// project with a file is left to NSDocument.
+#[allow(unexpected_cfgs)] // from the objc macros
 extern "C" fn can_close(this: &Object, _: Sel, delegate: Id, selector: Sel, context: *mut std::ffi::c_void) {
+    // SAFETY: as in `should_close_window`.
+    unsafe {
+        if has_file(this) {
+            let _: () = msg_send![super(this, class!(NSDocument)), canCloseDocumentWithDelegate: delegate shouldCloseSelector: selector contextInfo: context];
+        } else {
+            let yes = if quit_needs_asking() { NO } else { YES };
+            answer(this, delegate, selector, yes, context);
+        }
+    }
+}
+
+#[allow(unexpected_cfgs)] // from the objc macros
+unsafe fn has_file(doc: &Object) -> bool {
+    // SAFETY: NSDocument's `fileURL`, nil until the project has a file.
+    let url: Id = unsafe { msg_send![doc, fileURL] };
+    !url.is_null()
+}
+
+/// Gives `delegate` the document's answer, by the `selector` AppKit passed
+/// (`document:shouldClose:contextInfo:`).
+unsafe fn answer(doc: &Object, delegate: Id, selector: Sel, yes: BOOL, context: *mut std::ffi::c_void) {
     if delegate.is_null() || selector.as_ptr().is_null() {
         return;
     }
     // SAFETY: AppKit's delegate answers `selector`, which takes the
     // document, a BOOL and the context it was given.
     unsafe {
-        let doc = this as *const Object as Id;
-        let _: Result<(), _> = objc::Message::send_message(&*delegate, selector, (doc, YES, context));
+        let doc = doc as *const Object as Id;
+        let _: Result<(), _> = objc::Message::send_message(&*delegate, selector, (doc, yes, context));
     }
 }
 
