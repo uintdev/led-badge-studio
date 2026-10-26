@@ -5,8 +5,12 @@
 //!
 //! Each running copy of the app keeps its own file, next to a lock file it
 //! holds while it runs, so one copy never offers (or deletes) the unsaved
-//! work of another that's still running.
+//! work of another that's still running. The copy is written on a thread
+//! of its own: it waits until the copy is on the disk, which can take a
+//! moment, and the window mustn't.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::SyncSender;
 use std::time::{Duration, SystemTime};
 
 use super::files::file_name;
@@ -174,21 +178,101 @@ pub(super) fn read(path: &Path) -> Option<Recovered> {
         .ok()
 }
 
-/// Writes the copy: the project as in a project file, and where its file
-/// is.
-fn write(path: &Path, project: &Project, file: Option<&Path>) -> anyhow::Result<()> {
+/// The copy: the project as in a project file, and where its file is.
+fn to_json(project: &Project, file: Option<&Path>) -> anyhow::Result<Vec<u8>> {
     let project: serde_json::Value = serde_json::from_str(&badge_formats::project_to_json(project)?)?;
     let value = serde_json::json!({
         "file": file.map(|f| f.to_string_lossy()),
         "project": project,
     });
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir)?;
+    Ok(serde_json::to_vec(&value)?)
+}
+
+/// A change to this app's copy.
+enum Change {
+    Write(PathBuf, Vec<u8>),
+    Remove(PathBuf),
+}
+
+/// A change for the thread that makes them (or none), and whom to tell,
+/// once it's made, whether every change since the last telling worked.
+type Job = (Option<Change>, Option<SyncSender<bool>>);
+
+/// A write failed since `keep_recovery_copy` last looked: it writes again.
+static WRITE_FAILED: AtomicBool = AtomicBool::new(false);
+
+/// Makes jobs' changes in order, keeping count of failures between tellings.
+struct Worker {
+    ok: bool,
+}
+
+impl Worker {
+    fn run(&mut self, (change, done): Job) {
+        if let Some(change) = change {
+            self.ok &= apply(change);
+        }
+        if let Some(done) = done {
+            let _ = done.send(self.ok);
+            self.ok = true;
+        }
     }
-    // Whole or not at all: a crash or power cut while writing leaves the
-    // old copy.
-    badge_core::files::replace_file(path, serde_json::to_string(&value)?.as_bytes())?;
-    Ok(())
+}
+
+fn apply(change: Change) -> bool {
+    match change {
+        Change::Write(path, bytes) => {
+            // Whole or not at all: a crash or power cut while writing leaves
+            // the old copy.
+            let written = path
+                .parent()
+                .map_or(Ok(()), std::fs::create_dir_all)
+                .and_then(|()| badge_core::files::replace_file(&path, &bytes));
+            if let Err(e) = &written {
+                log::warn!("couldn't keep a copy of the unsaved work in {}: {e}", path.display());
+                WRITE_FAILED.store(true, Ordering::Relaxed);
+            }
+            written.is_ok()
+        }
+        Change::Remove(path) => {
+            !matches!(std::fs::remove_file(&path), Err(e) if e.kind() != std::io::ErrorKind::NotFound)
+        }
+    }
+}
+
+/// Hands a job to the thread (made in place in tests, or if the thread
+/// couldn't start).
+fn submit(job: Job) {
+    thread_local! {
+        static HERE: std::cell::RefCell<Worker> = const { std::cell::RefCell::new(Worker { ok: true }) };
+    }
+    #[cfg(not(test))]
+    let job = {
+        static JOBS: std::sync::OnceLock<std::sync::mpsc::Sender<Job>> = std::sync::OnceLock::new();
+        let jobs = JOBS.get_or_init(|| {
+            let (tx, rx) = std::sync::mpsc::channel::<Job>();
+            let started = std::thread::Builder::new().name("unsaved-work".into()).spawn(move || {
+                let mut worker = Worker { ok: true };
+                rx.into_iter().for_each(|job| worker.run(job));
+            });
+            if let Err(e) = started {
+                log::warn!("couldn't start the unsaved-work thread: {e}");
+            }
+            tx
+        });
+        match jobs.send(job) {
+            Ok(()) => return,
+            Err(std::sync::mpsc::SendError(job)) => job,
+        }
+    };
+    HERE.with_borrow_mut(|worker| worker.run(job));
+}
+
+/// Waits (briefly) until the changes to this app's copy so far are made;
+/// whether they all worked.
+fn settle() -> bool {
+    let (done, told) = std::sync::mpsc::sync_channel(1);
+    submit((None, Some(done)));
+    told.recv_timeout(Duration::from_secs(5)).unwrap_or(false)
 }
 
 impl BadgeApp {
@@ -212,9 +296,12 @@ impl BadgeApp {
         let Some(path) = self.recovery_path.clone() else {
             return;
         };
+        if WRITE_FAILED.swap(false, Ordering::Relaxed) {
+            self.recovery_written = None;
+        }
         if !self.is_dirty() {
             if self.recovery_written.take().is_some() {
-                let _ = std::fs::remove_file(&path);
+                submit((Some(Change::Remove(path)), None));
             }
             return;
         }
@@ -225,10 +312,20 @@ impl BadgeApp {
         if current {
             return;
         }
-        match write(&path, &self.project, self.path.as_deref()) {
-            Ok(()) => self.recovery_written = Some((self.project.clone(), self.path.clone())),
-            Err(e) => log::warn!("couldn't keep a copy of the unsaved work in {}: {e:#}", path.display()),
+        match to_json(&self.project, self.path.as_deref()) {
+            Ok(json) => {
+                submit((Some(Change::Write(path, json)), None));
+                self.recovery_written = Some((self.project.clone(), self.path.clone()));
+            }
+            Err(e) => log::warn!("couldn't keep a copy of the unsaved work: {e:#}"),
         }
+    }
+
+    /// Like `keep_recovery_copy`, and waits until it's on the disk (before
+    /// quitting, or removing a copy it takes over from); whether it is.
+    pub(super) fn keep_recovery_copy_now(&mut self) -> bool {
+        self.keep_recovery_copy();
+        settle()
     }
 
     /// The banner's Recover: the work as it was, unsaved (saving it is up to
@@ -262,8 +359,10 @@ impl BadgeApp {
     fn forget_recovered(&mut self, path: &Path) {
         if self.recovery_path.as_deref() == Some(path) {
             self.recovery_written = None;
+            submit((Some(Change::Remove(path.to_path_buf())), None));
+        } else {
+            remove(path);
         }
-        remove(path);
     }
 
     /// The banner offering back work from when the app last closed without
@@ -384,6 +483,31 @@ mod tests {
         assert!(!gone_tmp.exists(), "a half-written copy");
         assert!(held_tmp.exists(), "its app is running");
         drop(lock);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn failed_writes_are_told() {
+        let dir = std::env::temp_dir().join(format!("lbs-recovery-worker-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut worker = Worker { ok: true };
+        let tell = |worker: &mut Worker| {
+            let (done, told) = std::sync::mpsc::sync_channel(1);
+            worker.run((None, Some(done)));
+            told.recv().unwrap()
+        };
+        let copy = dir.join("1-2-0.json");
+        worker.run((Some(Change::Write(copy.clone(), b"{}".to_vec())), None));
+        assert!(tell(&mut worker));
+        assert_eq!(std::fs::read(&copy).unwrap(), b"{}");
+        // A file where its folder should be.
+        let blocked = copy.join("x.json");
+        worker.run((Some(Change::Write(blocked, b"{}".to_vec())), None));
+        worker.run((Some(Change::Remove(copy.clone())), None));
+        assert!(!tell(&mut worker), "one of them failed");
+        assert!(!copy.exists());
+        assert!(tell(&mut worker), "counted afresh");
         let _ = std::fs::remove_dir_all(dir);
     }
 }
