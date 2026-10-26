@@ -207,16 +207,24 @@ impl BadgeApp {
         }
         let m = self.project.messages.remove(from);
         self.project.messages.insert(to, m);
-        // The selection stays on the same message.
-        self.current = if self.current == from {
-            to
-        } else if from < self.current && self.current <= to {
-            self.current - 1
-        } else if to <= self.current && self.current < from {
-            self.current + 1
-        } else {
-            self.current
+        // The selection, an image loading and the last one loaded stay with
+        // their messages.
+        let moved = |i: usize| {
+            if i == from {
+                to
+            } else if from < i && i <= to {
+                i - 1
+            } else if to <= i && i < from {
+                i + 1
+            } else {
+                i
+            }
         };
+        self.current = moved(self.current);
+        self.import_into = self.import_into.map(moved);
+        if let Some(src) = self.import_source.as_mut() {
+            src.msg = moved(src.msg);
+        }
         self.set_status(format!("Moved message {} to {}", from + 1, to + 1), Severity::Info);
         self.sync_input(cx);
         self.changed(cx);
@@ -240,6 +248,7 @@ impl BadgeApp {
             return;
         }
         self.project.messages[slot] = copy;
+        self.drop_import_into(slot);
         self.current = slot;
         self.set_status(
             format!("Duplicated message {} as message {}", i + 1, slot + 1),
@@ -285,6 +294,7 @@ impl BadgeApp {
             cx.notify();
             return;
         }
+        self.drop_import_into(i);
         self.current = i;
         self.set_status(format!("Pasted into message {}", i + 1), Severity::Success);
         self.sync_input(cx);
@@ -296,6 +306,7 @@ impl BadgeApp {
         let mut fresh = badge_core::Message::default();
         fresh.bitmap.set_height(self.project.card.height());
         self.project.messages[i] = fresh;
+        self.drop_import_into(i);
         self.rerender(i);
         self.set_status(format!("Cleared message {}", i + 1), Severity::Info);
         self.sync_input(cx);

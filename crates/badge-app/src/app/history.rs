@@ -42,6 +42,7 @@ impl BadgeApp {
         self.history.last_kind = None;
         self.edit_hint = None;
         self.import_source = None;
+        self.import_into = None;
     }
 
     pub(super) fn restore(&mut self, snap: Snapshot, cx: &mut Context<Self>) {
@@ -50,6 +51,8 @@ impl BadgeApp {
         self.history.baseline = snap;
         self.history.last_kind = None;
         self.preview_step = 0;
+        // Any message may be another one now.
+        self.import_into = None;
         self.sync_input(cx);
         cx.notify();
     }

@@ -310,6 +310,10 @@ pub struct BadgeApp {
     /// run in the background: a result that a later one has replaced is
     /// dropped.
     import_gen: u64,
+    /// The message an image being loaded goes into: it follows the message
+    /// when it's moved, and is cleared when the message is replaced (New,
+    /// Open, Undo, a paste), which drops the image.
+    import_into: Option<usize>,
     decode_gen: u64,
     /// Message the preview is playing (differs from `current` in "all ticked" mode).
     preview_msg: usize,
@@ -453,6 +457,7 @@ impl BadgeApp {
             stroke_id: 0,
             import_source: None,
             import_gen: 0,
+            import_into: None,
             decode_gen: 0,
             preview_msg: 0,
             third_party: None,

@@ -66,11 +66,8 @@ impl BadgeApp {
         use badge_render::image_import::decode_image;
         self.import_gen += 1;
         let generation = self.import_gen;
-        let (card, fit, msg) = (self.project.card, self.settings.import_fit_height, self.current);
-        // What message `msg` is now, to tell whether it's still the same
-        // message when the image is ready (New, Open, Undo or a move may
-        // have put another one there).
-        let target = (self.path.clone(), MessageContent::of(&self.project.messages[msg]));
+        let (card, fit) = (self.project.card, self.settings.import_fit_height);
+        self.import_into = Some(self.current);
         let path = path.to_path_buf();
         self.set_status(LOADING_IMAGE, Severity::Info);
         cx.notify();
@@ -89,23 +86,18 @@ impl BadgeApp {
                 if t.import_gen != generation {
                     return;
                 }
-                match result {
+                match (result, t.import_into.take()) {
                     // Decoded for another badge type's height.
-                    Ok(_) if t.project.card != card => t.set_status(
+                    (Ok(_), _) if t.project.card != card => t.set_status(
                         "The badge type changed while the image was loading; load it again.",
                         Severity::Error,
                     ),
-                    Ok(_)
-                        if t.path != target.0
-                            || t.project.messages.get(msg).map(MessageContent::of) != Some(target.1.clone()) =>
-                    {
-                        t.set_status(
-                            "The messages changed while the image was loading; load it again.",
-                            Severity::Error,
-                        )
-                    }
-                    Ok((bytes, decoded)) => t.finish_import(msg, &path, bytes, (card, fit, decoded)),
-                    Err(e) => t.set_status(format!("Could not load image: {e:#}"), Severity::Error),
+                    (Ok(_), None) => t.set_status(
+                        "The message was replaced while the image was loading; load it again.",
+                        Severity::Error,
+                    ),
+                    (Ok((bytes, decoded)), Some(msg)) => t.finish_import(msg, &path, bytes, (card, fit, decoded)),
+                    (Err(e), _) => t.set_status(format!("Could not load image: {e:#}"), Severity::Error),
                 }
                 // Options changed while it loaded apply now.
                 t.reapply_import(EditKind::Other, cx);
@@ -160,6 +152,13 @@ impl BadgeApp {
             );
         }
         self.settings.last_dir = path.parent().map(Path::to_path_buf);
+    }
+
+    /// Drops an image still loading into message `i`, which was replaced.
+    pub(super) fn drop_import_into(&mut self, i: usize) {
+        if self.import_into == Some(i) {
+            self.import_into = None;
+        }
     }
 
     pub(super) fn live_import(&self) -> Option<&ImportSource> {
@@ -700,55 +699,5 @@ mod cut_tests {
         assert_eq!(cut.content_width(), 16);
         assert!((0..16).all(|x| cut.is_on(x, 3)));
         assert_eq!(cut_to(&fb, 64), fb, "narrower: unchanged");
-    }
-}
-
-/// What tells one message from another: what it shows, not how (speed,
-/// effect, whether it's ticked), which can change while it's the same
-/// message.
-#[derive(Clone, PartialEq)]
-struct MessageContent {
-    source: Source,
-    text: String,
-    font: badge_core::FontChoice,
-    /// Only for drawings: text is drawn again from the text and font.
-    drawing: Option<Framebuffer>,
-}
-
-impl MessageContent {
-    fn of(m: &badge_core::Message) -> Self {
-        MessageContent {
-            source: m.source,
-            text: m.text.clone(),
-            font: m.font.clone(),
-            drawing: (m.source == Source::Bitmap).then(|| m.bitmap.clone()),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_message_stays_the_same_when_only_how_its_shown_changes() {
-        let m = badge_core::Message {
-            text: "Hi".into(),
-            ..Default::default()
-        };
-        let mut shown = m.clone();
-        shown.speed = 8;
-        shown.flash = true;
-        shown.selected = !m.selected;
-        assert!(MessageContent::of(&shown) == MessageContent::of(&m));
-        let mut other = m.clone();
-        other.text = "Bye".into();
-        assert!(MessageContent::of(&other) != MessageContent::of(&m));
-        let mut drawn = m.clone();
-        drawn.source = Source::Bitmap;
-        drawn.bitmap.set(0, 0, LedColor::RED);
-        let mut redrawn = drawn.clone();
-        redrawn.bitmap.set(1, 0, LedColor::RED);
-        assert!(MessageContent::of(&redrawn) != MessageContent::of(&drawn));
     }
 }

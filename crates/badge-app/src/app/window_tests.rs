@@ -1375,6 +1375,57 @@ fn images_load_in_the_background_and_the_last_one_wins(cx: &mut TestAppContext) 
     let _ = std::fs::remove_dir_all(dir);
 }
 
+/// An image goes into the message it was loaded for, wherever that message
+/// is moved meanwhile, and options changed meanwhile apply to it.
+#[gpui::test]
+fn an_image_follows_its_message_while_it_loads(cx: &mut TestAppContext) {
+    let dir = temp_dir("image-follow");
+    let first = image_file(&dir, "first.png", 11, &[(2, 3)]);
+    let second = image_file(&dir, "second.png", 11, &[(5, 1)]);
+    let (app, cx) = open(cx);
+    app.update(cx, |app, cx| {
+        app.import_image_from(&first, cx);
+        app.move_message(0, 2, cx);
+    });
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| {
+        assert!(
+            app.project.messages[2].bitmap.is_on(2, 3),
+            "moved, and the image with it"
+        );
+        assert_eq!(app.project.messages[0].source, Source::Text);
+        assert!(app.live_import().is_some());
+    });
+    // A second image into the same message, with the threshold changed
+    // (which redoes the first one) while it loads.
+    app.update(cx, |app, cx| {
+        app.import_image_from(&second, cx);
+        app.set_threshold(100, cx);
+    });
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| assert!(app.msg().bitmap.is_on(5, 1), "the second image"));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+/// An image whose message was replaced while it loaded (New, Open, Undo, a
+/// paste) is dropped, not put into whatever message is there now.
+#[gpui::test]
+fn an_image_is_dropped_when_its_message_is_replaced(cx: &mut TestAppContext) {
+    let dir = temp_dir("image-replaced");
+    let image = image_file(&dir, "image.png", 11, &[(2, 3)]);
+    let (app, cx) = open(cx);
+    app.update_in(cx, |app, window, cx| {
+        app.import_image_from(&image, cx);
+        app.new_project(&NewProject, window, cx);
+    });
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.msg().source, Source::Text);
+        assert!(app.status.as_ref().is_some_and(|s| s.0.contains("replaced")));
+    });
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 /// Turning Fit to height off decodes the image again (in the background)
 /// at its own size.
 #[gpui::test]
