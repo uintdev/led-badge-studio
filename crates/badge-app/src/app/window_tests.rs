@@ -765,6 +765,8 @@ fn sending_past_the_badges_memory_asks_first(cx: &mut TestAppContext) {
         app.notice("Something else", "", Vec::new(), false, window, cx);
         app.send(&SendToBadge, window, cx);
         assert!(matches!(&app.dialog, Some(Dialog::Notice { title, .. }) if title == "Something else"));
+        let (status, _) = app.status.clone().unwrap();
+        assert_eq!(status.as_ref(), "Close the dialog first to send.");
         app.close_dialog(window, cx);
 
         // Send Anyway goes on with the send, checks and all, without asking
