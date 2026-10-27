@@ -20,12 +20,34 @@ fn type_text(app: &Entity<BadgeApp>, cx: &mut VisualTestContext, text: &str) {
     });
 }
 
-/// A folder of its own for a test's files.
-fn temp_dir(test: &str) -> PathBuf {
+/// A folder of its own for a test's files, removed when the test ends, also
+/// when it fails.
+fn temp_dir(test: &str) -> TempDir {
     let dir = std::env::temp_dir().join(format!("led-badge-studio-{test}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
-    dir
+    TempDir(dir)
+}
+
+struct TempDir(PathBuf);
+
+impl std::ops::Deref for TempDir {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl AsRef<Path> for TempDir {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
 }
 
 /// Saves the open project to `path`.
