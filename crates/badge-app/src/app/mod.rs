@@ -276,6 +276,9 @@ pub struct BadgeApp {
     playing: bool,
     send: SendState,
     status: Option<(SharedString, Severity)>,
+    /// The Send shortcut was pressed with a dialog open: the status line says
+    /// to close it first, until it closes (the status itself is kept).
+    send_needs_dialog_closed: bool,
     /// The selected badge was found but this user can't write to it.
     access_missing: bool,
     setting_up_access: bool,
@@ -443,6 +446,7 @@ impl BadgeApp {
             playing: true,
             send: SendState::Idle,
             status: None,
+            send_needs_dialog_closed: false,
             file_stamp: None,
             told_changed_elsewhere: false,
             file_versions: Vec::new(),

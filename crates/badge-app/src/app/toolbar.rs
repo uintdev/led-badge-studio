@@ -461,12 +461,25 @@ impl BadgeApp {
         )
     }
 
+    /// What the status line says, and how (`None`: plain).
+    pub(super) fn status_line(&self) -> (SharedString, Option<Severity>) {
+        if self.send_needs_dialog_closed {
+            // Over the status, which comes back once the dialog closes.
+            return ("Close the dialog first to send.".into(), None);
+        }
+        match &self.status {
+            Some((t, Severity::Info)) => (t.clone(), None),
+            Some((t, sev)) => (t.clone(), Some(*sev)),
+            None => ("Ready".into(), None),
+        }
+    }
+
     pub(super) fn render_status(&mut self, _cx: &mut Context<Self>) -> impl IntoElement + use<> {
-        let (text, color) = match &self.status {
-            Some((t, Severity::Error)) => (t.clone(), theme::danger()),
-            Some((t, Severity::Success)) => (t.clone(), theme::success()),
-            Some((t, Severity::Info)) => (t.clone(), theme::text_muted()),
-            None => ("Ready".into(), theme::text_muted()),
+        let (text, sev) = self.status_line();
+        let color = match sev {
+            Some(Severity::Error) => theme::danger(),
+            Some(Severity::Success) => theme::success(),
+            Some(Severity::Info) | None => theme::text_muted(),
         };
         let progress = match self.send {
             SendState::Sending { done, total } => Some(done as f32 / total.max(1) as f32),

@@ -234,7 +234,7 @@ impl BadgeApp {
         // answered first.
         if self.dialog.is_some() {
             log::info!("send ignored: a dialog is open");
-            self.set_status("Close the dialog first to send.", Severity::Info);
+            self.send_needs_dialog_closed = true;
             cx.notify();
             return;
         }

@@ -300,6 +300,7 @@ impl BadgeApp {
 
     pub(super) fn close_dialog(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.dialog = None;
+        self.send_needs_dialog_closed = false;
         self.focused_dialog = None;
         self.pending_repair = None;
         self.pending_confirm = None;

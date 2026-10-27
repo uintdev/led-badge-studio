@@ -785,11 +785,14 @@ fn sending_past_the_badges_memory_asks_first(cx: &mut TestAppContext) {
 
         // The shortcut with another dialog open leaves that dialog be.
         app.notice("Something else", "", Vec::new(), false, window, cx);
+        let before = app.status.clone();
         app.send(&SendToBadge, window, cx);
+        assert!(app.status == before, "the status is kept");
         assert!(matches!(&app.dialog, Some(Dialog::Notice { title, .. }) if title == "Something else"));
-        let (status, _) = app.status.clone().unwrap();
-        assert_eq!(status.as_ref(), "Close the dialog first to send.");
+        assert_eq!(app.status_line().0.as_ref(), "Close the dialog first to send.");
         app.close_dialog(window, cx);
+        let back = before.map_or("Ready".into(), |(text, _)| text);
+        assert_eq!(app.status_line().0, back, "the status is back");
 
         // Send Anyway goes on with the send, checks and all, without asking
         // again: the badge unplugged meanwhile is noticed.
