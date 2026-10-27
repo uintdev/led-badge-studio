@@ -39,16 +39,15 @@ fn cut_past(project: &Project, used: usize) -> Option<String> {
             }
         }
     }
-    let (s, l) = (
-        messages_phrase(short.iter().copied()),
-        messages_phrase(left.iter().copied()),
-    );
-    Some(match (short.is_empty(), left.is_empty()) {
-        (false, false) => format!("cuts {s} short and leaves out {l}"),
-        (false, true) => format!("cuts {s} short"),
-        (true, false) => format!("leaves out {l}"),
-        (true, true) => return None,
-    })
+    // Past the memory, message_columns always cuts at least one of them.
+    let mut cut = Vec::new();
+    if !short.is_empty() {
+        cut.push(format!("cuts {} short", messages_phrase(short.into_iter())));
+    }
+    if !left.is_empty() {
+        cut.push(format!("leaves out {}", messages_phrase(left.into_iter())));
+    }
+    Some(cut.join(" and "))
 }
 
 /// Messages by index, counted from 1: "message 2", "messages 2 and 5",

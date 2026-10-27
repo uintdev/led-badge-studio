@@ -29,6 +29,7 @@ fn temp_dir(test: &str) -> TempDir {
     TempDir(dir)
 }
 
+/// A test's folder, removed when dropped.
 struct TempDir(PathBuf);
 
 impl std::ops::Deref for TempDir {
@@ -143,7 +144,6 @@ fn saving_clears_modified_and_reopening_restores_the_project(cx: &mut TestAppCon
         assert!(!app.is_dirty());
         assert!(app.dialog.is_none());
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -175,7 +175,6 @@ fn opening_over_unsaved_changes_asks_first(cx: &mut TestAppContext) {
         assert_eq!(app.msg().text, "In the file");
         assert!(!app.is_dirty());
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Unsaved changes to a project with a file: Save saves them first, Don't
@@ -214,7 +213,6 @@ fn opening_over_changes_asks_whether_to_save_them(cx: &mut TestAppContext) {
     app.update_in(cx, |app, window, cx| app.accept_alternate(window, cx));
     app.read_with(cx, |app, _| assert_eq!(app.msg().text, "Other"));
     assert_eq!(badge_formats::open(&mine).unwrap().messages[0].text, "Mine, changed");
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Closing with unsaved changes asks; nothing is saved without asking.
@@ -239,7 +237,6 @@ fn closing_with_unsaved_changes_asks_whether_to_save_them(cx: &mut TestAppContex
         "Changed",
         "Save saved"
     );
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Quitting or closing mid-send would leave the badge stuck, so it's asked
@@ -317,7 +314,6 @@ fn a_file_with_unsupported_values_is_repaired_only_when_asked(cx: &mut TestAppCo
         original,
         "the file is left as it was"
     );
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Check Project File's Repair and save keeps the file as it was, and
@@ -347,7 +343,6 @@ fn repairing_and_saving_keeps_the_file_as_it_was(cx: &mut TestAppContext) {
         assert_eq!(std::fs::read_to_string(kept).unwrap(), original);
         assert!(!app.changed_elsewhere(), "the app saved it, not another program");
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -364,7 +359,6 @@ fn a_file_that_cant_be_read_leaves_the_project_alone(cx: &mut TestAppContext) {
         assert_eq!(app.msg().text, "My work");
         assert!(app.is_dirty(), "unsaved work is still unsaved, not lost");
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -751,7 +745,6 @@ fn opening_a_project_past_the_badges_memory_says_what_is_cut(cx: &mut TestAppCon
         assert!(status.starts_with("Opened big.badge."), "{status}");
         assert!(status.contains("leaves out messages 6, 7 and 8"), "{status}");
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1196,7 +1189,6 @@ fn saving_over_a_file_changed_elsewhere_asks_whose_to_keep(cx: &mut TestAppConte
         assert!(!app.is_dirty());
     });
     assert_eq!(badge_formats::open(&path).unwrap().messages[0].text, "Theirs");
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1257,7 +1249,6 @@ fn unsaved_work_is_kept_until_saved_and_can_be_recovered(cx: &mut TestAppContext
         "From before",
         "once it's kept in this app's own"
     );
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Quitting with nothing to keep removes the copy and the lock file; one
@@ -1291,7 +1282,6 @@ fn quitting_removes_the_copy_and_its_lock_file(cx: &mut TestAppContext) {
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert!(lock.exists() || root);
     }
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1314,7 +1304,6 @@ fn closing_the_window_with_nothing_to_ask_removes_the_lock_file(cx: &mut TestApp
     cx.update(|window, _| window.remove_window());
     cx.run_until_parked();
     assert!(!lock.exists());
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1328,7 +1317,6 @@ fn quitting_from_outside_the_app_removes_the_lock_file(cx: &mut TestAppContext) 
     // As macOS's quit from the Dock does when there's nothing to ask.
     cx.cx.update(|cx| cx.shutdown());
     assert!(!lock.exists());
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1349,7 +1337,6 @@ fn recovered_work_stays_on_disk_when_it_cant_be_kept_again(cx: &mut TestAppConte
     app.update_in(cx, |app, window, cx| app.accept_alternate(window, cx));
     app.read_with(cx, |app, _| assert_eq!(app.msg().text, "From before"));
     assert!(earlier.exists(), "still there for the next start");
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1372,7 +1359,6 @@ fn discarding_recovered_work_keeps_only_the_current_work(cx: &mut TestAppContext
     app.update_in(cx, |app, window, cx| app.new_project(&NewProject, window, cx));
     app.update_in(cx, |app, window, cx| app.accept_alternate(window, cx));
     assert!(!copy.exists());
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[cfg(target_os = "macos")]
@@ -1406,7 +1392,6 @@ fn reverting_to_an_earlier_version_is_an_edit(cx: &mut TestAppContext) {
         assert_eq!(app.msg().text, "Older");
         assert!(app.is_dirty());
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Each save keeps the file as it was (the app's own store, as on Linux and
@@ -1440,7 +1425,6 @@ fn saving_keeps_earlier_versions_to_revert_to(cx: &mut TestAppContext) {
     );
     cx.dispatch_action(Undo);
     app.read_with(cx, |app, _| assert_eq!(app.msg().text, "Third"));
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[gpui::test]
@@ -1458,7 +1442,6 @@ fn only_the_newest_versions_are_kept(cx: &mut TestAppContext) {
     let kept = versions::store::list(&store, &file);
     assert_eq!(kept.len(), 10);
     assert_eq!(std::fs::read_to_string(&kept[0].1).unwrap(), "14", "newest first");
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Coming back to the window after another program changed the file: it
@@ -1491,7 +1474,6 @@ fn a_file_changed_elsewhere_is_not_reloaded(cx: &mut TestAppContext) {
         assert_eq!(app.msg().text, "Unsaved", "unsaved work isn't replaced");
         assert!(app.changed_elsewhere());
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// An image file whose lit pixels are `lit`, `height` rows tall.
@@ -1525,7 +1507,6 @@ fn images_load_in_the_background_and_the_last_one_wins(cx: &mut TestAppContext) 
         assert!(!m.bitmap.is_on(2, 3), "not the first");
         assert!(app.live_import().is_some());
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// An image goes into the message it was loaded for, wherever that message
@@ -1557,7 +1538,6 @@ fn an_image_follows_its_message_while_it_loads(cx: &mut TestAppContext) {
     });
     cx.run_until_parked();
     app.read_with(cx, |app, _| assert!(app.msg().bitmap.is_on(5, 1), "the second image"));
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// An image whose message was replaced while it loaded (New, Open, Undo, a
@@ -1576,7 +1556,6 @@ fn an_image_is_dropped_when_its_message_is_replaced(cx: &mut TestAppContext) {
         assert_eq!(app.msg().source, Source::Text);
         assert!(app.status.as_ref().is_some_and(|s| s.0.contains("replaced")));
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 /// Turning Fit to height off decodes the image again (in the background)
@@ -1610,5 +1589,4 @@ fn changing_fit_to_height_decodes_the_image_again(cx: &mut TestAppContext) {
         assert_eq!(app.msg().bitmap.content_width(), 24, "at its own size");
         assert!(app.live_import().is_some());
     });
-    let _ = std::fs::remove_dir_all(dir);
 }
