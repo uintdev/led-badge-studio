@@ -172,6 +172,8 @@ fn attach(window: &mut Window, cx: &mut Context<BadgeApp>) -> bool {
                 break;
             }
         }
+        // A request the app can no longer take isn't waiting to be asked.
+        QUIT_ASK_PENDING.store(false, Ordering::Relaxed);
     })
     .detach();
     true
@@ -198,14 +200,24 @@ static QUIT_ASK_PENDING: AtomicBool = AtomicBool::new(false);
 /// (unsaved changes, or a send), unless the app already decided to quit.
 /// If so, tells the app to ask, once (`Event::QuitRequested`).
 fn have_app_ask_before_quitting() -> bool {
-    if QUIT_APPROVED.load(Ordering::Relaxed) {
-        return false;
-    }
     STATE.with_borrow(|state| {
-        let Some(s) = state.as_ref().filter(|s| s.edited || s.sending) else {
-            return false;
-        };
-        QUIT_ASK_PENDING.swap(true, Ordering::Relaxed) || s.events.unbounded_send(Event::QuitRequested).is_ok()
+        let unsaved = state.as_ref().is_some_and(|s| s.edited || s.sending);
+        let (waits, tell) = super::macos_quit::quit_waits(
+            QUIT_APPROVED.load(Ordering::Relaxed),
+            unsaved,
+            QUIT_ASK_PENDING.load(Ordering::Relaxed),
+        );
+        if tell {
+            // An app that can't be told can't ask: the quit goes ahead.
+            if !state
+                .as_ref()
+                .is_some_and(|s| s.events.unbounded_send(Event::QuitRequested).is_ok())
+            {
+                return false;
+            }
+            QUIT_ASK_PENDING.store(true, Ordering::Relaxed);
+        }
+        waits
     })
 }
 
@@ -382,10 +394,11 @@ extern "C" fn should_close_window(
     // SAFETY: NSDocument's own method, on the same object, with what AppKit
     // passed; `answer` as below.
     unsafe {
-        if has_file(this) {
-            let _: () = msg_send![super(this, class!(NSDocument)), shouldCloseWindowController: controller delegate: delegate shouldCloseSelector: selector contextInfo: context];
-        } else {
-            answer(this, delegate, selector, YES, context);
+        match super::macos_quit::document_may_close(has_file(this), false) {
+            None => {
+                let _: () = msg_send![super(this, class!(NSDocument)), shouldCloseWindowController: controller delegate: delegate shouldCloseSelector: selector contextInfo: context];
+            }
+            Some(yes) => answer(this, delegate, selector, yes, context),
         }
     }
 }
@@ -402,11 +415,13 @@ extern "C" fn should_close_window(
 extern "C" fn can_close(this: &Object, _: Sel, delegate: Id, selector: Sel, context: *mut std::ffi::c_void) {
     // SAFETY: as in `should_close_window`.
     unsafe {
-        if has_file(this) {
-            let _: () = msg_send![super(this, class!(NSDocument)), canCloseDocumentWithDelegate: delegate shouldCloseSelector: selector contextInfo: context];
-        } else {
-            let yes = if have_app_ask_before_quitting() { NO } else { YES };
-            answer(this, delegate, selector, yes, context);
+        let file = has_file(this);
+        // Asked only for a project without a file: asking tells the app.
+        match super::macos_quit::document_may_close(file, !file && have_app_ask_before_quitting()) {
+            None => {
+                let _: () = msg_send![super(this, class!(NSDocument)), canCloseDocumentWithDelegate: delegate shouldCloseSelector: selector contextInfo: context];
+            }
+            Some(yes) => answer(this, delegate, selector, yes, context),
         }
     }
 }
@@ -420,7 +435,7 @@ unsafe fn has_file(doc: &Object) -> bool {
 
 /// Gives `delegate` the document's answer, by the `selector` AppKit passed
 /// (`document:shouldClose:contextInfo:`).
-unsafe fn answer(doc: &Object, delegate: Id, selector: Sel, yes: BOOL, context: *mut std::ffi::c_void) {
+unsafe fn answer(doc: &Object, delegate: Id, selector: Sel, yes: bool, context: *mut std::ffi::c_void) {
     if delegate.is_null() || selector.as_ptr().is_null() {
         return;
     }
@@ -428,7 +443,7 @@ unsafe fn answer(doc: &Object, delegate: Id, selector: Sel, yes: BOOL, context: 
     // document, a BOOL and the context it was given.
     unsafe {
         let doc = doc as *const Object as Id;
-        let _: Result<(), _> = objc::Message::send_message(&*delegate, selector, (doc, yes, context));
+        let _: Result<(), _> = objc::Message::send_message(&*delegate, selector, (doc, yes as BOOL, context));
     }
 }
 

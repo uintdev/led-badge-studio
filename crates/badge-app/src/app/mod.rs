@@ -10,6 +10,9 @@ mod files;
 mod history;
 #[cfg(target_os = "linux")]
 mod launcher_entry;
+// Used by native_document.rs, which only builds on macOS (and not for tests).
+#[cfg_attr(not(all(target_os = "macos", not(test))), allow(dead_code))]
+mod macos_quit;
 #[cfg(target_os = "macos")]
 mod menu_bar;
 mod menus;
