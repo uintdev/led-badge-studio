@@ -192,8 +192,14 @@ badgectl check *.badge                 # several files at once
 badgectl check --fix messages.badge    # repair what can be repaired and save it
 ```
 
+```bash
+badgectl check --strict *.badge        # also fail when sending would cut messages short
+```
+
 It prints one line per file: `OK`, the problems that can be repaired (with
-what each value becomes), or why the file can't be opened. The exit status
+what each value becomes), or why the file can't be opened. A warning follows
+when the ticked messages need more than the badge's memory, saying which
+messages sending would cut short or leave out. The exit status
 makes it usable in scripts:
 
 | Exit status | Meaning |
@@ -201,6 +207,7 @@ makes it usable in scripts:
 | 0 | Every file is fine (or, with `--fix`, was repaired and saved) |
 | 1 | A file can't be opened (broken JSON, wrong kind of value, …) |
 | 2 | A file has values that can be repaired (run with `--fix`) |
+| 3 | With `--strict`: the ticked messages need more than the badge's memory, so sending would cut them short |
 
 See [Damaged or hand-edited files](project-files.md#damaged-or-hand-edited-files) for what is
 repaired and what is refused.

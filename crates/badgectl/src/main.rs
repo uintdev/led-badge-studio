@@ -93,11 +93,13 @@ enum Command {
     ///
     /// Exit status: 0 when every file is fine (or was repaired with --fix),
     /// 2 when a file has values that can be repaired, 1 when a file can't be
-    /// opened at all.
+    /// opened at all; with --strict, 3 when sending a file would cut messages
+    /// short (and nothing else is wrong).
     #[command(after_help = "Examples:
   badgectl check messages.badge
   badgectl check *.badge
-  badgectl check --fix messages.badge")]
+  badgectl check --fix messages.badge
+  badgectl check --strict *.badge")]
     Check {
         /// The .badge files to check.
         #[arg(required = true)]
@@ -105,6 +107,10 @@ enum Command {
         /// Repair what can be repaired and save it back to the file.
         #[arg(long)]
         fix: bool,
+        /// Also fail (exit status 3) when the ticked messages need more than
+        /// the badge's memory, so sending would cut them short.
+        #[arg(long)]
+        strict: bool,
     },
     /// Measure the badge's timing by tapping along.
     ///
@@ -320,7 +326,7 @@ fn watch_devices() -> Result<()> {
 }
 
 /// `badgectl check`: returns the exit status.
-fn check(files: &[PathBuf], fix: bool) -> i32 {
+fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
     let mut status = 0;
     let mut renderer: Option<Renderer> = None;
     for path in files {
@@ -354,7 +360,8 @@ fn check(files: &[PathBuf], fix: bool) -> i32 {
                 status = 1;
             }
         }
-        // Not a problem with the file, so it doesn't change the exit status.
+        // Not a problem with the file: it changes the exit status only with
+        // --strict, and only when nothing else is wrong.
         if let Ok(l) = loaded {
             let mut project = l.project;
             // Text is drawn with this computer's fonts, as sending would;
@@ -368,6 +375,9 @@ fn check(files: &[PathBuf], fix: bool) -> i32 {
             }
             if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 println!("  warning: {over}");
+                if strict && status == 0 {
+                    status = 3;
+                }
             }
         }
     }
@@ -390,8 +400,8 @@ fn main() {
 
 fn run(cli: Cli) -> Result<()> {
     match cli.command {
-        Command::Check { files, fix } => {
-            let status = check(&files, fix);
+        Command::Check { files, fix, strict } => {
+            let status = check(&files, fix, strict);
             if status != 0 {
                 std::process::exit(status);
             }
