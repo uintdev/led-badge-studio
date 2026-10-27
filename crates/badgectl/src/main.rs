@@ -328,6 +328,7 @@ fn watch_devices() -> Result<()> {
 /// `badgectl check`: returns the exit status.
 fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
     let mut status = 0;
+    let mut over_memory = false;
     let mut renderer: Option<Renderer> = None;
     for path in files {
         let name = path.display();
@@ -361,7 +362,7 @@ fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
             }
         }
         // Not a problem with the file: it changes the exit status only with
-        // --strict, and only when nothing else is wrong.
+        // --strict, and only when nothing else is wrong (after every file).
         if let Ok(l) = loaded {
             let mut project = l.project;
             // Text is drawn with this computer's fonts, as sending would;
@@ -377,11 +378,12 @@ fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
             }
             if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 println!("  warning: {over}");
-                if strict && status == 0 {
-                    status = 3;
-                }
+                over_memory = true;
             }
         }
+    }
+    if strict && over_memory && status == 0 {
+        status = 3;
     }
     status
 }
@@ -730,5 +732,50 @@ fn print_art(fb: &Framebuffer) {
     for y in 0..fb.height() {
         let line: String = (0..w).map(|x| if fb.is_on(x, y) { '█' } else { '·' }).collect();
         println!("  {line}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use badge_core::LedColor;
+
+    /// A folder of its own for the test's files, removed when it ends.
+    struct TempDir(PathBuf);
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn strict_check_puts_repairs_first_whatever_the_order() {
+        let dir = TempDir(std::env::temp_dir().join(format!("badgectl-check-{}", std::process::id())));
+        let _ = std::fs::remove_dir_all(&dir.0);
+        std::fs::create_dir_all(&dir.0).unwrap();
+        let fine = dir.0.join("fine.badge");
+        badge_formats::save_project(&Project::new(CardType::Mono11), &fine).unwrap();
+        // Every message ticked, as wide as a message can be.
+        let mut big = Project::new(CardType::Mono11);
+        for m in &mut big.messages {
+            m.selected = true;
+            m.source = Source::Bitmap;
+            m.bitmap.set(badge_core::MAX_WIDTH - 1, 0, LedColor::RED);
+        }
+        let over = dir.0.join("over.badge");
+        badge_formats::save_project(&big, &over).unwrap();
+        // A speed out of range, which can be repaired.
+        let repairable = dir.0.join("repairable.badge");
+        let text = std::fs::read_to_string(&fine)
+            .unwrap()
+            .replacen("\"speed\": ", "\"speed\": 9", 1);
+        std::fs::write(&repairable, text).unwrap();
+
+        assert_eq!(check(std::slice::from_ref(&fine), false, true), 0);
+        assert_eq!(check(std::slice::from_ref(&over), false, false), 0, "only a warning");
+        assert_eq!(check(std::slice::from_ref(&over), false, true), 3);
+        assert_eq!(check(&[over.clone(), repairable.clone()], false, true), 2);
+        assert_eq!(check(&[repairable, over], false, true), 2);
     }
 }

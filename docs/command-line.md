@@ -207,7 +207,7 @@ makes it usable in scripts:
 | 0 | Every file is fine (or, with `--fix`, was repaired and saved) |
 | 1 | A file can't be opened (broken JSON, wrong kind of value, …) |
 | 2 | A file has values that can be repaired (run with `--fix`) |
-| 3 | With `--strict`: the ticked messages need more than the badge's memory, so sending would cut them short |
+| 3 | With `--strict`, when nothing else is wrong: the ticked messages in a file need more than the badge's memory, so sending would cut them short |
 
 See [Damaged or hand-edited files](project-files.md#damaged-or-hand-edited-files) for what is
 repaired and what is refused.
