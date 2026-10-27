@@ -24,6 +24,7 @@ use objc::declare::ClassDecl;
 use objc::runtime::{BOOL, Class, NO, Object, Sel, YES};
 use objc::{class, msg_send, sel, sel_impl};
 
+use super::macos_quit::{QuitRequests, QuitState, window_may_close};
 use super::*;
 
 type Id = *mut Object;
@@ -173,7 +174,7 @@ fn attach(window: &mut Window, cx: &mut Context<BadgeApp>) -> bool {
             }
         }
         // A request the app can no longer take isn't waiting to be asked.
-        QUIT_ASK_PENDING.store(false, Ordering::Relaxed);
+        QUIT_REQUESTS.asked();
     })
     .detach();
     true
@@ -185,39 +186,31 @@ fn attach(window: &mut Window, cx: &mut Context<BadgeApp>) -> bool {
 extern "C" fn should_terminate(_: &Object, _: Sel, _: Id) -> usize {
     const TERMINATE_CANCEL: usize = 0;
     const TERMINATE_NOW: usize = 1;
-    if have_app_ask_before_quitting() {
+    if QUIT_REQUESTS.quit(quit_state(), tell_app_to_ask) {
         TERMINATE_CANCEL
     } else {
         TERMINATE_NOW
     }
 }
 
-/// Set while the app has been told to ask before quitting and hasn't yet;
-/// macOS can ask twice in one quit (the document, then the app).
-static QUIT_ASK_PENDING: AtomicBool = AtomicBool::new(false);
+/// Quits from macOS that wait for the app to ask first (see `QuitRequests`).
+static QUIT_REQUESTS: QuitRequests = QuitRequests::new();
 
-/// A quit from macOS: whether it has to wait for the app to ask first
-/// (unsaved changes, or a send), unless the app already decided to quit.
-/// If so, tells the app to ask, once (`Event::QuitRequested`).
-fn have_app_ask_before_quitting() -> bool {
+/// Where the app stands, for `QuitRequests`.
+fn quit_state() -> QuitState {
+    QuitState {
+        approved: QUIT_APPROVED.load(Ordering::Relaxed),
+        unsaved: STATE.with_borrow(|state| state.as_ref().is_some_and(|s| s.edited || s.sending)),
+    }
+}
+
+/// Tells the app to ask before quitting (`Event::QuitRequested`); whether it
+/// could be told.
+fn tell_app_to_ask() -> bool {
     STATE.with_borrow(|state| {
-        let unsaved = state.as_ref().is_some_and(|s| s.edited || s.sending);
-        let (waits, tell) = super::macos_quit::quit_waits(
-            QUIT_APPROVED.load(Ordering::Relaxed),
-            unsaved,
-            QUIT_ASK_PENDING.load(Ordering::Relaxed),
-        );
-        if tell {
-            // An app that can't be told can't ask: the quit goes ahead.
-            if !state
-                .as_ref()
-                .is_some_and(|s| s.events.unbounded_send(Event::QuitRequested).is_ok())
-            {
-                return false;
-            }
-            QUIT_ASK_PENDING.store(true, Ordering::Relaxed);
-        }
-        waits
+        state
+            .as_ref()
+            .is_some_and(|s| s.events.unbounded_send(Event::QuitRequested).is_ok())
     })
 }
 
@@ -244,7 +237,7 @@ impl BadgeApp {
             }
             Event::ChangedElsewhere(_) => {}
             Event::QuitRequested => {
-                QUIT_ASK_PENDING.store(false, Ordering::Relaxed);
+                QUIT_REQUESTS.asked();
                 self.quit(&Quit, window, cx);
             }
         }
@@ -394,7 +387,7 @@ extern "C" fn should_close_window(
     // SAFETY: NSDocument's own method, on the same object, with what AppKit
     // passed; `answer` as below.
     unsafe {
-        match super::macos_quit::document_may_close(has_file(this), false) {
+        match window_may_close(has_file(this)) {
             None => {
                 let _: () = msg_send![super(this, class!(NSDocument)), shouldCloseWindowController: controller delegate: delegate shouldCloseSelector: selector contextInfo: context];
             }
@@ -415,9 +408,7 @@ extern "C" fn should_close_window(
 extern "C" fn can_close(this: &Object, _: Sel, delegate: Id, selector: Sel, context: *mut std::ffi::c_void) {
     // SAFETY: as in `should_close_window`.
     unsafe {
-        let file = has_file(this);
-        // Asked only for a project without a file: asking tells the app.
-        match super::macos_quit::document_may_close(file, !file && have_app_ask_before_quitting()) {
+        match QUIT_REQUESTS.document_may_close(has_file(this), quit_state(), tell_app_to_ask) {
             None => {
                 let _: () = msg_send![super(this, class!(NSDocument)), canCloseDocumentWithDelegate: delegate shouldCloseSelector: selector contextInfo: context];
             }
