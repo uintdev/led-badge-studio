@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.2" date="2026-10-27">
+      <description>
+        <p>Says what gets cut when a project is too big for the badge, and asks before sending it; remembers only what reached the badge as last sent; and no longer leaves a lock file behind after closing the window.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-10-26">
       <description>
         <p>Keeps unsaved work more reliably after a crash, keeps editing smooth while it's saved, stops saves from following links other users planted, and puts a slowly loading image into the right message.</p>

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.2 (2026-10-27)
+
+### All platforms
+
+- Oversized projects say what gets cut, and ask before sending.
+- Load What Was Last Sent shows only what reached the badge.
+- The Send shortcut waits while a dialog is open.
+- badgectl warns about cut messages; `check --strict` fails on them.
+
+### Linux
+
+- Closing the window no longer leaves a lock file behind.
+
+### macOS
+
+- Closing a new project asks only the app's question.
+- Closing, or quitting from the Dock, no longer leaves a lock file.
+
 ## 0.2.1 (2026-10-26)
 
 ### All platforms
