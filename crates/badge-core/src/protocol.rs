@@ -42,17 +42,17 @@ pub fn message_columns(project: &Project) -> [usize; MESSAGE_COUNT] {
 pub fn as_sent(project: &Project) -> Project {
     let cols = message_columns(project);
     let mut sent = project.clone();
-    for (m, &cols) in sent.messages.iter_mut().zip(&cols) {
+    for (m, &n) in sent.messages.iter_mut().zip(&cols) {
         let width = m.bitmap.used_width();
-        if !m.selected || cols * 8 >= width {
+        if !m.selected || n * 8 >= width {
             continue;
         }
-        if cols == 0 {
+        if n == 0 {
             m.selected = false;
             continue;
         }
         m.source = Source::Bitmap;
-        for x in cols * 8..width {
+        for x in n * 8..width {
             for y in 0..m.bitmap.height() {
                 m.bitmap.set(x, y, LedColor::OFF);
             }
@@ -348,27 +348,35 @@ mod tests {
 
     #[test]
     fn as_sent_keeps_what_fits() {
-        let mut p = Project::new(CardType::Mono11);
-        // 500 byte-columns each: five fit, the sixth gets 60, the rest none.
-        for m in &mut p.messages {
-            m.selected = true;
-            m.text = "x".into();
-            m.bitmap.set(3999, 0, LedColor::RED);
-            // The last column the sixth gets.
-            m.bitmap.set(479, 0, LedColor::RED);
+        for card in [CardType::Mono11, CardType::Rgb12] {
+            let mut p = Project::new(card);
+            // 500 byte-columns each: five fit, the sixth gets 60, the rest none.
+            for m in &mut p.messages {
+                m.selected = true;
+                m.text = "x".into();
+                m.bitmap.set(3999, 0, LedColor::RED);
+                // The last column the sixth gets.
+                m.bitmap.set(479, 0, LedColor::BLUE);
+            }
+            let sent = as_sent(&p);
+            assert_eq!(sent.messages[0], p.messages[0], "whole ones unchanged");
+            assert_eq!(sent.messages[5].bitmap.used_width(), 480);
+            assert_eq!(sent.messages[5].source, Source::Bitmap);
+            assert!(sent.messages[5].selected);
+            assert!(!sent.messages[6].selected && !sent.messages[7].selected);
+            assert_eq!(sent.used_columns(), MAX_TOTAL_COLUMNS);
+            // The same data goes to the badge either way, over USB or serial.
+            assert_eq!(
+                encode_usb(&sent, AddressMode::Ignore, now()),
+                encode_usb(&p, AddressMode::Ignore, now()),
+                "{card:?}"
+            );
+            assert_eq!(
+                encode_serial(&sent, AddressMode::Ignore, now()).packets,
+                encode_serial(&p, AddressMode::Ignore, now()).packets,
+                "{card:?}"
+            );
         }
-        let sent = as_sent(&p);
-        assert_eq!(sent.messages[0], p.messages[0], "whole ones unchanged");
-        assert_eq!(sent.messages[5].bitmap.used_width(), 480);
-        assert_eq!(sent.messages[5].source, Source::Bitmap);
-        assert!(sent.messages[5].selected);
-        assert!(!sent.messages[6].selected && !sent.messages[7].selected);
-        assert_eq!(sent.used_columns(), MAX_TOTAL_COLUMNS);
-        // The same data goes to the badge either way.
-        assert_eq!(
-            encode_usb(&sent, AddressMode::Ignore, now()),
-            encode_usb(&p, AddressMode::Ignore, now())
-        );
     }
 
     #[test]

@@ -366,12 +366,14 @@ fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
             let mut project = l.project;
             // Text is drawn with this computer's fonts, as sending would;
             // they're loaded once, and only for ticked text.
-            if project.messages.iter().any(|m| m.selected && m.source == Source::Text) {
+            let card = project.card;
+            for m in project
+                .messages
+                .iter_mut()
+                .filter(|m| m.selected && m.source == Source::Text)
+            {
                 let r = renderer.get_or_insert_with(|| Renderer::new(FontLibrary::discover()));
-                let card = project.card;
-                for m in &mut project.messages {
-                    m.bitmap = r.render(m, card);
-                }
+                m.bitmap = r.render(m, card);
             }
             if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 println!("  warning: {over}");

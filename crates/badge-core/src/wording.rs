@@ -7,10 +7,11 @@ use crate::{MESSAGE_COUNT, Project};
 /// they need, and what sending them does about it (which messages are cut
 /// short and which left out, by `message_columns`).
 pub fn memory_overflow(project: &Project) -> Option<String> {
-    let cut = memory_cut(project)?;
+    let used = project.used_columns();
+    let cut = cut_past(project, used)?;
     Some(format!(
         "The ticked messages need {} columns, more than the {} the badge holds: sending {cut}.",
-        project.used_columns() * 8,
+        used * 8,
         MAX_TOTAL_COLUMNS * 8
     ))
 }
@@ -19,7 +20,12 @@ pub fn memory_overflow(project: &Project) -> Option<String> {
 /// memory ("cuts message 6 short and leaves out messages 7 and 8"), by
 /// `message_columns`; `None` when they fit.
 pub fn memory_cut(project: &Project) -> Option<String> {
-    if project.used_columns() <= MAX_TOTAL_COLUMNS {
+    cut_past(project, project.used_columns())
+}
+
+/// `memory_cut`, with the byte-columns the ticked messages need (`used`).
+fn cut_past(project: &Project, used: usize) -> Option<String> {
+    if used <= MAX_TOTAL_COLUMNS {
         return None;
     }
     let cols = message_columns(project);
