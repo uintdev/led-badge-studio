@@ -233,11 +233,16 @@ struct Target {
     #[arg(long, short)]
     device: Option<String>,
     /// Store this address in the badge (0-999).
-    #[arg(long, conflicts_with = "to_address")]
+    #[arg(long, conflicts_with = "to_address", value_parser = address_parser())]
     write_address: Option<u16>,
-    /// Only the badge with this address accepts the upload.
-    #[arg(long)]
+    /// Only the badge with this address accepts the upload (0-999).
+    #[arg(long, value_parser = address_parser())]
     to_address: Option<u16>,
+}
+
+/// A badge address: 0 to 999, refused beyond that.
+fn address_parser() -> impl clap::builder::TypedValueParser<Value = u16> {
+    clap::value_parser!(u16).range(0..=i64::from(badge_core::MAX_ADDRESS))
 }
 
 /// What `badgectl calibrate` measures.
@@ -589,8 +594,8 @@ fn run(cli: Cli) -> Result<()> {
             }
             let device = pick_device(target.device.as_deref())?;
             let address = match (target.write_address, target.to_address) {
-                (Some(a), _) => AddressMode::Write(a.min(badge_core::MAX_ADDRESS)),
-                (_, Some(a)) => AddressMode::SendTo(a.min(badge_core::MAX_ADDRESS)),
+                (Some(a), _) => AddressMode::Write(a),
+                (_, Some(a)) => AddressMode::SendTo(a),
                 _ => AddressMode::Ignore,
             };
             badge_io::send(&project, address, &device, &mut progress).inspect_err(|_| eprint!("\r{:18}\r", ""))?;
@@ -746,6 +751,22 @@ mod tests {
     impl Drop for TempDir {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn addresses_past_999_are_refused() {
+        let address = |option: &str, value: &str| {
+            Cli::try_parse_from(["badgectl", "send", "-t", "Hi", option, value]).map(|cli| match cli.command {
+                Command::Send { target, .. } => target.write_address.or(target.to_address),
+                _ => None,
+            })
+        };
+        for option in ["--write-address", "--to-address"] {
+            assert_eq!(address(option, "0").ok(), Some(Some(0)), "{option}");
+            assert_eq!(address(option, "999").ok(), Some(Some(999)), "{option}");
+            assert!(address(option, "1000").is_err(), "{option}");
+            assert!(address(option, "-1").is_err(), "{option}");
         }
     }
 

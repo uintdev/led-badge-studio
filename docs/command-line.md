@@ -271,7 +271,7 @@ badgectl licenses        # every license text (--fonts or --third-party for one 
 |---|---|
 | `-d`, `--device ID` | A device id or label from `badgectl list` (default: the first USB badge) |
 | `--write-address N` | Store this address (0-999) in the badge |
-| `--to-address N` | Only the badge with this address accepts the upload |
+| `--to-address N` | Only the badge with this address (0-999) accepts the upload |
 
 **Saving the preview** (`preview`):
 
