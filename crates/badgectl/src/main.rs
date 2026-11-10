@@ -593,7 +593,7 @@ fn run(cli: Cli) -> Result<()> {
                 (_, Some(a)) => AddressMode::SendTo(a.min(badge_core::MAX_ADDRESS)),
                 _ => AddressMode::Ignore,
             };
-            badge_io::send(&project, address, &device, &mut progress)?;
+            badge_io::send(&project, address, &device, &mut progress).inspect_err(|_| eprint!("\r{:18}\r", ""))?;
             badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             eprintln!("\rSent to {}.        ", device.label);
         }
