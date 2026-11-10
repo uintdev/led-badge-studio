@@ -482,6 +482,7 @@ fn ago(when: SystemTime) -> String {
         0..60 => "just now".into(),
         60..3600 => format!("{} min ago", secs / 60),
         3600..86400 => format!("{} h ago", secs / 3600),
+        86400..172800 => "1 day ago".into(),
         _ => format!("{} days ago", secs / 86400),
     }
 }
@@ -489,6 +490,15 @@ fn ago(when: SystemTime) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn one_day_ago_is_singular() {
+        let hours = |n: u64| ago(SystemTime::now() - Duration::from_secs(n * 3600));
+        assert_eq!(hours(23), "23 h ago");
+        assert_eq!(hours(24), "1 day ago");
+        assert_eq!(hours(47), "1 day ago");
+        assert_eq!(hours(48), "2 days ago");
+    }
 
     #[test]
     fn a_copy_is_in_use_while_its_app_holds_the_lock() {

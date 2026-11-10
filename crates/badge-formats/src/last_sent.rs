@@ -55,6 +55,7 @@ impl LastSent {
             0..60 => "just now".into(),
             60..3600 => format!("{} min ago", secs / 60),
             3600..86400 => format!("{} h ago", secs / 3600),
+            86400..172800 => "1 day ago".into(),
             _ => format!("{} days ago", secs / 86400),
         }
     }
@@ -82,5 +83,23 @@ impl LastSent {
                 texts.join(", ")
             }
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn one_day_ago_is_singular() {
+        let sent = |hours: u64| LastSent {
+            project: Project::default(),
+            when: SystemTime::now() - Duration::from_secs(hours * 3600),
+        };
+        assert_eq!(sent(23).when_text(), "23 h ago");
+        assert_eq!(sent(24).when_text(), "1 day ago");
+        assert_eq!(sent(47).when_text(), "1 day ago");
+        assert_eq!(sent(48).when_text(), "2 days ago");
     }
 }
