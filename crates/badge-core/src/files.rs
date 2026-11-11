@@ -6,19 +6,18 @@ use std::io::{Error, ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
 /// Replaces the file at `path` with `bytes`: written beside it and onto the
-/// disk first, then moved over it, so a crash, a power cut or a full disk
-/// leaves the earlier file (and no half one). A symlink is followed, so the
-/// file it points to is the one replaced (but not one another user left in
-/// a shared folder such as `/tmp`), and on Unix the replaced file's
-/// permissions are kept.
+/// disk first (as `name.1a2b3c4d.tmp`, a name of its own each time), then
+/// moved over it, so a crash, a power cut or a full disk leaves the earlier
+/// file (and no half one). A symlink is followed, so the file it points to
+/// is the one replaced (but not one another user left in a shared folder
+/// such as `/tmp`), and on Unix the replaced file's permissions are kept.
 pub fn replace_file(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::hash::{BuildHasher, Hasher, RandomState};
     let path = &follow_links(path)?;
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
     let old = std::fs::metadata(path).ok();
-    let write = || -> std::io::Result<()> {
-        let mut file = create_tmp(&tmp, old.as_ref())?;
+    // Random: every `RandomState` has keys of its own.
+    let (tmp, file) = create_tmp(path, old.as_ref(), || RandomState::new().build_hasher().finish() as u32)?;
+    let write = |mut file: File| -> std::io::Result<()> {
         file.write_all(bytes)?;
         file.sync_all()?;
         // Not on Windows, where the only permission is read-only: a
@@ -31,18 +30,34 @@ pub fn replace_file(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         }
         std::fs::rename(&tmp, path)
     };
-    let written = write();
+    let written = write(file);
     if written.is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
     written
 }
 
-/// Creates the file a replacement is written to, always as a new file: one
-/// already there (a leftover, another program's, or a symlink someone left
-/// to send the write elsewhere) is removed first, never written through. On
-/// Unix it starts with no more permissions than the replaced file has.
-fn create_tmp(tmp: &Path, old: Option<&Metadata>) -> std::io::Result<File> {
+const TMP_NAME_TRIES: usize = 16;
+
+/// The name a replacement of `path` is written under: `name.1a2b3c4d.tmp`.
+fn tmp_path(path: &Path, id: u32) -> PathBuf {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(format!(".{id:08x}.tmp"));
+    PathBuf::from(tmp)
+}
+
+/// Creates the file a replacement of `path` is written to, beside it, under
+/// a name from `next_id` (see [`tmp_path`]), always as a new file. A file
+/// already at that name (a leftover, someone's own file, another save of
+/// the same file going on, or a symlink someone left to send the write
+/// elsewhere) is left as it is, never written through or removed: another
+/// name is tried. On Unix the new file starts with no more permissions than
+/// the replaced file has.
+fn create_tmp(
+    path: &Path,
+    old: Option<&Metadata>,
+    mut next_id: impl FnMut() -> u32,
+) -> std::io::Result<(PathBuf, File)> {
     let mut options = std::fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
@@ -52,13 +67,17 @@ fn create_tmp(tmp: &Path, old: Option<&Metadata>) -> std::io::Result<File> {
     }
     #[cfg(not(unix))]
     let _ = old;
-    match options.open(tmp) {
-        Err(e) if e.kind() == ErrorKind::AlreadyExists => {
-            std::fs::remove_file(tmp)?;
-            options.open(tmp)
+    for _ in 0..TMP_NAME_TRIES {
+        let tmp = tmp_path(path, next_id());
+        match options.open(&tmp) {
+            Err(e) if e.kind() == ErrorKind::AlreadyExists => {}
+            opened => return opened.map(|file| (tmp, file)),
         }
-        opened => opened,
     }
+    Err(Error::new(
+        ErrorKind::AlreadyExists,
+        format!("{}: no free name for a temporary file beside it", path.display()),
+    ))
 }
 
 /// The file a chain of symlinks at `path` ends at (`path` itself when it
@@ -139,6 +158,15 @@ mod tests {
         dir
     }
 
+    fn names(dir: &Path) -> Vec<String> {
+        let mut names: Vec<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        names
+    }
+
     #[test]
     fn replaces_whole_or_not_at_all() {
         let dir = temp_dir("replace");
@@ -146,10 +174,36 @@ mod tests {
         replace_file(&path, b"first").unwrap();
         replace_file(&path, b"second").unwrap();
         assert_eq!(std::fs::read(&path).unwrap(), b"second");
-        assert!(!dir.join("a.txt.tmp").exists());
+        assert_eq!(names(&dir), ["a.txt"], "no temporary file is left");
         // A write that fails leaves nothing behind.
         assert!(replace_file(&dir.join("missing/a.txt"), b"x").is_err());
         assert!(!dir.join("missing").exists());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_file_named_like_the_old_temporary_file_is_kept() {
+        let dir = temp_dir("own-tmp");
+        let path = dir.join("a.badge");
+        std::fs::write(dir.join("a.badge.tmp"), b"someone's own").unwrap();
+        replace_file(&path, b"saved").unwrap();
+        assert_eq!(std::fs::read(dir.join("a.badge.tmp")).unwrap(), b"someone's own");
+        assert_eq!(names(&dir), ["a.badge", "a.badge.tmp"]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_taken_temporary_name_is_left_alone_and_another_tried() {
+        let dir = temp_dir("taken");
+        let path = dir.join("a.txt");
+        std::fs::write(tmp_path(&path, 1), b"another save's").unwrap();
+        let mut ids = [1, 1, 2].into_iter();
+        let (tmp, _file) = create_tmp(&path, None, || ids.next().unwrap()).unwrap();
+        assert_eq!(tmp, tmp_path(&path, 2));
+        assert_eq!(std::fs::read(tmp_path(&path, 1)).unwrap(), b"another save's");
+        let e = create_tmp(&path, None, || 1).unwrap_err();
+        assert_eq!(e.kind(), ErrorKind::AlreadyExists);
+        assert_eq!(std::fs::read(tmp_path(&path, 1)).unwrap(), b"another save's");
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -183,7 +237,14 @@ mod tests {
         let victim = dir.join("victim.txt");
         std::fs::write(&victim, b"keep").unwrap();
         let path = dir.join("out.gif");
-        std::os::unix::fs::symlink(&victim, dir.join("out.gif.tmp")).unwrap();
+        let planted = tmp_path(&path, 7);
+        std::os::unix::fs::symlink(&victim, &planted).unwrap();
+        let mut ids = [7, 8].into_iter();
+        let (tmp, mut file) = create_tmp(&path, None, || ids.next().unwrap()).unwrap();
+        file.write_all(b"gif").unwrap();
+        assert_eq!(tmp, tmp_path(&path, 8));
+        assert_eq!(std::fs::read(&victim).unwrap(), b"keep");
+        assert!(std::fs::symlink_metadata(&planted).unwrap().file_type().is_symlink());
         replace_file(&path, b"gif").unwrap();
         assert_eq!(std::fs::read(&victim).unwrap(), b"keep");
         assert_eq!(std::fs::read(&path).unwrap(), b"gif");

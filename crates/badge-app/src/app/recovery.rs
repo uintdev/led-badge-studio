@@ -147,7 +147,7 @@ fn clean_up(dir: &Path) {
         // The copy each leftover belongs to.
         let copy = if let Some(id) = name.strip_suffix(".lock") {
             dir.join(format!("{id}.json"))
-        } else if let Some(id) = name.strip_suffix(".json.tmp") {
+        } else if let Some((id, _)) = name.strip_suffix(".tmp").and_then(|n| n.split_once(".json")) {
             dir.join(format!("{id}.json"))
         } else {
             continue;
@@ -534,8 +534,9 @@ mod tests {
         let new_lock = make("2-2.lock", 0);
         let kept_copy_lock = make("3-3.lock", 120);
         let kept_copy = make("3-3.json", 120);
-        let gone_tmp = make("4-4.json.tmp", 120);
-        let held_tmp = make("5-5.json.tmp", 120);
+        let gone_tmp = make("4-4.json.1a2b3c4d.tmp", 120);
+        let gone_old_tmp = make("4-4.json.tmp", 120);
+        let held_tmp = make("5-5.json.1a2b3c4d.tmp", 120);
         let held_lock = make("5-5.lock", 120);
         let lock = std::fs::File::open(&held_lock).unwrap();
         lock.try_lock().unwrap();
@@ -547,6 +548,7 @@ mod tests {
             "its copy is still offered"
         );
         assert!(!gone_tmp.exists(), "a half-written copy");
+        assert!(!gone_old_tmp.exists(), "one from an earlier version");
         assert!(held_tmp.exists(), "its app is running");
         drop(lock);
         let _ = std::fs::remove_dir_all(dir);

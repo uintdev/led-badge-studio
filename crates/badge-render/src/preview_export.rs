@@ -475,7 +475,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(std::fs::read(&path).unwrap(), b"new");
-        assert!(!dir.join("out.gif.tmp").exists());
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "no temporary file is left");
         // A write that fails leaves nothing behind.
         let missing = dir.join("missing/out.gif");
         assert!(write(&missing, |_| Ok(())).is_err());

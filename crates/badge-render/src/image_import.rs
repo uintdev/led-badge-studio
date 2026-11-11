@@ -285,7 +285,7 @@ mod tests {
         export_png(&fb, false, &path, 1).unwrap();
         let saved = image::load_from_memory(&std::fs::read(&path).unwrap()).unwrap();
         assert_eq!(saved.to_rgba8().get_pixel(2, 3), &Rgba([255, 0, 0, 255]));
-        assert!(!dir.join("message1.png.tmp").exists());
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "no temporary file is left");
         let _ = std::fs::remove_dir_all(dir);
     }
 }
