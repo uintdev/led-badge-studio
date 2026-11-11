@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3 (2026-11-11)
+
+### All platforms
+
+- Saving no longer deletes a file named like its temporary one.
+- A day-old time reads "1 day ago", not "1 days ago".
+- badgectl refuses addresses over 999 instead of sending 999.
+- badgectl shows a failed send's error on its own line.
+
 ## 0.2.2 (2026-10-27)
 
 ### All platforms

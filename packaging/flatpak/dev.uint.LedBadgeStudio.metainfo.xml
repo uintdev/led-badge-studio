@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.3" date="2026-11-11">
+      <description>
+        <p>Saving no longer deletes a file named like its temporary one; a day-old time reads "1 day ago"; and badgectl refuses addresses over 999 and shows a failed send's error on a line of its own.</p>
+      </description>
+    </release>
     <release version="0.2.2" date="2026-10-27">
       <description>
         <p>Says what gets cut when a project is too big for the badge, and asks before sending it; remembers only what reached the badge as last sent; and no longer leaves a lock file behind after closing the window.</p>
