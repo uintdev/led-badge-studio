@@ -601,6 +601,7 @@ version = "0.2.2"
 dependencies = [
  "anyhow",
  "badge-core",
+ "log",
  "serde",
  "serde_json",
  "serde_path_to_error",

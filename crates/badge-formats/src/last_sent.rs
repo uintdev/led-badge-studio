@@ -37,7 +37,7 @@ impl LastSent {
         let project = match crate::open(&p) {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("ignoring the last-sent record {}: {e:#}", p.display());
+                log::warn!("ignoring the last-sent record {}: {e:#}", p.display());
                 return None;
             }
         };
