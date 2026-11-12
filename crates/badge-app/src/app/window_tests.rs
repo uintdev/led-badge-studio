@@ -950,8 +950,7 @@ fn text_that_does_not_fit_is_refused(cx: &mut TestAppContext) {
         assert!(status(app).starts_with("Message 1 is full"), "{}", status(app));
         assert_eq!(app.input.read(cx).text(), "Hello", "the text box is put back");
         // Five other messages, as wide as a message can be, fill the memory.
-        for i in 1..6 {
-            let m = &mut app.project.messages[i];
+        for m in &mut app.project.messages[1..6] {
             m.source = Source::Bitmap;
             m.selected = true;
             m.bitmap.set(badge_core::MAX_WIDTH - 1, 0, LedColor::RED);
@@ -1030,8 +1029,8 @@ fn ticking_duplicating_and_pasting_stay_within_the_memory(cx: &mut TestAppContex
             m.bitmap.set_height(11);
         }
         // Messages 1-5 ticked and full (2560 bytes); message 6 unticked.
-        for i in 0..5 {
-            app.project.messages[i] = badge_core::Message {
+        for m in &mut app.project.messages[..5] {
+            *m = badge_core::Message {
                 selected: true,
                 ..wide(512)
             };
@@ -1104,12 +1103,11 @@ fn switching_badge_type_stays_within_the_memory(cx: &mut TestAppContext) {
         );
         // Fill the rest of the memory exactly, with drawings in messages 2-8.
         let mut left = badge_core::protocol::MAX_TOTAL_COLUMNS - w11 / 8;
-        for i in 1..8 {
+        for m in &mut app.project.messages[1..8] {
             let bytes = left.min(512);
             if bytes == 0 {
                 break;
             }
-            let m = &mut app.project.messages[i];
             m.source = Source::Bitmap;
             m.selected = true;
             m.bitmap.set(bytes * 8 - 1, 0, LedColor::RED);
