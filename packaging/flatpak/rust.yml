@@ -14,9 +14,9 @@ build-commands:
 sources:
   - type: archive
     only-arches: [x86_64]
-    url: https://static.rust-lang.org/dist/rust-1.99.0-x86_64-unknown-linux-gnu.tar.xz
-    sha256: 891c6366d7100feda0bca4c03ce63f3c9ac827cbebbc283e7433061d42c6a376
+    url: https://static.rust-lang.org/dist/rust-1.100.0-x86_64-unknown-linux-gnu.tar.xz
+    sha256: 98ee6bec240e1cfe944f17e7092412dc5ef6e008484bb668c6936d35a7d15acd
   - type: archive
     only-arches: [aarch64]
-    url: https://static.rust-lang.org/dist/rust-1.99.0-aarch64-unknown-linux-gnu.tar.xz
-    sha256: 5a30ce742be0835d9b23fc862db5cbbbc71464e1c9b1fca22917e10e4ba32a92
+    url: https://static.rust-lang.org/dist/rust-1.100.0-aarch64-unknown-linux-gnu.tar.xz
+    sha256: a21f6a21818df07c1e2e7addb570af5444b3fa9dd61e3a207f4fb1c5a5e665c9
