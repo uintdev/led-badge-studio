@@ -9,7 +9,6 @@ description = "Data model and wire protocol for 0416:5020 LED name badges"
 
 [dependencies]
 serde.workspace = true
-thiserror.workspace = true
 
 # Who the app runs as, to tell whose a symlink is (files.rs). Already used by
 # badge-io.
