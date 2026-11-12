@@ -64,7 +64,7 @@ effect, add a field to `LedLook` with its math there and set it in the app's
 export both handle it, and the test `every_part_of_the_look_shows_in_the_export`
 checks the export draws it.
 
-The code uses the Rust 2024 edition and needs Rust 1.96 or newer. Every
+The code uses the Rust 2024 edition and needs Rust 1.100 or newer. Every
 build script updates stable Rust with rustup first, so native builds and the
 Flatpak all build with the latest Rust, the same version.
 

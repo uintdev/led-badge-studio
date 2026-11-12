@@ -9,9 +9,9 @@ exclude = ["vendor"]
 [workspace.package]
 version = "0.2.3"
 edition = "2024"
-# The oldest Rust that builds it (`assert_matches!` needs 1.96); cargo says
-# so clearly on an older one.
-rust-version = "1.96"
+# The oldest Rust that builds it (`str::trim_prefix` and `bool::toggle` need
+# 1.100); cargo says so clearly on an older one.
+rust-version = "1.100"
 license = "MIT"
 repository = "https://github.com/uintdev/led-badge-studio"
 

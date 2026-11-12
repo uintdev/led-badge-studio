@@ -1015,7 +1015,7 @@ impl BadgeApp {
                         button("bold", "B").selected(bold).tooltip("Bold").on_click(cx.listener(
                             |t, _: &ClickEvent, _, cx| {
                                 if let FontChoice::System { bold, .. } = &mut t.msg_mut().font {
-                                    *bold = !*bold;
+                                    bold.toggle();
                                 }
                                 t.changed(cx);
                             },
@@ -1025,7 +1025,7 @@ impl BadgeApp {
                             .tooltip("Italic")
                             .on_click(cx.listener(|t, _: &ClickEvent, _, cx| {
                                 if let FontChoice::System { italic, .. } = &mut t.msg_mut().font {
-                                    *italic = !*italic;
+                                    italic.toggle();
                                 }
                                 t.changed(cx);
                             })),

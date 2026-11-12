@@ -464,7 +464,7 @@ impl BadgeApp {
                                                 "Play the preview"
                                             })
                                             .on_click(cx.listener(|t, _: &ClickEvent, _, cx| {
-                                                t.playing = !t.playing;
+                                                t.playing.toggle();
                                                 cx.notify();
                                             })),
                                     ),

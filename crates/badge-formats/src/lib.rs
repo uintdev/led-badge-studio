@@ -219,7 +219,7 @@ pub fn open(path: &Path) -> Result<Project> {
 
 /// "project.messages[1].font" → "message 2, font"; "." → "the file".
 fn describe_path(path: &str) -> String {
-    let path = path.strip_prefix("project.").unwrap_or(path);
+    let path = path.trim_prefix("project.");
     if let Some(rest) = path.strip_prefix("messages[")
         && let Some((n, tail)) = rest.split_once(']')
         && let Ok(n) = n.parse::<usize>()
