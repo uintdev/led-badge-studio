@@ -855,7 +855,6 @@ impl Render for TextInput {
 /// Key bindings for text inputs.
 pub fn bindings() -> Vec<gpui::KeyBinding> {
     use gpui::KeyBinding;
-    let m = if cfg!(target_os = "macos") { "cmd" } else { "ctrl" };
     let ctx = Some("TextInput");
     vec![
         KeyBinding::new("backspace", Backspace, ctx),
@@ -864,10 +863,10 @@ pub fn bindings() -> Vec<gpui::KeyBinding> {
         KeyBinding::new("right", Right, ctx),
         KeyBinding::new("shift-left", SelectLeft, ctx),
         KeyBinding::new("shift-right", SelectRight, ctx),
-        KeyBinding::new(&format!("{m}-a"), SelectAll, ctx),
-        KeyBinding::new(&format!("{m}-v"), Paste, ctx),
-        KeyBinding::new(&format!("{m}-c"), Copy, ctx),
-        KeyBinding::new(&format!("{m}-x"), Cut, ctx),
+        KeyBinding::new(secondary!("a"), SelectAll, ctx),
+        KeyBinding::new(secondary!("v"), Paste, ctx),
+        KeyBinding::new(secondary!("c"), Copy, ctx),
+        KeyBinding::new(secondary!("x"), Cut, ctx),
         KeyBinding::new("home", Home, ctx),
         KeyBinding::new("end", End, ctx),
     ]

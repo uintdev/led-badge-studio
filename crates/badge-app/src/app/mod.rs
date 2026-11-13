@@ -1149,19 +1149,18 @@ impl BadgeApp {
 
 pub fn bindings() -> Vec<gpui::KeyBinding> {
     use gpui::KeyBinding;
-    let m = if cfg!(target_os = "macos") { "cmd" } else { "ctrl" };
     vec![
-        KeyBinding::new(&format!("{m}-n"), NewProject, None),
-        KeyBinding::new(&format!("{m}-o"), OpenProject, None),
-        KeyBinding::new(&format!("{m}-s"), SaveProject, None),
-        KeyBinding::new(&format!("{m}-shift-s"), SaveProjectAs, None),
-        KeyBinding::new(&format!("{m}-enter"), SendToBadge, None),
-        KeyBinding::new(&format!("{m}-q"), Quit, None),
-        KeyBinding::new(&format!("{m}-z"), Undo, None),
-        KeyBinding::new(&format!("{m}-shift-z"), Redo, None),
-        KeyBinding::new(&format!("{m}-y"), Redo, None),
-        KeyBinding::new(&format!("{m}-,"), ShowSettings, None),
-        KeyBinding::new(&format!("{m}-/"), ShowShortcuts, None),
+        KeyBinding::new(secondary!("n"), NewProject, None),
+        KeyBinding::new(secondary!("o"), OpenProject, None),
+        KeyBinding::new(secondary!("s"), SaveProject, None),
+        KeyBinding::new(secondary!("shift-s"), SaveProjectAs, None),
+        KeyBinding::new(secondary!("enter"), SendToBadge, None),
+        KeyBinding::new(secondary!("q"), Quit, None),
+        KeyBinding::new(secondary!("z"), Undo, None),
+        KeyBinding::new(secondary!("shift-z"), Redo, None),
+        KeyBinding::new(secondary!("y"), Redo, None),
+        KeyBinding::new(secondary!(","), ShowSettings, None),
+        KeyBinding::new(secondary!("/"), ShowShortcuts, None),
         KeyBinding::new("f1", ShowShortcuts, None),
         KeyBinding::new("tab", FocusNext, Some("BadgeApp")),
         KeyBinding::new("shift-tab", FocusPrev, Some("BadgeApp")),

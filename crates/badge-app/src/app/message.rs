@@ -664,7 +664,7 @@ impl BadgeApp {
                     t.toggle_menu(Menu::MessageActions(i), w, cx);
                     return;
                 }
-                if mods.secondary() {
+                if mods.secondary(cx) {
                     match key {
                         "c" => t.copy_message(i, cx),
                         "v" => t.paste_message(i, cx),

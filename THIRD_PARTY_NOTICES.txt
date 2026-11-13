@@ -5436,10 +5436,6 @@ Used by:
   * blocking 1.7.0 - https://github.com/smol-rs/blocking
   * cfg-if 1.0.5 - https://github.com/rust-lang/cfg-if
     Authors: Alex Crichton <alex@alexcrichton.com>
-  * cocoa-foundation 0.2.1 - https://github.com/servo/core-foundation-rs
-    Authors: The Servo Project Developers
-  * cocoa 0.26.1 - https://github.com/servo/core-foundation-rs
-    Authors: The Servo Project Developers
   * concurrent-queue 2.5.0 - https://github.com/smol-rs/concurrent-queue
     Authors: Stjepan Glavina <stjepang@gmail.com>; Taiki Endo <te316e89@gmail.com>; John Nunley <dev@notgull.net>
   * const-random-macro 0.1.16 - https://github.com/tkaitchuck/constrandom
@@ -5488,8 +5484,6 @@ Used by:
     Authors: Jorge Aparicio <jorge@japaric.io>
   * hashbrown 0.14.5 - https://github.com/rust-lang/hashbrown
     Authors: Amanieu d'Antras <amanieu@gmail.com>
-  * hashbrown 0.15.5 - https://github.com/rust-lang/hashbrown
-    Authors: Amanieu d'Antras <amanieu@gmail.com>
   * hashbrown 0.16.1 - https://github.com/rust-lang/hashbrown
     Authors: Amanieu d'Antras <amanieu@gmail.com>
   * hashbrown 0.17.1 - https://github.com/rust-lang/hashbrown
@@ -5513,8 +5507,6 @@ Used by:
     Authors: Amanieu d'Antras <amanieu@gmail.com>
   * log 0.4.34 - https://github.com/rust-lang/log
     Authors: The Rust Project Developers
-  * metal 0.33.0 - https://github.com/gfx-rs/metal-rs
-    Authors: gfx-rs developers
   * num-bigint-dig 0.9.1 - https://github.com/dignifiedquire/num-bigint
     Authors: dignifiedquire <dignifiedquire@gmail.com>; The Rust Project Developers
   * num-bigint 0.4.8 - https://github.com/rust-num/num-bigint
@@ -5829,7 +5821,7 @@ limitations under the License.
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * bit-set 0.9.1 - https://github.com/contain-rs/bit-set
+  * bit-set 0.10.0 - https://github.com/contain-rs/bit-set
     Authors: Alexis Beingessner <a.beingessner@gmail.com>
   * bit-vec 0.9.1 - https://github.com/contain-rs/bit-vec
     Authors: Alexis Beingessner <a.beingessner@gmail.com>
@@ -9103,10 +9095,6 @@ Used by:
     Authors: Nicolas Silva <nical@fastmail.com>
   * fdeflate 0.3.7 - https://github.com/image-rs/fdeflate
     Authors: The image-rs Developers
-  * gpu-descriptor-types 0.2.0 - https://github.com/zakarumych/gpu-descriptor
-    Authors: Zakarum <zakarumych@ya.ru>
-  * gpu-descriptor 0.3.2 - https://github.com/zakarumych/gpu-descriptor
-    Authors: Zakarum <zakarumych@ya.ru>
   * half 2.7.1 - https://github.com/VoidStarKat/half-rs
     Authors: Kathryn Long <squeeself@gmail.com>
   * image-webp 0.2.4 - https://github.com/image-rs/image-webp
@@ -9136,17 +9124,21 @@ Used by:
   * mach2 0.6.0 - https://github.com/JohnTitor/mach2
   * miniz_oxide 0.8.9 - https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide
     Authors: Frommi <daniil.liferenko@gmail.com>; oyvindln <oyvindln@users.noreply.github.com>; Rich Geldreich richgel99@gmail.com
-  * naga 29.0.4 - https://github.com/gfx-rs/wgpu
+  * naga-types 30.0.2 - https://github.com/gfx-rs/wgpu
+    Authors: gfx-rs developers
+  * naga 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
   * num-conv 0.2.2 - https://github.com/jhpratt/num-conv
     Authors: Jacob Pratt <jacob@jhpratt.dev>
   * objc2-app-kit 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-core-foundation 0.3.2 - https://github.com/madsmtm/objc2
+  * objc2-core-graphics 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-core-text 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-core-video 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-metal 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-quartz-core 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-security 0.3.2 - https://github.com/madsmtm/objc2
+  * objc2-uniform-type-identifiers 0.3.2 - https://github.com/madsmtm/objc2
   * objc2-user-notifications 0.3.2 - https://github.com/madsmtm/objc2
   * paste 1.0.15 - https://github.com/dtolnay/paste
     Authors: David Tolnay <dtolnay@gmail.com>
@@ -9230,19 +9222,19 @@ Used by:
   * usvg 0.46.0 - https://github.com/linebender/resvg
   * utf8parse 0.2.2 - https://github.com/alacritty/vte
     Authors: Joe Wilm <joe@jwilm.com>; Christian Duerr <contact@christianduerr.com>
-  * wgpu-core-deps-apple 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu-core-deps-apple 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
-  * wgpu-core-deps-windows-linux-android 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu-core-deps-windows-linux-android 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
-  * wgpu-core 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu-core 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
-  * wgpu-hal 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu-hal 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
-  * wgpu-naga-bridge 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu-naga-bridge 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
-  * wgpu-types 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu-types 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
-  * wgpu 29.0.4 - https://github.com/gfx-rs/wgpu
+  * wgpu 30.0.2 - https://github.com/gfx-rs/wgpu
     Authors: gfx-rs developers
   * zune-inflate 0.2.54
 
@@ -9326,24 +9318,24 @@ limitations under the License.
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * gpui-pre-wgpu 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-apple 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-collections 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-derive-refineable 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-http-client 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-linux 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-macos 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-macros 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-platform 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-refineable 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-scheduler 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-shared-string 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-sum-tree 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-util 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-windows 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-ztracing-macro 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre-ztracing 0.3.9 - https://github.com/zed-industries/zed
-  * gpui-pre 0.3.9 - https://github.com/zed-industries/zed
+  * gpui-pre-wgpu 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-apple 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-collections 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-derive-refineable 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-http-client 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-linux 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-macos 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-macros 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-platform 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-refineable 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-scheduler 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-shared-string 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-sum-tree 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-util 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-windows 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-ztracing-macro 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-ztracing 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre 0.3.12 - https://github.com/zed-industries/zed
     Authors: Nathan Sobo <nathan@zed.dev>
 
 
@@ -10100,8 +10092,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Creative Commons Zero v1.0 Universal
 --------------------------------------------------------------------------------
 Used by:
-  * hexf-parse 0.2.1 - https://github.com/lifthrasiir/hexf
-    Authors: Kang Seonghoon <public+rust@mearie.org>
   * tiny-keccak 2.0.2
     Authors: debris <marek.kotewicz@gmail.com>
 
@@ -12040,16 +12030,14 @@ SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * badge-app 0.2.0 - https://github.com/uintdev/led-badge-studio
-  * badge-core 0.2.0 - https://github.com/uintdev/led-badge-studio
-  * badge-formats 0.2.0 - https://github.com/uintdev/led-badge-studio
-  * badge-io 0.2.0 - https://github.com/uintdev/led-badge-studio
-  * badge-render 0.2.0 - https://github.com/uintdev/led-badge-studio
-  * badgectl 0.2.0 - https://github.com/uintdev/led-badge-studio
+  * badge-app 0.2.3 - https://github.com/uintdev/led-badge-studio
+  * badge-core 0.2.3 - https://github.com/uintdev/led-badge-studio
+  * badge-formats 0.2.3 - https://github.com/uintdev/led-badge-studio
+  * badge-io 0.2.3 - https://github.com/uintdev/led-badge-studio
+  * badge-render 0.2.3 - https://github.com/uintdev/led-badge-studio
+  * badgectl 0.2.3 - https://github.com/uintdev/led-badge-studio
   * block2 0.6.2 - https://github.com/madsmtm/objc2
     Authors: Mads Marquart <mads@marquart.dk>
-  * block 0.1.6 - http://github.com/SSheldon/rust-block
-    Authors: Steven Sheldon
   * harfrust 0.5.2 - https://github.com/harfbuzz/harfrust
   * libm 0.2.16 - https://github.com/rust-lang/compiler-builtins
     Authors: Alex Crichton <alex@alexcrichton.com>; Amanieu d'Antras <amanieu@gmail.com>; Jorge Aparicio <japaricious@gmail.com>; Trevor Gross <tg@trevorgross.com>
@@ -12070,7 +12058,7 @@ Used by:
     Authors: sarah quiñones <sarah@veganb.tw>
   * seahash 4.1.0 - https://gitlab.redox-os.org/redox-os/seahash
     Authors: ticki <ticki@users.noreply.github.com>; Tom Almeida <tom@tommoa.me>
-  * taffy 0.13.0 - https://github.com/DioxusLabs/taffy
+  * taffy 0.15.1 - https://github.com/DioxusLabs/taffy
     Authors: Alice Cecile <alice.i.cecile@gmail.com>; Johnathan Kelley <jkelleyrtp@gmail.com>; Nico Burns <nico@nicoburns.com>
   * xim-ctext 0.3.0 - https://github.com/Riey/xim-rs
     Authors: Riey <creeper844@gmail.com>
@@ -13385,6 +13373,10 @@ Used by:
     Authors: The ICU4X Project Developers
   * icu_locale_core 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
+  * icu_locale_fallback 2.4.0 - https://github.com/unicode-org/icu4x
+    Authors: The ICU4X Project Developers
+  * icu_locale_fallback_data 2.4.0 - https://github.com/unicode-org/icu4x
+    Authors: The ICU4X Project Developers
   * icu_normalizer 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * icu_normalizer_data 2.4.0 - https://github.com/unicode-org/icu4x
@@ -13394,6 +13386,10 @@ Used by:
   * icu_properties_data 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * icu_provider 2.4.0 - https://github.com/unicode-org/icu4x
+    Authors: The ICU4X Project Developers
+  * icu_segmenter 2.4.0 - https://github.com/unicode-org/icu4x
+    Authors: The ICU4X Project Developers
+  * icu_segmenter_data 2.4.0 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
   * litemap 0.8.3 - https://github.com/unicode-org/icu4x
     Authors: The ICU4X Project Developers
@@ -13500,8 +13496,6 @@ the following restrictions:
 zlib License
 --------------------------------------------------------------------------------
 Used by:
-  * foldhash 0.1.5 - https://github.com/orlp/foldhash
-    Authors: Orson Peters <orsonpeters@gmail.com>
   * foldhash 0.2.0 - https://github.com/orlp/foldhash
     Authors: Orson Peters <orsonpeters@gmail.com>
 

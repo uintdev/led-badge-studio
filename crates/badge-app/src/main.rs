@@ -4,6 +4,21 @@
 // (see `attach_to_terminal` for its log).
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
+/// "cmd-" on macOS and "ctrl-" elsewhere, joined to a key when compiling:
+/// `KeyBinding::new` only takes fixed text.
+#[cfg(target_os = "macos")]
+macro_rules! secondary {
+    ($key:literal) => {
+        concat!("cmd-", $key)
+    };
+}
+#[cfg(not(target_os = "macos"))]
+macro_rules! secondary {
+    ($key:literal) => {
+        concat!("ctrl-", $key)
+    };
+}
+
 mod app;
 mod chrome;
 mod gpu;
