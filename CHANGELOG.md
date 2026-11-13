@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.4 (2026-11-13)
+
+### All platforms
+
+- Dragging a message no longer shows a second preview in Pop Out.
+
+### Windows
+
+- Pop Out keeps playing while you work in the main window.
+
 ## 0.2.3 (2026-11-11)
 
 ### All platforms

@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.4" date="2026-11-13">
+      <description>
+        <p>Dragging a message no longer shows a second preview in the pop-out window, and on Windows the pop-out keeps playing while you work in the main window.</p>
+      </description>
+    </release>
     <release version="0.2.3" date="2026-11-11">
       <description>
         <p>Saving no longer deletes a file named like its temporary one; a day-old time reads "1 day ago"; and badgectl refuses addresses over 999 and shows a failed send's error on a line of its own.</p>
