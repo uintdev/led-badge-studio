@@ -223,7 +223,7 @@ impl Render for PreviewWindow {
             .when(fullscreen && self.show_bar, |d| d.child(fullscreen_bar(cx)));
 
         if fullscreen {
-            return content.into_any_element();
+            return content.font_family(theme::ui_font(window)).into_any_element();
         }
         let title: SharedString = concat!("Preview - ", env!("BRAND_NAME")).into();
         crate::chrome::decorate(content, title, window, |window, _| window.remove_window())

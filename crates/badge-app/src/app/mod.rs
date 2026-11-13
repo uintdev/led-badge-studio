@@ -939,7 +939,6 @@ impl BadgeApp {
             .flex_col()
             .bg(theme::bg())
             .text_color(theme::text())
-            .font_family(".SystemUIFont")
             .child(self.render_toolbar(cx))
             .when(self.access_missing && cfg!(target_os = "linux"), |d| {
                 d.child(

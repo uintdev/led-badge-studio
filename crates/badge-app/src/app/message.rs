@@ -1333,8 +1333,9 @@ pub(super) struct DraggedMessage(pub usize);
 struct DragGhost(SharedString);
 
 impl Render for DragGhost {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
+            .font_family(theme::ui_font(window))
             .px_3()
             .py_1p5()
             .rounded_lg()

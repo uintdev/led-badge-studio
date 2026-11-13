@@ -28,7 +28,11 @@ pub fn decorate(
 ) -> AnyElement {
     let Decorations::Client { tiling } = window.window_decorations() else {
         window.set_client_inset(px(0.));
-        return div().size_full().child(content).into_any_element();
+        return div()
+            .size_full()
+            .font_family(theme::ui_font(window))
+            .child(content)
+            .into_any_element();
     };
     window.set_client_inset(SHADOW);
     let on_close = Rc::new(on_close);
@@ -78,6 +82,7 @@ pub fn decorate(
     div()
         .id("window-backdrop")
         .size_full()
+        .font_family(theme::ui_font(window))
         .bg(gpui::transparent_black())
         .child(
             canvas(

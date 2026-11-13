@@ -383,8 +383,9 @@ pub fn warning_chip(id: &'static str, i: Icon, text: &'static str, height: f32) 
 struct Tooltip(SharedString);
 
 impl Render for Tooltip {
-    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
         div()
+            .font_family(theme::ui_font(window))
             .px_2p5()
             .py_1p5()
             .rounded_lg()

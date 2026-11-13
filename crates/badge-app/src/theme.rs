@@ -2,9 +2,10 @@
 //! The LED preview and the Pixels canvas stay dark in both, like the badge.
 
 use std::cell::Cell;
+use std::sync::OnceLock;
 
 use badge_core::LedColor;
-use gpui::{Hsla, Rgba, rgb, rgba};
+use gpui::{Hsla, Rgba, SharedString, rgb, rgba};
 
 /// Body text: labels on controls, menu items, the message box.
 pub const TEXT: f32 = 14.;
@@ -109,6 +110,41 @@ pub fn set_dark(dark: bool) {
 
 pub fn is_dark() -> bool {
     DARK_MODE.with(Cell::get)
+}
+
+/// What GPUI takes for the system font on Linux, then its own fallbacks in
+/// its order. It warns in the log each time it has to fall back, so the
+/// first one installed is asked for by name instead.
+const LINUX_UI_FONTS: &[&str] = &[
+    "IBM Plex Sans",
+    "Ubuntu",
+    "Adwaita Sans",
+    "Cantarell",
+    "Noto Sans",
+    "DejaVu Sans",
+];
+
+fn installed_ui_font(installed: &[String]) -> Option<&'static str> {
+    LINUX_UI_FONTS
+        .iter()
+        .copied()
+        .find(|font| installed.iter().any(|name| name == font))
+}
+
+/// The font of the interface's text. `chrome::decorate` sets it for each
+/// window; what is drawn outside that frame sets it too (tooltips, the
+/// dragged message, the full-screen preview).
+pub fn ui_font(window: &gpui::Window) -> SharedString {
+    static FONT: OnceLock<SharedString> = OnceLock::new();
+    FONT.get_or_init(|| {
+        let found = if cfg!(target_os = "linux") {
+            installed_ui_font(&window.text_system().all_font_names())
+        } else {
+            None
+        };
+        found.unwrap_or(".SystemUIFont").into()
+    })
+    .clone()
 }
 
 fn p() -> &'static Palette {
@@ -297,4 +333,20 @@ pub fn text_color_for(c: LedColor) -> Hsla {
 /// Swatch color for palette buttons.
 pub fn swatch(c: LedColor) -> Hsla {
     led(c, true, c)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ui_font_is_the_first_fallback_installed() {
+        let installed = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<Vec<_>>();
+        assert_eq!(
+            installed_ui_font(&installed(&["DejaVu Sans", "Noto Sans", "Noto Serif"])),
+            Some("Noto Sans")
+        );
+        assert_eq!(installed_ui_font(&installed(&["Ubuntu Mono", "Noto Sans Mono"])), None);
+        assert_eq!(installed_ui_font(&[]), None);
+    }
 }
