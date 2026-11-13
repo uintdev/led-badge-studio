@@ -14,6 +14,7 @@ impl BadgeApp {
         let mut last = std::time::Instant::now();
         let mut pending_us: u64 = 0;
         let mut was_playing = false;
+        let main_window = window.window_handle();
         cx.spawn_in(window, async move |this, cx| {
             loop {
                 let now = std::time::Instant::now();
@@ -24,18 +25,17 @@ impl BadgeApp {
                     0
                 };
                 last = now;
-                let Ok(playing) = this.update_in(cx, |this, window, cx| {
+                let Ok(playing) = this.update_in(cx, |this, _, cx| {
                     let target = this.preview_target();
                     let step_us = preview::step_interval_us(&this.preview_params(target));
+                    // The window GPUI passes here is whichever drew this
+                    // last, the pop-out included, so ask which is active.
+                    let active = cx.active_window();
+                    let ours =
+                        active == Some(main_window) || this.preview_window.is_some_and(|w| active == Some(w.into()));
                     // Paused while a dialog is open (each tick redraws the
                     // window), the app's own or the system's.
-                    let pop_out_active = this
-                        .preview_window
-                        .is_some_and(|w| cx.active_window() == Some(w.into()));
-                    if !(this.playing && (window.is_window_active() || pop_out_active))
-                        || this.dialog.is_some()
-                        || this.system_dialogs > 0
-                    {
+                    if !(this.playing && ours) || this.dialog.is_some() || this.system_dialogs > 0 {
                         pending_us = 0;
                         return false;
                     }
