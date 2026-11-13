@@ -722,8 +722,12 @@ impl BadgeApp {
                     t.toggle_menu(Menu::MessageActions(i), w, cx);
                 }),
             )
-            .on_drag(DraggedMessage(i), move |_, _, _, cx| {
-                cx.new(|_| DragGhost(ghost.clone()))
+            .on_drag(DraggedMessage(i), move |_, _, window, cx| {
+                let source = window.window_handle().window_id();
+                cx.new(|_| DragGhost {
+                    label: ghost.clone(),
+                    source,
+                })
             })
             .drag_over::<DraggedMessage>(|s, _, _, _| s.border_color(theme::accent()).bg(theme::accent_soft()))
             .on_drop(cx.listener(move |t, d: &DraggedMessage, _, cx| t.move_message(d.0, i, cx)))
@@ -1330,10 +1334,18 @@ const MESSAGE_CLIPBOARD_KEY: &str = "led-badge-studio-message";
 pub(super) struct DraggedMessage(pub usize);
 
 /// What follows the pointer while a message is dragged.
-struct DragGhost(SharedString);
+struct DragGhost {
+    label: SharedString,
+    /// The window the drag started in. GPUI draws the ghost in every window
+    /// that redraws during a drag, so the pop-out preview showed one too.
+    source: gpui::WindowId,
+}
 
 impl Render for DragGhost {
     fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        if window.window_handle().window_id() != self.source {
+            return div();
+        }
         div()
             .font_family(theme::ui_font(window))
             .px_3()
@@ -1345,7 +1357,7 @@ impl Render for DragGhost {
             .shadow(theme::popover_shadow())
             .text_body()
             .text_color(theme::text())
-            .child(self.0.clone())
+            .child(self.label.clone())
     }
 }
 
