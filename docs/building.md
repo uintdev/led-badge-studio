@@ -192,7 +192,9 @@ By hand: `xcode-select --install`, install [Rust](https://rustup.rs/), then
 GitHub Actions once the project is on GitHub:
 
 - **Every push and pull request**: the formatting check, clippy and the
-  tests, on Linux.
+  tests, on Linux. A push of a commit that already has its version tag
+  skips them, as the tag's run does them (the run still shows, with the
+  tests skipped).
 - **A version tag** (for example `git tag v0.2.0 && git push --tags`), or
   **by hand** (*Actions → Build → Run workflow*): the tests, then the
   Flatpaks and Windows zips, each for x64 and arm64, built on GitHub's
@@ -238,8 +240,9 @@ Windows minutes twice, so a full release build uses up a good part of it.
 5. **The changelog**: add a section for the version at the top of
    [`CHANGELOG.md`](../CHANGELOG.md), with the date and a short list, one
    line for each change people will notice.
-6. **Commit, then tag and push**: `git tag v0.1.3 && git push --tags`. The
-   tag builds the packages (above).
+6. **Commit, then tag and push both together**:
+   `git tag v0.1.3 && git push --atomic origin main v0.1.3`. The tag builds
+   the packages (above).
 7. **The GitHub release**: on the *Releases* page, create a release for the
    tag, attach the packages from the run's *Artifacts*, and paste the
    version's list from `CHANGELOG.md` as its notes.

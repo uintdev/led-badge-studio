@@ -11,8 +11,27 @@ permissions:
   contents: read
 
 jobs:
+  # A commit pushed with its version tag starts two runs, the branch's and
+  # the tag's. The tag's does the tests and the builds, so the branch's
+  # skips its tests.
+  check:
+    name: Release tag check
+    runs-on: ubuntu-26.04
+    outputs:
+      tagged: ${{ steps.tag.outputs.tagged }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
+        run: |
+          if git ls-remote --tags origin | grep -qE "^$GITHUB_SHA[[:space:]]+refs/tags/v"; then
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Tests (Linux)
+    needs: check
+    if: needs.check.outputs.tagged != 'true'
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
