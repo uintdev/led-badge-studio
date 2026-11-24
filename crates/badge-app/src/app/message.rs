@@ -12,9 +12,15 @@ impl BadgeApp {
         let text = m.text.clone();
         let colors = color.then(|| (0..text.chars().count()).map(|i| m.color_at(i)).collect::<Vec<_>>());
         let tint = self.led_tint();
+        let switched = self.input_shows != Some(self.current);
+        self.input_shows = Some(self.current);
         self.input.update(cx, |input, cx| {
             input.set_mono_tint(tint);
             input.set_text(&text, colors, cx);
+            // A selection made in another message would act on this one.
+            if switched {
+                input.deselect(cx);
+            }
         });
     }
 

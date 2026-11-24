@@ -135,6 +135,7 @@ impl BadgeApp {
         self.current = self.current.min(self.project.messages.len().saturating_sub(1));
         self.import_into = None;
         self.rerender_all();
+        self.input_shows = None;
         self.sync_input(cx);
         self.commit_history();
         cx.notify();

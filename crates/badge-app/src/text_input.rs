@@ -113,6 +113,14 @@ impl TextInput {
         }
     }
 
+    /// Puts the caret at the end, selecting nothing.
+    pub fn deselect(&mut self, cx: &mut Context<Self>) {
+        let end = self.content.len();
+        self.selected_range = end..end;
+        self.marked_range = None;
+        cx.notify();
+    }
+
     pub fn set_mono_tint(&mut self, c: LedColor) {
         self.mono_tint = c;
     }
@@ -870,4 +878,15 @@ pub fn bindings() -> Vec<gpui::KeyBinding> {
         KeyBinding::new("home", Home, ctx),
         KeyBinding::new("end", End, ctx),
     ]
+}
+
+#[cfg(test)]
+impl TextInput {
+    pub fn selection(&self) -> Range<usize> {
+        self.selected_range.clone()
+    }
+
+    pub fn select(&mut self, range: Range<usize>) {
+        self.selected_range = range;
+    }
 }

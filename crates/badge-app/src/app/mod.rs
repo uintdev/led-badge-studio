@@ -225,6 +225,9 @@ pub struct BadgeApp {
     /// Unsaved work found at the start, offered back.
     recovered: Option<recovery::Recovered>,
     input: Entity<TextInput>,
+    /// Which message the text box shows; `None` after the whole project
+    /// changed.
+    input_shows: Option<usize>,
     _subs: Vec<Subscription>,
     devices: Vec<DeviceInfo>,
     device: Option<String>,
@@ -417,6 +420,7 @@ impl BadgeApp {
             path: None,
             saved,
             input,
+            input_shows: None,
             _subs: subs,
             devices: Vec::new(),
             address_kind: 0,
@@ -593,6 +597,7 @@ impl BadgeApp {
         // After redrawing: pixels redrawn from text aren't a change.
         self.saved = Some(self.project.clone());
         self.font_notice_dismissed = false;
+        self.input_shows = None;
         self.sync_input(cx);
         self.reset_history();
         self.settings.card = self.project.card;

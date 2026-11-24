@@ -558,6 +558,23 @@ fn a_built_in_font_too_tall_for_the_badge_is_reported(cx: &mut TestAppContext) {
     });
 }
 
+/// A selection made in one message doesn't carry over to another one's
+/// text, where an icon or a color would act on it.
+#[gpui::test]
+fn switching_messages_leaves_nothing_selected(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "HELLO WORLD");
+    app.update_in(cx, |app, window, cx| {
+        app.select_message(2, window, cx);
+        app.apply_text("GOOD MORNING EVERYONE".into(), None, cx);
+        app.select_message(0, window, cx);
+    });
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    input.update(cx, |input, _| input.select(0..11));
+    app.update_in(cx, |app, window, cx| app.select_message(2, window, cx));
+    input.read_with(cx, |input, _| assert_eq!(input.selection(), 21..21));
+}
+
 /// Settings or Shortcuts opened over a question count as its Cancel, as any
 /// other dialog taking its place does.
 #[gpui::test]
