@@ -261,7 +261,7 @@ impl BadgeApp {
                 .background_executor()
                 .spawn(async move {
                     match frame {
-                        Some((fb, cols)) if still => save_still(&fb, cols, &look, format, &target),
+                        Some((fb, cols)) if still => save_still(&fb, cols, &look, format, &target).map(|()| 0),
                         _ => {
                             let refs: Vec<Part> = parts
                                 .iter()
@@ -277,7 +277,15 @@ impl BadgeApp {
                 .await;
             this.update(cx, |t, cx| {
                 match result {
-                    Ok(()) => t.set_status(format!("Saved {}", path.display()), Severity::Success),
+                    Ok(0) => t.set_status(format!("Saved {}", path.display()), Severity::Success),
+                    Ok(left_out) => t.set_status(
+                        format!(
+                            "Saved {}, without its last {left_out} frames: an animation holds at most {}.",
+                            path.display(),
+                            badge_render::preview_export::MAX_FRAMES
+                        ),
+                        Severity::Info,
+                    ),
                     Err(e) => t.set_status(format!("Couldn't save the {what}: {e:#}"), Severity::Error),
                 }
                 cx.notify();

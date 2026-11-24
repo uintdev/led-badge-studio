@@ -531,7 +531,13 @@ fn run(cli: Cli) -> Result<()> {
                 if still {
                     save_still(&busiest_frame(&parts[0]), width, &look, format, path)?;
                 } else {
-                    save_animation(&parts, &look, format, path)?;
+                    let left_out = save_animation(&parts, &look, format, path)?;
+                    if left_out > 0 {
+                        eprintln!(
+                            "warning: the animation leaves out its last {left_out} frames: it can hold at most {}",
+                            badge_render::preview_export::MAX_FRAMES
+                        );
+                    }
                 }
                 eprintln!("Saved {}", path.display());
             }

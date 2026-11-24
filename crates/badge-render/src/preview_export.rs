@@ -61,37 +61,53 @@ pub struct Part<'a> {
 
 /// Viewers show shorter frames slowly, so faster steps are merged.
 const MIN_FRAME_MS: f64 = 20.;
-const MAX_FRAMES: usize = 4000;
+/// The most frames an animation holds; a longer cycle is cut short there
+/// (and `save_animation` says by how many).
+pub const MAX_FRAMES: usize = 10_000;
 
-pub fn save_animation(parts: &[Part], look: &Look, format: Format, path: &Path) -> Result<()> {
+/// Saves one cycle of `parts` as an animation. Returns how many frames past
+/// [`MAX_FRAMES`] were left out: 0 when it's whole.
+pub fn save_animation(parts: &[Part], look: &Look, format: Format, path: &Path) -> Result<usize> {
     let painter = Painter::new(look);
+    let (frames, left_out) = animation_frames(parts);
+    if frames.is_empty() {
+        bail!("nothing to animate");
+    }
+    // Painted one at a time as they're encoded: all at once, a long
+    // animation at a large LED size took gigabytes.
+    let painted = || frames.iter().map(|(fb, cols, ms)| (painter.paint(fb, *cols), *ms));
+    write(path, |out| match format {
+        Format::Gif => write_gif(out, frames.len(), painted()),
+        Format::Png => write_apng(out, frames.len(), painted()),
+        Format::WebP => write_animated_webp(out, painted()),
+    })?;
+    Ok(left_out)
+}
+
+/// The frames of one cycle of `parts` (each with the columns shown and how
+/// long it shows), up to [`MAX_FRAMES`], and how many more there were.
+fn animation_frames(parts: &[Part]) -> (Vec<(Framebuffer, usize, f64)>, usize) {
     let mut steps = Vec::new();
     for part in parts {
         collect_frames(part, &mut steps);
     }
-    if steps.is_empty() {
-        bail!("nothing to animate");
-    }
     // Identical neighbors (one message's end, the next one's start) merge.
-    let mut frames: Vec<(RgbaImage, f64)> = Vec::new();
-    for ((fb, cols), ms) in steps.into_iter().take(MAX_FRAMES) {
-        let image = painter.paint(&fb, cols);
+    let mut frames: Vec<(Framebuffer, usize, f64)> = Vec::new();
+    for ((fb, cols), ms) in steps {
         match frames.last_mut() {
-            Some((last, last_ms)) if *last == image => *last_ms += ms,
-            _ => frames.push((image, ms)),
+            Some((last, last_cols, last_ms)) if *last == fb && *last_cols == cols => *last_ms += ms,
+            _ => frames.push((fb, cols, ms)),
         }
     }
-    write(path, |out| match format {
-        Format::Gif => write_gif(out, &frames),
-        Format::Png => write_apng(out, &frames),
-        Format::WebP => write_animated_webp(out, &frames),
-    })
+    let left_out = frames.len().saturating_sub(MAX_FRAMES);
+    frames.truncate(MAX_FRAMES);
+    (frames, left_out)
 }
 
 pub fn save_still(frame: &Framebuffer, cols: usize, look: &Look, format: Format, path: &Path) -> Result<()> {
     let image = Painter::new(look).paint(frame, cols);
     write(path, |out| match format {
-        Format::Gif => write_gif(out, &[(image.clone(), 0.)]),
+        Format::Gif => write_gif(out, 1, std::iter::once((image.clone(), 0.))),
         Format::Png => {
             image.write_to(&mut std::io::Cursor::new(out), image::ImageFormat::Png)?;
             Ok(())
@@ -128,9 +144,9 @@ pub(crate) fn write(path: &Path, encode: impl FnOnce(&mut Vec<u8>) -> Result<()>
     badge_core::files::replace_file(path, &bytes).with_context(|| format!("writing {}", path.display()))
 }
 
-fn write_gif(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
+fn write_gif(out: &mut Vec<u8>, count: usize, frames: impl Iterator<Item = (RgbaImage, f64)>) -> Result<()> {
     let mut encoder = GifEncoder::new_with_speed(out, 10);
-    if frames.len() > 1 {
+    if count > 1 {
         encoder.set_repeat(Repeat::Infinite)?;
     }
     // GIF delays are in centiseconds: carry the rounding over.
@@ -140,7 +156,7 @@ fn write_gif(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
         let cs = (wanted / 10.).round().max(2.);
         owed = wanted - cs * 10.;
         encoder.encode_frame(Frame::from_parts(
-            image.clone(),
+            image,
             0,
             0,
             Delay::from_numer_denom_ms(cs as u32 * 10, 1),
@@ -149,13 +165,17 @@ fn write_gif(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
     Ok(())
 }
 
-fn write_apng(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
-    let (w, h) = frames[0].0.dimensions();
+fn write_apng(out: &mut Vec<u8>, count: usize, frames: impl Iterator<Item = (RgbaImage, f64)>) -> Result<()> {
+    let mut frames = frames.peekable();
+    let Some((first, _)) = frames.peek() else {
+        bail!("nothing to animate");
+    };
+    let (w, h) = first.dimensions();
     let mut encoder = png::Encoder::new(out, w, h);
     encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);
     encoder.set_compression(png::Compression::High);
-    encoder.set_animated(frames.len() as u32, 0)?;
+    encoder.set_animated(count as u32, 0)?;
     let mut writer = encoder.write_header()?;
     let mut owed = 0.;
     for (image, ms) in frames {
@@ -163,7 +183,7 @@ fn write_apng(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
         let d = wanted.round().clamp(1., f64::from(u16::MAX));
         owed = wanted - d;
         writer.set_frame_delay(d as u16, 1000)?;
-        let rgb = image::DynamicImage::ImageRgba8(image.clone()).to_rgb8();
+        let rgb = image::DynamicImage::ImageRgba8(image).to_rgb8();
         writer.write_image_data(&rgb)?;
     }
     writer.finish()?;
@@ -172,9 +192,13 @@ fn write_apng(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
 
 /// An animated WebP: each frame's changed rectangle encoded losslessly, in
 /// RIFF "WEBP" with VP8X, ANIM and one ANMF chunk per frame.
-fn write_animated_webp(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result<()> {
+fn write_animated_webp(out: &mut Vec<u8>, frames: impl Iterator<Item = (RgbaImage, f64)>) -> Result<()> {
     use webp_lossless::riff_chunk;
-    let (w, h) = frames[0].0.dimensions();
+    let mut frames = frames.peekable();
+    let Some((first, _)) = frames.peek() else {
+        bail!("nothing to animate");
+    };
+    let (w, h) = first.dimensions();
     let u24 = |v: u32| v.to_le_bytes()[..3].to_vec();
     let mut body = Vec::new();
     // VP8X: animation flag; canvas size minus one.
@@ -186,7 +210,7 @@ fn write_animated_webp(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result
     body.extend(riff_chunk(b"ANIM", &[0, 0, 0, 255, 0, 0]));
     // Durations are whole milliseconds: carry the rounding over.
     let mut owed = 0.;
-    let mut previous: Option<&RgbaImage> = None;
+    let mut previous: Option<RgbaImage> = None;
     for (image, ms) in frames {
         let wanted = ms + owed;
         let d = wanted.round().clamp(1., f64::from(0xFF_FFFF));
@@ -194,7 +218,7 @@ fn write_animated_webp(out: &mut Vec<u8>, frames: &[(RgbaImage, f64)]) -> Result
         // Frame offsets must be even.
         let (x0, y0, x1, y1) = match previous {
             None => (0, 0, w, h),
-            Some(prev) => changed_rect(prev, image).unwrap_or((0, 0, 2.min(w), 2.min(h))),
+            Some(ref prev) => changed_rect(prev, &image).unwrap_or((0, 0, 2.min(w), 2.min(h))),
         };
         let (x0, y0) = (x0 & !1, y0 & !1);
         let mut rgb = Vec::with_capacity(((x1 - x0) * (y1 - y0) * 3) as usize);
@@ -496,6 +520,28 @@ mod tests {
             speed: 5,
         };
         (fb, params)
+    }
+
+    #[test]
+    fn a_cycle_past_the_most_frames_says_how_many_are_left_out() {
+        let mut fb = Framebuffer::new(11);
+        for x in 0..badge_core::MAX_WIDTH {
+            fb.set(x, x % 11, LedColor::RED);
+        }
+        let params = PreviewParams {
+            mode: Mode::Left,
+            flash: false,
+            marquee: false,
+            width: 44,
+            speed: 1,
+        };
+        let part = || Part { bitmap: &fb, params };
+        let (frames, left_out) = animation_frames(&[part()]);
+        assert_eq!(left_out, 0, "one message, as wide as can be, fits");
+        let whole = frames.len();
+        let (frames, left_out) = animation_frames(&[part(), part(), part()]);
+        assert_eq!(frames.len(), MAX_FRAMES);
+        assert!(left_out > 0 && frames.len() + left_out <= 3 * whole, "{left_out}");
     }
 
     #[test]
