@@ -1897,6 +1897,28 @@ fn an_image_is_dropped_when_its_message_is_replaced(cx: &mut TestAppContext) {
     });
 }
 
+/// Clear All and Revert To drop an image still loading into the message,
+/// as replacing it does.
+#[gpui::test]
+fn an_image_is_dropped_when_its_message_is_cleared_or_reverted(cx: &mut TestAppContext) {
+    let dir = temp_dir("image-cleared");
+    let image = image_file(&dir, "image.png", 11, &[(2, 3)]);
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Text");
+    app.update_in(cx, |app, window, cx| {
+        app.import_image_from(&image, cx);
+        app.clear_message(window, cx);
+    });
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| assert_eq!(app.msg().source, Source::Text, "Clear All"));
+    app.update(cx, |app, cx| {
+        app.import_image_from(&image, cx);
+        app.revert_to_saved(cx);
+    });
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| assert_eq!(app.msg().source, Source::Text, "Revert To"));
+}
+
 /// Turning Fit to height off decodes the image again (in the background)
 /// at its own size.
 #[gpui::test]

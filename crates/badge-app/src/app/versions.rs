@@ -133,6 +133,7 @@ impl BadgeApp {
         self.project = project;
         self.fill_led_color();
         self.current = self.current.min(self.project.messages.len().saturating_sub(1));
+        self.import_into = None;
         self.rerender_all();
         self.sync_input(cx);
         self.commit_history();

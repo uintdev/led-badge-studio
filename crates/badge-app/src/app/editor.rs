@@ -469,6 +469,7 @@ impl BadgeApp {
                 button("clear", "Clear")
                     .compact()
                     .on_click(cx.listener(|t, _: &ClickEvent, _, cx| {
+                        t.drop_import_into(t.current);
                         let m = t.msg_mut();
                         m.bitmap.clear();
                         m.source = Source::Bitmap;

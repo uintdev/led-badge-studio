@@ -65,6 +65,7 @@ impl BadgeApp {
     pub(super) fn clear_message(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let m = self.msg();
         let do_clear = |t: &mut Self, _: &mut Window, cx: &mut Context<Self>| {
+            t.drop_import_into(t.current);
             let m = t.msg_mut();
             m.text.clear();
             m.colors.clear();
