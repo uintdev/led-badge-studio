@@ -306,6 +306,7 @@ pub struct BadgeApp {
     content: Entity<views::Content>,
     preview_leds: Entity<views::PreviewLeds>,
     preview_slot: Rc<Cell<Option<led_view::Slot>>>,
+    pop_out_frames: Entity<views::PopOutFrames>,
     preview_window: Option<gpui::WindowHandle<crate::preview_window::PreviewWindow>>,
     fonts_refreshing: bool,
     /// The title last given to the window, and the (dirty, path) it shows.
@@ -403,6 +404,7 @@ impl BadgeApp {
         let this = cx.entity();
         let content = cx.new(|cx| views::Content::new(&this, cx));
         let preview_leds = cx.new(|_| views::PreviewLeds::new(this.downgrade(), preview_slot.clone()));
+        let pop_out_frames = cx.new(|_| views::PopOutFrames);
         let mut project = Project::new(settings.card);
         project.normalize();
         if !project.card.is_color() {
@@ -496,6 +498,7 @@ impl BadgeApp {
             content,
             preview_leds,
             preview_slot,
+            pop_out_frames,
             pending_repair: None,
             window_title: SharedString::default(),
             title_inputs: None,

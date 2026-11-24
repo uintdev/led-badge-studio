@@ -90,11 +90,11 @@ impl PreviewWindow {
             },
             |window, cx| {
                 cx.new(|cx| {
-                    // The app for its settings; the preview's LEDs for each frame.
-                    let leds = app.read(cx).preview_leds().clone();
+                    // The app for its settings; the preview's frames.
+                    let frames = app.read(cx).pop_out_frames().clone();
                     let observe = [
                         cx.observe(&app, |_, _, cx| cx.notify()),
-                        cx.observe(&leds, |_, _, cx| cx.notify()),
+                        cx.observe(&frames, |_, _, cx| cx.notify()),
                     ];
                     cx.on_release({
                         let app = app.downgrade();

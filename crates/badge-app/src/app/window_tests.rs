@@ -2041,19 +2041,27 @@ fn playing_the_next_message_draws_the_window(cx: &mut TestAppContext) {
     assert!(after > content);
 }
 
-/// Pop Out gets each new frame, and the main window keeps no room for the
-/// LEDs while it's open.
+/// With Pop Out open, a new frame draws only Pop Out: the main window keeps
+/// no room for the LEDs then, and isn't drawn at all. Also when the step runs
+/// in Pop Out's window, as the timer's does after Pop Out drew last.
 #[gpui::test]
 fn pop_out_gets_each_preview_frame(cx: &mut TestAppContext) {
-    let (app, cx) = open(cx);
-    type_text(&app, cx, "Hello");
-    app.update(cx, |app, cx| app.pop_out_preview(cx));
-    cx.run_until_parked();
-    assert_eq!(app.read_with(cx, |app, _| app.preview_slot.get()), None);
-    preview_step(&app, cx);
-    let (content, _, pop_out) = renders(&app, cx);
-    preview_step(&app, cx);
-    let (after, _, pop_out_after) = renders(&app, cx);
-    assert_eq!(after, content, "the main window isn't drawn again");
-    assert_eq!(pop_out_after, pop_out.map(|n| n + 1), "Pop Out is");
+    let (app, vcx) = open(cx);
+    type_text(&app, vcx, "Hello");
+    app.update(vcx, |app, cx| app.pop_out_preview(cx));
+    vcx.run_until_parked();
+    assert_eq!(app.read_with(vcx, |app, _| app.preview_slot.get()), None);
+    preview_step(&app, vcx);
+    let (content, leds, pop_out) = renders(&app, vcx);
+    preview_step(&app, vcx);
+    assert_eq!(renders(&app, vcx), (content, leds, pop_out.map(|n| n + 1)));
+
+    let pop_out_window = app.read_with(vcx, |app, _| app.preview_window).unwrap();
+    let mut pop_cx = VisualTestContext::from_window(pop_out_window.into(), cx);
+    app.update_in(&mut pop_cx, |app, _, cx| {
+        app.preview_step += 1;
+        app.show_preview_frame(cx);
+    });
+    pop_cx.run_until_parked();
+    assert_eq!(renders(&app, &mut pop_cx), (content, leds, pop_out.map(|n| n + 2)));
 }

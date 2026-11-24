@@ -6,6 +6,8 @@
 //!   have room kept for them there (`led_view::matrix_slot`).
 //! - [`PreviewLeds`]: the preview's LEDs, painted over that room, and
 //!   notified for each new frame.
+//! - [`PopOutFrames`]: notified for each new frame instead while Pop Out
+//!   has the LEDs, so only Pop Out redraws.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -47,6 +49,9 @@ impl Render for Content {
             .unwrap_or_else(|_| div().into_any_element())
     }
 }
+
+/// No window draws it, so notifying it redraws only what observes it.
+pub struct PopOutFrames;
 
 pub struct PreviewLeds {
     app: WeakEntity<BadgeApp>,

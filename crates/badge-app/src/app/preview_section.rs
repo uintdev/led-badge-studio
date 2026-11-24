@@ -68,7 +68,8 @@ impl BadgeApp {
 
     /// After the preview moved on: redraws the LEDs if the picture changed
     /// (many steps look the same), and the rest of the window too if another
-    /// message is playing.
+    /// message is playing. With Pop Out open, which has the LEDs then, only
+    /// Pop Out redraws.
     pub(super) fn show_preview_frame(&mut self, cx: &mut Context<Self>) {
         let shown = (self.preview_target(), self.preview_frame().0);
         if self.last_preview.as_ref() == Some(&shown) {
@@ -77,7 +78,11 @@ impl BadgeApp {
         let same_message = self.last_preview.as_ref().is_some_and(|(m, _)| *m == shown.0);
         self.last_preview = Some(shown);
         if same_message {
-            self.preview_leds.update(cx, |_, cx| cx.notify());
+            if self.preview_window.is_some() {
+                self.pop_out_frames.update(cx, |_, cx| cx.notify());
+            } else {
+                self.preview_leds.update(cx, |_, cx| cx.notify());
+            }
         } else {
             cx.notify();
         }
@@ -734,9 +739,9 @@ impl BadgeApp {
         (frame, self.display_width(), style)
     }
 
-    /// Notified for each new frame of the preview.
-    pub(crate) fn preview_leds(&self) -> &Entity<super::views::PreviewLeds> {
-        &self.preview_leds
+    /// Notified for each new frame while Pop Out is open.
+    pub(crate) fn pop_out_frames(&self) -> &Entity<super::views::PopOutFrames> {
+        &self.pop_out_frames
     }
 
     /// The preview's frame as the main window shows it: wide displays get
