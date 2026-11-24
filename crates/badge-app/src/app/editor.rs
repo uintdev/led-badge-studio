@@ -306,7 +306,7 @@ impl BadgeApp {
         let m = self.msg_mut();
         m.bitmap = moved;
         m.source = Source::Bitmap;
-        m.selected = true;
+        self.tick_current_if_room();
         self.set_status(
             if was_text {
                 "Centered. The message now uses these pixels: type text to go back to text."
@@ -376,8 +376,8 @@ impl BadgeApp {
         self.edit_hint = Some(EditKind::Stroke(self.stroke_id));
         let m = self.msg_mut();
         m.source = Source::Bitmap;
-        m.selected = true;
         m.bitmap.set(x, y, value);
+        self.tick_current_if_room();
         cx.notify();
     }
 

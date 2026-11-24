@@ -209,9 +209,6 @@ impl BadgeApp {
             m.colors = c;
         }
         m.source = Source::Text;
-        if !m.text.is_empty() {
-            m.selected = true;
-        }
         if was_bitmap {
             self.set_status(
                 "Back to text: the message is rendered from its text again.",
@@ -220,6 +217,18 @@ impl BadgeApp {
         }
         self.sync_input(cx);
         self.changed(cx);
+        if !self.msg().text.is_empty() {
+            self.tick_current_if_room();
+        }
+    }
+
+    /// Ticks the current message after an edit (editing one is choosing to
+    /// send it), when the badge's memory has room for it beside the other
+    /// ticked messages.
+    pub(super) fn tick_current_if_room(&mut self) {
+        if self.msg().bitmap.used_width() <= self.room_for_current() {
+            self.msg_mut().selected = true;
+        }
     }
 
     pub(super) fn select_message(&mut self, i: usize, window: &mut Window, cx: &mut Context<Self>) {

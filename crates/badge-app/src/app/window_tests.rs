@@ -1217,6 +1217,37 @@ fn wider_text_or_style_that_does_not_fit_is_refused(cx: &mut TestAppContext) {
     });
 }
 
+/// Editing a message the badge's memory has no room for doesn't tick it:
+/// typing, erasing or centering.
+#[gpui::test]
+fn editing_ticks_a_message_only_with_room_for_it(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    app.update(cx, |app, cx| {
+        app.apply_text("Hello".into(), None, cx);
+        app.set_ticked(0, false, cx);
+        for m in &mut app.project.messages[1..6] {
+            m.source = Source::Bitmap;
+            m.selected = true;
+            m.bitmap.set(badge_core::MAX_WIDTH - 1, 0, LedColor::RED);
+        }
+        app.set_ticked(0, true, cx);
+        assert!(!app.msg().selected, "ticking is refused");
+        app.apply_text("Hell".into(), None, cx);
+        assert!(!app.msg().selected, "nor does typing tick it");
+
+        app.msg_mut().source = Source::Bitmap;
+        app.paint_at(1, 1, LedColor::OFF, cx);
+        assert!(!app.msg().selected, "nor erasing");
+        app.center_drawing(cx);
+        assert!(!app.msg().selected, "nor centering");
+
+        // With room, editing ticks it.
+        app.project.messages[1].selected = false;
+        app.paint_at(1, 1, LedColor::OFF, cx);
+        assert!(app.msg().selected);
+    });
+}
+
 /// Drawing can't go past the badge's memory either: painting is refused,
 /// Center stops where the room ends, and erasing always works.
 #[gpui::test]
