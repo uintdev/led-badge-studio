@@ -54,7 +54,9 @@ pub struct PreviewWindow {
     show_bar: bool,
     /// The colors the native window frame was given last.
     frame_dark: Option<bool>,
-    _observe: Subscription,
+    _observe: [Subscription; 2],
+    #[cfg(test)]
+    pub renders: usize,
 }
 
 impl Focusable for PreviewWindow {
@@ -88,7 +90,12 @@ impl PreviewWindow {
             },
             |window, cx| {
                 cx.new(|cx| {
-                    let observe = cx.observe(&app, |_, _, cx| cx.notify());
+                    // The app for its settings; the preview's LEDs for each frame.
+                    let leds = app.read(cx).preview_leds().clone();
+                    let observe = [
+                        cx.observe(&app, |_, _, cx| cx.notify()),
+                        cx.observe(&leds, |_, _, cx| cx.notify()),
+                    ];
                     cx.on_release({
                         let app = app.downgrade();
                         let id = window.window_handle().window_id();
@@ -113,6 +120,8 @@ impl PreviewWindow {
                         show_bar: false,
                         frame_dark: None,
                         _observe: observe,
+                        #[cfg(test)]
+                        renders: 0,
                     }
                 })
             },
@@ -155,6 +164,10 @@ impl PreviewWindow {
 
 impl Render for PreviewWindow {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        #[cfg(test)]
+        {
+            self.renders += 1;
+        }
         if self.frame_dark != Some(theme::is_dark()) {
             self.frame_dark = Some(theme::is_dark());
             crate::system_theme::set_native_frame(window, theme::is_dark());

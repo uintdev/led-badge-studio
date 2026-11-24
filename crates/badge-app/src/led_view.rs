@@ -71,7 +71,42 @@ pub fn led_matrix(
     )
 }
 
-fn paint_matrix(fb: &Framebuffer, cols: usize, style: &LedStyle, bounds: Bounds<Pixels>, window: &mut gpui::Window) {
+/// Where a matrix painted by another view goes: its bounds, and the part of
+/// them that shows.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Slot {
+    pub bounds: Bounds<Pixels>,
+    pub clip: Bounds<Pixels>,
+}
+
+/// Room for a matrix `cols` x `rows` LEDs of `cell` that another view paints:
+/// lays out as `led_matrix` would, and notes where it ended up in `slot`.
+pub fn matrix_slot(cols: usize, rows: usize, cell: f32, slot: Rc<Cell<Option<Slot>>>) -> gpui::Div {
+    div()
+        .w(px(cols as f32 * cell))
+        .h(px(rows as f32 * cell))
+        .flex_none()
+        .child(
+            canvas(
+                move |bounds, window, _| {
+                    slot.set(Some(Slot {
+                        bounds,
+                        clip: window.content_mask().bounds,
+                    }));
+                },
+                |_, _, _, _| {},
+            )
+            .size_full(),
+        )
+}
+
+pub fn paint_matrix(
+    fb: &Framebuffer,
+    cols: usize,
+    style: &LedStyle,
+    bounds: Bounds<Pixels>,
+    window: &mut gpui::Window,
+) {
     // No `..`, so a new field can't be left out.
     let LedLook {
         cell,

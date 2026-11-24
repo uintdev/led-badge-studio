@@ -1975,3 +1975,85 @@ fn changing_fit_to_height_decodes_the_image_again(cx: &mut TestAppContext) {
         assert!(app.live_import().is_some());
     });
 }
+
+/// How often the window's contents, the preview's LEDs and Pop Out have been
+/// drawn.
+fn renders(app: &Entity<BadgeApp>, cx: &mut VisualTestContext) -> (usize, usize, Option<usize>) {
+    app.read_with(cx, |app, cx| {
+        (
+            app.content.read(cx).renders,
+            app.preview_leds.read(cx).renders,
+            app.preview_window
+                .and_then(|w| w.read_with(cx, |pop_out, _| pop_out.renders).ok()),
+        )
+    })
+}
+
+/// Moves the preview a step on, as its timer does.
+fn preview_step(app: &Entity<BadgeApp>, cx: &mut VisualTestContext) {
+    app.update(cx, |app, cx| {
+        app.preview_step += 1;
+        app.show_preview_frame(cx);
+    });
+    cx.run_until_parked();
+}
+
+/// A new preview frame draws only the preview's LEDs, not the rest of the
+/// window, which an edit does draw.
+#[gpui::test]
+fn a_preview_frame_draws_only_the_leds(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Hello");
+    preview_step(&app, cx);
+    let (content, leds, _) = renders(&app, cx);
+    preview_step(&app, cx);
+    assert_eq!(renders(&app, cx), (content, leds + 1, None));
+    let slot = app
+        .read_with(cx, |app, _| app.preview_slot.get())
+        .expect("room kept for the LEDs");
+    assert!(slot.bounds.size.width > gpui::px(0.) && slot.bounds.size.height > gpui::px(0.));
+
+    type_text(&app, cx, "Hello there");
+    cx.run_until_parked();
+    let (after_edit, ..) = renders(&app, cx);
+    assert!(after_edit > content, "an edit draws the window");
+}
+
+/// Playing the next ticked message draws the window again, for its label.
+#[gpui::test]
+fn playing_the_next_message_draws_the_window(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "One");
+    app.update(cx, |app, _| app.current = 1);
+    type_text(&app, cx, "Two");
+    app.update(cx, |app, _| {
+        app.current = 0;
+        app.settings.preview_all = true;
+    });
+    preview_step(&app, cx);
+    let (content, ..) = renders(&app, cx);
+    app.update(cx, |app, cx| {
+        app.preview_msg = 1;
+        app.show_preview_frame(cx);
+    });
+    cx.run_until_parked();
+    let (after, ..) = renders(&app, cx);
+    assert!(after > content);
+}
+
+/// Pop Out gets each new frame, and the main window keeps no room for the
+/// LEDs while it's open.
+#[gpui::test]
+fn pop_out_gets_each_preview_frame(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Hello");
+    app.update(cx, |app, cx| app.pop_out_preview(cx));
+    cx.run_until_parked();
+    assert_eq!(app.read_with(cx, |app, _| app.preview_slot.get()), None);
+    preview_step(&app, cx);
+    let (content, _, pop_out) = renders(&app, cx);
+    preview_step(&app, cx);
+    let (after, _, pop_out_after) = renders(&app, cx);
+    assert_eq!(after, content, "the main window isn't drawn again");
+    assert_eq!(pop_out_after, pop_out.map(|n| n + 1), "Pop Out is");
+}

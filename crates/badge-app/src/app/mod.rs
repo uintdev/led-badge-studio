@@ -27,6 +27,7 @@ mod recovery;
 mod taskbar;
 mod toolbar;
 mod versions;
+pub(crate) mod views;
 #[cfg(test)]
 mod window_tests;
 
@@ -300,6 +301,11 @@ pub struct BadgeApp {
     pending_repair: Option<(badge_formats::Loaded, Option<u64>)>,
     /// The message and frame the preview last showed.
     last_preview: Option<(usize, Framebuffer)>,
+    /// The window without the preview's LEDs, drawn again only when it
+    /// changes; the LEDs, drawn over it where `preview_slot` says (views.rs).
+    content: Entity<views::Content>,
+    preview_leds: Entity<views::PreviewLeds>,
+    preview_slot: Rc<Cell<Option<led_view::Slot>>>,
     preview_window: Option<gpui::WindowHandle<crate::preview_window::PreviewWindow>>,
     fonts_refreshing: bool,
     /// The title last given to the window, and the (dirty, path) it shows.
@@ -393,6 +399,10 @@ impl BadgeApp {
                 }
             }),
         ];
+        let preview_slot = Rc::new(Cell::new(None));
+        let this = cx.entity();
+        let content = cx.new(|cx| views::Content::new(&this, cx));
+        let preview_leds = cx.new(|_| views::PreviewLeds::new(this.downgrade(), preview_slot.clone()));
         let mut project = Project::new(settings.card);
         project.normalize();
         if !project.card.is_color() {
@@ -483,6 +493,9 @@ impl BadgeApp {
             fonts_refreshing: false,
             preview_window: None,
             last_preview: None,
+            content,
+            preview_leds,
+            preview_slot,
             pending_repair: None,
             window_title: SharedString::default(),
             title_inputs: None,
@@ -778,9 +791,24 @@ fn rgb_black() -> gpui::Rgba {
 }
 
 impl Render for BadgeApp {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         self.commit_history();
-        // Runs every animation frame: only update the title when it changes.
+        div()
+            .relative()
+            .size_full()
+            .child(
+                self.content
+                    .clone()
+                    .cached(gpui::StyleRefinement::default().size_full()),
+            )
+            .child(self.preview_leds.clone())
+    }
+}
+
+impl BadgeApp {
+    /// The window's contents, but for the preview's LEDs (views.rs).
+    fn render_window(&mut self, window: &mut Window, cx: &mut Context<Self>) -> gpui::AnyElement {
+        // Only update the title when it changes.
         let dirty = self.is_dirty();
         if self
             .title_inputs
@@ -807,9 +835,7 @@ impl Render for BadgeApp {
             this.update(cx, |t, cx| t.request_close(window, cx)).ok();
         })
     }
-}
 
-impl BadgeApp {
     /// Closes the window, asking first if there are unsaved changes.
     fn request_close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.before_quitting(window, cx, |t, window, cx| {

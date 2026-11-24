@@ -54,12 +54,7 @@ impl BadgeApp {
                         this.preview_msg = list[(pos + 1) % list.len()];
                         this.preview_step = 0;
                     }
-                    // Redraw only when the picture changes; many steps look the same.
-                    let shown = (this.preview_target(), this.preview_frame().0);
-                    if this.last_preview.as_ref() != Some(&shown) {
-                        this.last_preview = Some(shown);
-                        cx.notify();
-                    }
+                    this.show_preview_frame(cx);
                     true
                 }) else {
                     break;
@@ -69,6 +64,23 @@ impl BadgeApp {
             }
         })
         .detach();
+    }
+
+    /// After the preview moved on: redraws the LEDs if the picture changed
+    /// (many steps look the same), and the rest of the window too if another
+    /// message is playing.
+    pub(super) fn show_preview_frame(&mut self, cx: &mut Context<Self>) {
+        let shown = (self.preview_target(), self.preview_frame().0);
+        if self.last_preview.as_ref() == Some(&shown) {
+            return;
+        }
+        let same_message = self.last_preview.as_ref().is_some_and(|(m, _)| *m == shown.0);
+        self.last_preview = Some(shown);
+        if same_message {
+            self.preview_leds.update(cx, |_, cx| cx.notify());
+        } else {
+            cx.notify();
+        }
     }
 
     pub(super) fn preview_playlist(&self) -> Vec<usize> {
@@ -314,13 +326,8 @@ impl BadgeApp {
     ) -> impl IntoElement + use<> {
         let target = self.preview_target();
         let playlist = self.preview_playlist();
-        let (frame, width, mut style) = self.preview_frame();
-        // Wide displays get smaller LEDs; below the smallest size it scrolls.
+        let (_, width, style) = self.preview_matrix(window);
         let rows = self.project.card.height();
-        if let Some(room) = self.preview_room.get() {
-            style.look.cell =
-                led_view::fit_cell(PREVIEW_CELL, (room, f32::INFINITY), width, rows, window.scale_factor());
-        }
         let scrolls = self
             .preview_room
             .get()
@@ -333,6 +340,9 @@ impl BadgeApp {
             }
         };
         let popped_out = self.preview_window.is_some();
+        if popped_out {
+            self.preview_slot.set(None);
+        }
         let preview_all = self.settings.preview_all;
         let playing_label = if preview_all && playlist.len() > 1 {
             let pos = playlist.iter().position(|&i| i == target).unwrap_or(0) + 1;
@@ -426,7 +436,12 @@ impl BadgeApp {
                                     .size_full(),
                                 )
                                 .when(!popped_out, |d| {
-                                    d.child(led_view::led_matrix(frame, width, style, None))
+                                    d.child(led_view::matrix_slot(
+                                        width,
+                                        rows,
+                                        style.look.cell,
+                                        self.preview_slot.clone(),
+                                    ))
                                 })
                                 .when(popped_out, |d| {
                                     d.child(
@@ -717,6 +732,23 @@ impl BadgeApp {
             draw_off: true,
         };
         (frame, self.display_width(), style)
+    }
+
+    /// Notified for each new frame of the preview.
+    pub(crate) fn preview_leds(&self) -> &Entity<super::views::PreviewLeds> {
+        &self.preview_leds
+    }
+
+    /// The preview's frame as the main window shows it: wide displays get
+    /// smaller LEDs, and below the smallest size it scrolls.
+    pub(super) fn preview_matrix(&self, window: &Window) -> (Framebuffer, usize, LedStyle) {
+        let (frame, width, mut style) = self.preview_frame();
+        if let Some(room) = self.preview_room.get() {
+            let rows = self.project.card.height();
+            style.look.cell =
+                led_view::fit_cell(PREVIEW_CELL, (room, f32::INFINITY), width, rows, window.scale_factor());
+        }
+        (frame, width, style)
     }
 
     /// The pop-out window has closed: play the preview here again.
