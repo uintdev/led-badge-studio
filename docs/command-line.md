@@ -254,7 +254,7 @@ badgectl licenses        # every license text (--fonts or --third-party for one 
 | Option | Meaning | Default |
 |---|---|---|
 | `-t`, `--text TEXT` | A message's text; repeat for up to 8 messages. `~0` … `~f` insert the built-in symbols | |
-| `-i`, `--image FILE` | A message's image (BMP, PNG, GIF, JPG, ICO); repeat for more | |
+| `-i`, `--image FILE` | A message's image (BMP, PNG, GIF, JPG, ICO); repeat for more. Messages follow the order of `-t` and `-i` on the command line | |
 | `-p`, `--project FILE` | A `.badge` project instead of `-t`/`-i` (its own settings are used) | |
 | `--card TYPE` | Badge type: `mono11`, `mono12`, `mono16`, `rgb12`, `rgb16` | `mono11` |
 | `--mode MODE` | `left`, `right`, `up`, `down`, `fixed`, `animation`, `snow`, `curtain`, `laser` | `left` |

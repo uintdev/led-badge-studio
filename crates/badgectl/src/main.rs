@@ -8,7 +8,7 @@ mod calibrate;
 use anyhow::{Context, Result, bail};
 use badge_core::{AddressMode, Brightness, CardType, FontChoice, Framebuffer, Mode, Project, Source};
 use badge_render::{FontLibrary, ImportOptions, Renderer};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
@@ -195,6 +195,12 @@ struct Content {
     /// Image file per message (bmp/png/gif/jpg/ico).
     #[arg(long, short)]
     image: Vec<PathBuf>,
+    /// Where each --text and each --image came on the command line, to keep
+    /// their order (clap collects each kind on its own).
+    #[arg(skip)]
+    text_at: Vec<usize>,
+    #[arg(skip)]
+    image_at: Vec<usize>,
     /// Load a .badge project instead. It brings its own badge type, modes,
     /// speeds, brightness and fonts, so --card through --vertical are ignored.
     #[arg(long, short, conflicts_with_all = ["text", "image"])]
@@ -397,6 +403,30 @@ fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
     status
 }
 
+impl Command {
+    fn content_mut(&mut self) -> Option<&mut Content> {
+        match self {
+            Command::Send { content, .. } | Command::Preview { content, .. } => Some(content),
+            _ => None,
+        }
+    }
+}
+
+/// Reads the command line, keeping where each --text and --image came.
+fn parse<I, T>(args: I) -> Result<Cli, clap::Error>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
+    let matches = Cli::command().try_get_matches_from(args)?;
+    let mut cli = Cli::from_arg_matches(&matches)?;
+    if let (Some((_, sub)), Some(content)) = (matches.subcommand(), cli.command.content_mut()) {
+        content.text_at = sub.indices_of("text").map(Iterator::collect).unwrap_or_default();
+        content.image_at = sub.indices_of("image").map(Iterator::collect).unwrap_or_default();
+    }
+    Ok(cli)
+}
+
 fn main() {
     // Exit quietly when the reader of our output goes away (`badgectl … |
     // head`), like other command-line tools, instead of panicking.
@@ -405,7 +435,8 @@ fn main() {
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
-    if let Err(e) = run(Cli::parse()) {
+    let cli = parse(std::env::args_os()).unwrap_or_else(|e| e.exit());
+    if let Err(e) = run(cli) {
         eprintln!("error: {e:#}");
         std::process::exit(1);
     }
@@ -747,18 +778,29 @@ fn build_project(c: &Content) -> Result<Project> {
                 }
             }
         };
-        let mut slots = p.messages.iter_mut();
-        for t in &c.text {
-            let m = slots.next().unwrap();
-            m.text.clone_from(t);
-            m.font = font.clone();
-            m.vertical = c.vertical;
-        }
-        for path in &c.image {
-            let m = slots.next().unwrap();
-            m.text.clear();
-            m.source = Source::Bitmap;
-            m.bitmap = badge_render::import_image(path, card, &ImportOptions::default())?;
+        // In the order given (texts first where it isn't known).
+        let texts = c
+            .text
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (c.text_at.get(i).copied().unwrap_or(i), Ok(t)));
+        let images = (c.image.iter().enumerate())
+            .map(|(i, p)| (c.image_at.get(i).copied().unwrap_or(usize::MAX / 2 + i), Err(p)));
+        let mut given: Vec<_> = texts.chain(images).collect();
+        given.sort_by_key(|(at, _)| *at);
+        for (m, (_, item)) in p.messages.iter_mut().zip(given) {
+            match item {
+                Ok(text) => {
+                    m.text.clone_from(text);
+                    m.font = font.clone();
+                    m.vertical = c.vertical;
+                }
+                Err(path) => {
+                    m.text.clear();
+                    m.source = Source::Bitmap;
+                    m.bitmap = badge_render::import_image(path, card, &ImportOptions::default())?;
+                }
+            }
         }
         for (i, m) in p.messages.iter_mut().enumerate() {
             m.selected = i < c.text.len() + c.image.len();
@@ -811,6 +853,31 @@ mod tests {
             assert!(address(option, "1000").is_err(), "{option}");
             assert!(address(option, "-1").is_err(), "{option}");
         }
+    }
+
+    #[test]
+    fn texts_and_images_keep_the_order_given() {
+        let dir = TempDir(std::env::temp_dir().join(format!("badgectl-order-{}", std::process::id())));
+        let _ = std::fs::remove_dir_all(&dir.0);
+        std::fs::create_dir_all(&dir.0).unwrap();
+        let logo = dir.0.join("logo.png");
+        let mut picture = Framebuffer::new(11);
+        picture.set(1, 1, LedColor::RED);
+        badge_render::export_png(&picture, false, &logo, 1).unwrap();
+        let logo = logo.to_str().unwrap();
+        let cli = parse(["badgectl", "preview", "-i", logo, "-t", "Hello", "-t", "Bye"]).unwrap();
+        let Command::Preview { content, .. } = cli.command else {
+            unreachable!()
+        };
+        let project = build_project(&content).unwrap();
+        let kinds: Vec<_> = project.messages[..3]
+            .iter()
+            .map(|m| (m.source, m.text.as_str()))
+            .collect();
+        assert_eq!(
+            kinds,
+            [(Source::Bitmap, ""), (Source::Text, "Hello"), (Source::Text, "Bye")]
+        );
     }
 
     #[test]
