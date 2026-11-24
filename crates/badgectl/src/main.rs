@@ -385,6 +385,10 @@ fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
                 println!("  warning: {over}");
                 over_memory = true;
             }
+            for i in cut_off(&project) {
+                println!("  warning: {}", cut_off_wording(i));
+                over_memory = true;
+            }
         }
     }
     if strict && over_memory && status == 0 {
@@ -647,6 +651,39 @@ fn render_all(project: &mut Project) {
     for m in &mut project.messages {
         m.bitmap = r.render(m, card);
     }
+    for (i, m) in project.messages.iter().enumerate() {
+        if let FontChoice::Pixel(font) = m.font
+            && m.selected
+            && m.source == Source::Text
+            && !font.fits(card.height())
+        {
+            eprintln!(
+                "warning: font {:?} (message {}) is too tall for this badge; the default font is used",
+                font.label(),
+                i + 1
+            );
+        }
+    }
+    for i in cut_off(project) {
+        eprintln!("warning: {}", cut_off_wording(i));
+    }
+}
+
+/// The ticked text messages that reach the widest a message can be, where
+/// drawing stops: their end is left out.
+fn cut_off(project: &Project) -> Vec<usize> {
+    (project.messages.iter().enumerate())
+        .filter(|(_, m)| m.selected && m.source == Source::Text && m.bitmap.used_width() >= badge_core::MAX_WIDTH)
+        .map(|(i, _)| i)
+        .collect()
+}
+
+fn cut_off_wording(i: usize) -> String {
+    format!(
+        "message {} is wider than a message can be ({} columns): its end is left out",
+        i + 1,
+        badge_core::MAX_WIDTH
+    )
 }
 
 fn build_project(c: &Content) -> Result<Project> {
@@ -774,6 +811,18 @@ mod tests {
             assert!(address(option, "1000").is_err(), "{option}");
             assert!(address(option, "-1").is_err(), "{option}");
         }
+    }
+
+    #[test]
+    fn text_cut_off_at_the_widest_is_a_warning() {
+        let mut project = Project::new(CardType::Mono11);
+        project.messages[0].selected = true;
+        project.messages[0].text = "W".repeat(600);
+        render_all(&mut project);
+        assert_eq!(cut_off(&project), [0]);
+        project.messages[0].text = "W".repeat(10);
+        render_all(&mut project);
+        assert!(cut_off(&project).is_empty());
     }
 
     #[test]
