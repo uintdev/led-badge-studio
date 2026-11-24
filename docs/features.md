@@ -35,11 +35,12 @@
   offers **Rename** and **Move To**
 - **File → Revert To** goes back to the version last opened or saved, or to
   an earlier save, listed by when it was saved ("Today at 14:15"). Each save
-  keeps the file as it was: on macOS in the system's version store, as other
-  Mac apps do; on Linux and Windows in the app's data folder, the last 10
-  saves of each project file (by its path, so a file that's moved or renamed
-  starts a new list). Reverting is an edit: Undo brings the changes back,
-  and the file is unchanged until saved
+  that changes a file keeps it as it was (Save As over another project too):
+  on macOS in the system's version store, as other Mac apps do; on Linux and
+  Windows in the app's data folder, the last 10 saves of each project file
+  (by its path, so a file that's moved or renamed starts a new list).
+  Reverting is an edit: Undo brings the changes back, and the file is
+  unchanged until saved
 - If another program changed the project's file since it was opened or
   saved here, saving over it asks first: **Keep Mine** replaces those
   changes, **Use Theirs** opens the file as it is now (or, when saving before
@@ -60,22 +61,24 @@
 - In the message list: **drag** a message to move it; its **⋯** button or a
   right-click offers **Duplicate** (into the next empty slot), **Copy**,
   **Paste**, **Move Up**, **Move Down** and **Clear**. Copied messages can
-  be pasted into another project, or another copy of the app
+  be pasted into another project, or another copy of the app, with
+  out-of-range values repaired as in a project file
 - **Keyboard shortcuts** (Ctrl+/ (⌘/ on macOS), F1, or the keyboard in the
   toolbar) lists every shortcut
 - Eight message slots with per-message scroll mode (left, right, up, down,
   fixed, animation, snow, curtain, laser), speed 1-8, flash and marquee border
-- Room on the badge, shown as you type: under the text, how wide the
-  message is of the 4096 columns a message can be, and about how many more
+- Room on the badge, shown as you type: under the text, how wide the message
+  is of the 4096 columns a message can be, and about how many more
   characters fit; under the message list, the **Badge memory** the ticked
-  messages use of the 20,480 columns the badge holds. Text or drawing that
-  wouldn't fit isn't taken (the status bar says which limit was reached), an
-  image is cut to the room left, **Center** stops where the room ends, and
-  ticking, duplicating or pasting a message that doesn't fit is refused, as
-  is switching to a badge type the messages wouldn't fit in (icons, for
-  example, are as wide as the badge is tall);
-  removing text, erasing and unticking always work. A project opened over
-  the limit keeps working, with the gauge in red: the end is cut when sending
+  messages use of the 20,480 columns the badge holds. Text, a font, size or
+  spacing, or drawing that wouldn't fit isn't taken (the status bar says
+  which limit was reached), an image is cut to the room left, **Center**
+  stops where the room ends, and ticking, duplicating or pasting a message
+  that doesn't fit is refused (editing one leaves it unticked), as is
+  switching to a badge type the messages wouldn't fit in (icons, for
+  example, are as wide as the badge is tall); removing text, erasing and
+  unticking always work. A project opened over the limit keeps working, with
+  the gauge in red: the end is cut when sending
 - Text in the built-in pixel fonts (including Chinese, Japanese and Korean,
   and rotated "vertical" glyphs) or any font installed on the computer, all
   in one **Font** list. Under *Built-in*: the default pixel font, named
@@ -94,9 +97,9 @@
 - Built-in symbols (`~0` … `~f`), per-character colors on color badges,
   adjustable letter spacing
 - Pixel editor: draw and erase by hand, import images (BMP, PNG, GIF with
-  frames laid out for the Animation mode, JPG, ICO; or drop them on the
-  window), export as PNG. Typing over a drawing asks first, so it isn't lost
-  by accident
+  frames laid out for the Animation mode, JPG (photos turned upright), ICO;
+  or drop them on the window), export as PNG. Typing over a drawing asks
+  first, so it isn't lost by accident
 - Live animated preview of each display mode, for the message you're editing
   or every ticked message in turn (like the badge plays them). In the
   Animation mode each picture is 48 columns wide (the display width rounded
@@ -110,11 +113,12 @@
   as the preview shows it (LED color and shape, Glow, Show brightness):
   - **Format**: GIF, PNG (animated PNG) or WebP (lossless). WebP is usually
     the smallest by far; GIF works everywhere. Typing a file name ending in
-    `.gif`, `.png` or `.webp` picks that format.
+    `.gif`, `.png` or `.webp` picks that format; any other name gets the
+    format's extension added, asking first if that replaces a file.
   - **Animation**: one full cycle at the badge's own speed, looping (every
-    ticked message in turn with **All ticked**). **Current frame**: the
-    frame shown when you clicked Export, as a still (pause the preview to
-    pick one).
+    ticked message in turn with **All ticked**), up to 10,000 frames; the
+    status bar says if any are left out. **Current frame**: the frame shown
+    when you clicked Export, as a still (pause the preview to pick one).
 
   `badgectl preview --export FILE` does the same from the command line, the
   format chosen by the extension (`.gif`, `.png`, `.webp`); `--still` saves
@@ -168,7 +172,7 @@
   cancels, and **Tab** moves between the dialog's buttons only. When a menu
   or dialog closes, the keyboard goes back to where it was
 - Undo/redo for everything (Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y; on macOS ⌘Z,
-  ⇧⌘Z / ⌘Y); typing bursts and brush strokes undo as one step
+  ⇧⌘Z / ⌘Y); typing bursts in a message and brush strokes undo as one step
 - Image import options next to **Load image…**: **Fit to height** (scale tall
   images down to the badge), **Invert** (for dark artwork on white) and a
   **Threshold** slider (which pixels light up). They re-apply live to an image

@@ -45,6 +45,9 @@ kind but outside what the badge supports.
 | A drawing taller than the badge, wider than 4096 columns, or with pixel values outside 0-7 | Cut to fit; invalid pixels turned off |
 | Text that isn't UTF-8 (for example, saved by another program in Latin-1) | Those characters become � |
 
+Whole numbers written as decimals (`4.0`, as some scripts write every
+number) are read as they are, without a repair.
+
 **Refused** (the file doesn't open; nothing changes): anything without one
 sensible reading. The messages below are as `badgectl` prints them; the app
 shows the same information laid out in a dialog.
@@ -114,9 +117,9 @@ badgectl check messages.badge
 badgectl check --fix messages.badge     # also save the repairs to the file
 ```
 
-If the app's own settings file (`settings.json`) is ever damaged, the app
-starts with default settings and says so. The damaged file is kept next to
-it as `settings.json.damaged` instead of being overwritten.
+If the app's own settings file (`settings.json`) is ever damaged or can't be
+read, the app starts with default settings and says so. The damaged file is
+kept next to it as `settings.json.damaged` instead of being overwritten.
 
 The vendor software's `.tls` projects and `.led` files aren't supported:
 recreate those messages in the app.
