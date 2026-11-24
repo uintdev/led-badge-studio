@@ -292,8 +292,9 @@ pub struct BadgeApp {
     /// so only the latest click clears it.
     copied: Option<&'static str>,
     copied_gen: u64,
-    /// The repaired project waiting for a choice in `Dialog::Repair`.
-    pending_repair: Option<badge_formats::Loaded>,
+    /// The repaired project waiting for a choice in `Dialog::Repair`, and
+    /// the fingerprint of its file when it was read.
+    pending_repair: Option<(badge_formats::Loaded, Option<u64>)>,
     /// The message and frame the preview last showed.
     last_preview: Option<(usize, Framebuffer)>,
     preview_window: Option<gpui::WindowHandle<crate::preview_window::PreviewWindow>>,

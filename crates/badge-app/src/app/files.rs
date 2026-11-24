@@ -203,6 +203,7 @@ impl BadgeApp {
     }
 
     pub(super) fn check_file(&mut self, path: PathBuf, window: &mut Window, cx: &mut Context<Self>) {
+        let read = file_hash(&path);
         match badge_formats::open_checked(&path) {
             Ok(loaded) if loaded.fixes.is_empty() => {
                 let name = file_name(&path);
@@ -215,7 +216,7 @@ impl BadgeApp {
                     cx,
                 );
             }
-            Ok(loaded) => self.offer_repair(path, loaded, false, window, cx),
+            Ok(loaded) => self.offer_repair(path, loaded, read, false, window, cx),
             Err(e) => self.show_open_error(&path, &e, window, cx),
         }
     }
@@ -224,6 +225,7 @@ impl BadgeApp {
         &mut self,
         path: PathBuf,
         loaded: badge_formats::Loaded,
+        read: Option<u64>,
         opening: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -235,7 +237,7 @@ impl BadgeApp {
             fixes: loaded.fixes.clone(),
             opening,
         });
-        self.pending_repair = Some(loaded);
+        self.pending_repair = Some((loaded, read));
         self.focus_dialog(window, cx);
         cx.notify();
     }
@@ -246,13 +248,15 @@ impl BadgeApp {
         let Some(Dialog::Repair { path, .. }) = self.dialog.clone() else {
             return;
         };
-        let Some(loaded) = self.pending_repair.take() else {
+        let Some((loaded, read)) = self.pending_repair.take() else {
             return;
         };
         self.close_dialog(window, cx);
         let name = file_name(&path);
         if open {
-            self.ask_to_save_first(window, cx, move |t, _, cx| t.show_loaded(path, loaded, save, cx));
+            self.ask_to_save_first(window, cx, move |t, window, cx| {
+                t.show_read(path, loaded, read, save, window, cx)
+            });
         } else {
             // The file as it was becomes an earlier version (File → Revert
             // To), as when saving: the repairs can drop what's out of range.
@@ -490,11 +494,14 @@ impl BadgeApp {
     /// Opens a project from outside the app (a drop, or the file manager).
     /// The file is read before asking about unsaved changes.
     pub fn open_requested(&mut self, path: PathBuf, window: &mut Window, cx: &mut Context<Self>) {
+        let read = file_hash(&path);
         match badge_formats::open_checked(&path) {
             Ok(loaded) if loaded.fixes.is_empty() => {
-                self.ask_to_save_first(window, cx, move |t, _, cx| t.show_loaded(path, loaded, false, cx));
+                self.ask_to_save_first(window, cx, move |t, window, cx| {
+                    t.show_read(path, loaded, read, false, window, cx)
+                });
             }
-            Ok(loaded) => self.offer_repair(path, loaded, true, window, cx),
+            Ok(loaded) => self.offer_repair(path, loaded, read, true, window, cx),
             Err(e) => {
                 // A moved or deleted recent file leaves the list.
                 if !path.exists() && self.settings.recent_files.contains(&path) {
@@ -503,6 +510,31 @@ impl BadgeApp {
                 }
                 self.show_open_error(&path, &e, window, cx);
             }
+        }
+    }
+
+    /// Shows a project read before asking about unsaved changes. Saving them
+    /// can write to its file (it's the open one, or Save As chose it), and
+    /// then it's read again: `read` is the file's fingerprint when it was
+    /// read.
+    fn show_read(
+        &mut self,
+        path: PathBuf,
+        loaded: badge_formats::Loaded,
+        read: Option<u64>,
+        save: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let now = file_hash(&path);
+        if now == read {
+            self.show_loaded(path, loaded, save, cx);
+            return;
+        }
+        match badge_formats::open_checked(&path) {
+            Ok(loaded) if loaded.fixes.is_empty() => self.show_loaded(path, loaded, false, cx),
+            Ok(loaded) => self.offer_repair(path, loaded, now, true, window, cx),
+            Err(e) => self.show_open_error(&path, &e, window, cx),
         }
     }
 
@@ -677,6 +709,10 @@ pub(super) fn content_hash(bytes: &[u8]) -> u64 {
     let mut hasher = DefaultHasher::new();
     hasher.write(bytes);
     hasher.finish()
+}
+
+fn file_hash(path: &Path) -> Option<u64> {
+    std::fs::read(path).ok().map(|bytes| content_hash(&bytes))
 }
 
 /// When `path` was last changed; `None` if it can't be read.

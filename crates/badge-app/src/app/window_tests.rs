@@ -345,6 +345,58 @@ fn repairing_and_saving_keeps_the_file_as_it_was(cx: &mut TestAppContext) {
     });
 }
 
+/// Opening the open file again over unsaved changes, and choosing Save,
+/// shows what was just saved, not the file as it was read before saving.
+#[gpui::test]
+fn reopening_the_open_file_after_saving_shows_the_saved_changes(cx: &mut TestAppContext) {
+    let dir = temp_dir("reopen");
+    let path = dir.join("mine.badge");
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "First");
+    save(&app, cx, &path);
+    type_text(&app, cx, "Edited");
+    open_file(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.accept_dialog(window, cx));
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.msg().text, "Edited");
+        assert!(!app.is_dirty());
+    });
+    assert_eq!(badge_formats::open(&path).unwrap().messages[0].text, "Edited");
+
+    // The same with a file that needs repairs, and Repair, Save and Open.
+    let mut json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    json["project"]["messages"][0]["speed"] = 9.into();
+    std::fs::write(&path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
+    open_file(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.finish_repair(true, false, window, cx));
+    type_text(&app, cx, "Edited again");
+    open_file(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.finish_repair(true, true, window, cx));
+    app.update_in(cx, |app, window, cx| app.accept_dialog(window, cx));
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.msg().text, "Edited again");
+        assert!(!app.is_dirty());
+    });
+    assert_eq!(badge_formats::open(&path).unwrap().messages[0].text, "Edited again");
+}
+
+#[gpui::test]
+fn check_project_files_open_repaired_asks_only_once(cx: &mut TestAppContext) {
+    let dir = temp_dir("check-open");
+    let path = dir.join("bad.badge");
+    let (app, cx) = open(cx);
+    save(&app, cx, &path);
+    let mut json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    json["project"]["messages"][0]["speed"] = 9.into();
+    std::fs::write(&path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
+    app.update_in(cx, |app, window, cx| app.check_file(path.clone(), window, cx));
+    app.update_in(cx, |app, window, cx| app.finish_repair(true, false, window, cx));
+    app.read_with(cx, |app, _| {
+        assert!(app.dialog.is_none());
+        assert_eq!(app.project.messages[0].speed, 8);
+    });
+}
+
 #[gpui::test]
 fn a_file_that_cant_be_read_leaves_the_project_alone(cx: &mut TestAppContext) {
     let dir = temp_dir("broken");
