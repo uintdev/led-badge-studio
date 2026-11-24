@@ -50,6 +50,15 @@ pub fn project_to_json(project: &Project) -> Result<String> {
     })?)
 }
 
+/// One message from elsewhere (a copied message), repaired as a project
+/// file's messages are; `None` when it can't be read even so.
+pub fn message_from_value(message: Value, card: CardType) -> Option<badge_core::Message> {
+    let mut doc: Value = serde_json::from_str(&project_to_json(&Project::new(card)).ok()?).ok()?;
+    *doc.pointer_mut("/project/messages/0")? = message;
+    let loaded = project_from_json_checked(&doc.to_string()).ok()?;
+    loaded.project.messages.into_iter().next()
+}
+
 /// Why a project file can't be opened, in parts so the app can lay them out.
 /// `Display` gives one line for the command line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -487,6 +496,16 @@ mod tests {
     use super::*;
     use badge_core::{CardType, LedColor, Source};
     use std::assert_matches;
+
+    #[test]
+    fn a_pasted_message_is_repaired_as_a_files_are() {
+        let m = serde_json::json!({ "text": "Hi", "speed": 300, "default_color": 9 });
+        let m = message_from_value(m, CardType::Rgb12).expect("repaired");
+        assert_eq!(m.text, "Hi");
+        assert_eq!(m.speed, 8);
+        assert_eq!(m.default_color, badge_core::LedColor::RED);
+        assert!(message_from_value(serde_json::json!("not a message"), CardType::Mono11).is_none());
+    }
 
     #[test]
     fn json_roundtrip() {

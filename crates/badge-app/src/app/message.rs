@@ -319,12 +319,13 @@ impl BadgeApp {
 
     /// Replaces message `i` with a message from the clipboard.
     pub(super) fn paste_message(&mut self, i: usize, cx: &mut Context<Self>) {
+        let card = self.project.card;
         let pasted = cx
             .read_from_clipboard()
             .and_then(|item| item.text())
             .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
             .and_then(|mut v| v.get_mut(MESSAGE_CLIPBOARD_KEY).map(serde_json::Value::take))
-            .and_then(|v| serde_json::from_value::<badge_core::Message>(v).ok());
+            .and_then(|v| badge_formats::message_from_value(v, card));
         let Some(mut m) = pasted else {
             self.set_status("The clipboard doesn't hold a copied message", Severity::Error);
             cx.notify();
