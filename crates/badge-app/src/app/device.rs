@@ -367,7 +367,9 @@ impl BadgeApp {
                                     }
                                     Err((e, perm)) => {
                                         this.set_status(e, Severity::Error);
-                                        if perm && cfg!(target_os = "linux") {
+                                        // Not over a question being asked: the status
+                                        // says what went wrong meanwhile.
+                                        if perm && cfg!(target_os = "linux") && this.dialog.is_none() {
                                             this.open_device_access();
                                         }
                                     }

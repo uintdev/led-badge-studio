@@ -558,6 +558,27 @@ fn a_built_in_font_too_tall_for_the_badge_is_reported(cx: &mut TestAppContext) {
     });
 }
 
+/// Settings or Shortcuts opened over a question count as its Cancel, as any
+/// other dialog taking its place does.
+#[gpui::test]
+fn a_dialog_opened_over_a_question_cancels_it(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| {
+        let m = app.msg_mut();
+        m.source = Source::Bitmap;
+        m.bitmap.set(0, 0, LedColor::RED);
+        app.commit_history();
+    });
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    input.update_in(cx, |input, window, cx| input.insert("x", window, cx));
+    cx.run_until_parked();
+    app.update_in(cx, |app, window, cx| app.open_dialog(Dialog::Settings, window, cx));
+    app.read_with(cx, |app, cx| {
+        assert_eq!(app.input.read(cx).text(), app.msg().text, "the keystroke is undone");
+        assert!(app.pending_confirm.is_none());
+    });
+}
+
 /// Undo while a question is open would change the message its answer
 /// acts on: it waits until the question is answered.
 #[gpui::test]

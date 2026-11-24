@@ -836,6 +836,7 @@ impl BadgeApp {
     /// Opens `dialog` over everything else.
     pub(super) fn open_dialog(&mut self, dialog: Dialog, window: &mut Window, cx: &mut Context<Self>) {
         self.menu = None;
+        self.replace_dialog(window, cx);
         self.dialog = Some(dialog);
         self.focus_dialog(window, cx);
         cx.notify();
