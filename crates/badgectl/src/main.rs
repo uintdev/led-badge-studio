@@ -94,7 +94,7 @@ enum Command {
     /// Exit status: 0 when every file is fine (or was repaired with --fix),
     /// 2 when a file has values that can be repaired, 1 when a file can't be
     /// opened at all; with --strict, 3 when sending a file would cut messages
-    /// short (and nothing else is wrong).
+    /// short (and nothing else is wrong); 64 when the command line is wrong.
     #[command(after_help = "Examples:
   badgectl check messages.badge
   badgectl check *.badge
@@ -412,6 +412,14 @@ impl Command {
     }
 }
 
+/// The exit status for a command line that's wrong: 64, as `sysexits.h`'s
+/// EX_USAGE, since `check` gives 2 (clap's) its own meaning.
+const USAGE_ERROR: i32 = 64;
+
+fn exit_status(e: &clap::Error) -> i32 {
+    if e.use_stderr() { USAGE_ERROR } else { 0 }
+}
+
 /// Reads the command line, keeping where each --text and --image came.
 fn parse<I, T>(args: I) -> Result<Cli, clap::Error>
 where
@@ -435,7 +443,10 @@ fn main() {
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
-    let cli = parse(std::env::args_os()).unwrap_or_else(|e| e.exit());
+    let cli = parse(std::env::args_os()).unwrap_or_else(|e| {
+        let _ = e.print();
+        std::process::exit(exit_status(&e));
+    });
     if let Err(e) = run(cli) {
         eprintln!("error: {e:#}");
         std::process::exit(1);
@@ -878,6 +889,18 @@ mod tests {
             kinds,
             [(Source::Bitmap, ""), (Source::Text, "Hello"), (Source::Text, "Bye")]
         );
+    }
+
+    #[test]
+    fn a_wrong_command_line_has_an_exit_status_of_its_own() {
+        for args in [
+            &["badgectl", "check", "--strcit", "x.badge"][..],
+            &["badgectl", "check"],
+        ] {
+            let e = parse(args).err().expect("refused");
+            assert_eq!(exit_status(&e), USAGE_ERROR, "{args:?}");
+        }
+        assert_eq!(exit_status(&parse(["badgectl", "--help"]).err().unwrap()), 0);
     }
 
     #[test]
