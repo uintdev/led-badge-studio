@@ -203,9 +203,20 @@ impl SystemFonts {
         let ctx = &mut self.ctx;
         Some(&*data).and_then(|data| {
             let font = FontRef::from_index(data, index as usize)?;
-            let gid = font.charmap().map(ch);
-            if gid == 0 && !ch.is_whitespace() {
-                return None;
+            let mut gid = font.charmap().map(ch);
+            if gid == 0 {
+                if !ch.is_whitespace() {
+                    return None;
+                }
+                // A space the font doesn't have (an input method's U+3000, a
+                // pasted tab) as its own space: glyph 0 draws a box.
+                gid = font.charmap().map(' ');
+                if gid == 0 {
+                    return Some(Glyph {
+                        advance: (size_px as usize / 4).max(1),
+                        ..Glyph::default()
+                    });
+                }
             }
             let size = size_px.max(1) as f32;
             let metrics = font.metrics(&[]).scale(size);
@@ -285,6 +296,28 @@ mod tests {
             assert!(fonts.glyph(&family, 12, false, false, 'A').is_some());
         }
         assert_ne!(SystemFonts::from_db(Database::new(), &[]).fingerprint(), before);
+    }
+
+    #[test]
+    fn a_space_the_font_lacks_is_blank() {
+        let mut fonts = SystemFonts::load();
+        let lacking = fonts.db.faces().find_map(|f| {
+            let family = f.families.first()?.0.clone();
+            let lacks = fonts
+                .db
+                .with_face_data(f.id, |data, index| {
+                    FontRef::from_index(data, index as usize)
+                        .is_some_and(|font| font.charmap().map('\u{3000}') == 0 && font.charmap().map('A') != 0)
+                })
+                .unwrap_or(false);
+            lacks.then_some(family)
+        });
+        let Some(family) = lacking else {
+            return; // every font here has it
+        };
+        let glyph = fonts.glyph(&family, 16, false, false, '\u{3000}').expect("a space");
+        assert!(glyph.pixels.iter().all(|&on| !on), "{family}: no box");
+        assert!(glyph.advance > 0);
     }
 
     #[test]
