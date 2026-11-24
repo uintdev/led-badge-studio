@@ -226,7 +226,10 @@ Windows minutes twice, so a full release build uses up a good part of it.
 3. **The macOS `Info.plist`**: run
    `cargo run --release --manifest-path packaging/branding/Cargo.toml` (any
    build script does it too).
-4. **The release notes software centers show**: add a `<release>` at the top
+4. **The third-party notices**: regenerate them as in
+   [Regenerating generated files](#regenerating-generated-files). They list
+   the project's own crates by version too.
+5. **The release notes software centers show**: add a `<release>` at the top
    of `<releases>` in
    [`packaging/flatpak/dev.uint.LedBadgeStudio.metainfo.xml`](../packaging/flatpak/dev.uint.LedBadgeStudio.metainfo.xml),
    newest first, keeping the older ones:
@@ -239,13 +242,13 @@ Windows minutes twice, so a full release build uses up a good part of it.
    </release>
    ```
 
-5. **The changelog**: add a section for the version at the top of
+6. **The changelog**: add a section for the version at the top of
    [`CHANGELOG.md`](../CHANGELOG.md), with the date and a short list, one
    line for each change people will notice.
-6. **Commit, then tag and push both together**:
+7. **Commit, then tag and push both together**:
    `git tag v0.1.3 && git push --atomic origin main v0.1.3`. The tag builds
    the packages (above).
-7. **The GitHub release**: on the *Releases* page, create a release for the
+8. **The GitHub release**: on the *Releases* page, create a release for the
    tag, attach the packages from the run's *Artifacts*, and paste the
    version's list from `CHANGELOG.md` as its notes.
 
@@ -259,7 +262,8 @@ These are checked in, so you only need this when changing them:
 | App icons and packaging metadata | applied by every build script, or see [Branding](branding.md) | Rust |
 | Third-party notices (`THIRD_PARTY_NOTICES.txt`) | see below | cargo-about |
 
-Regenerate the third-party notices whenever dependencies change:
+Regenerate the third-party notices whenever dependencies or the version
+change:
 
 ```bash
 cargo install cargo-about --features cli
