@@ -245,6 +245,14 @@ pub fn remove_udev_rule() -> Result<(), AccessSetupError> {
     run_privileged(&script, &[])
 }
 
+/// `script`, ending with status 1 when it fails: pkexec's own 126 and 127
+/// (dismissed, not authorized) are also what `sh` returns for a command it
+/// can't run or find, such as a missing `udevadm`.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn own_failures_exit_1(script: &str) -> String {
+    format!("( {script} ) || exit 1")
+}
+
 /// Runs `/bin/sh -c script sh args…` as root through `pkexec`, on the host
 /// system when inside a Flatpak.
 #[allow(unused_variables)]
@@ -266,8 +274,9 @@ fn run_privileged(script: &str, args: &[&str]) -> Result<(), AccessSetupError> {
                 return Err(AccessSetupError::NoPkexec);
             }
         }
+        let script = own_failures_exit_1(script);
         let out = host_command("pkexec")
-            .args(["/bin/sh", "-c", script, "sh"])
+            .args(["/bin/sh", "-c", &script, "sh"])
             .args(args)
             .output()
             .map_err(|e| match e.kind() {
@@ -751,5 +760,20 @@ mod tests {
             cfg!(target_os = "macos")
         );
         assert!(!denied("hid_error is not implemented yet"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_setup_scripts_own_failures_are_not_pkexecs() {
+        let status = |script: &str| {
+            std::process::Command::new("/bin/sh")
+                .args(["-c", &super::own_failures_exit_1(script), "sh", "arg"])
+                .status()
+                .unwrap()
+                .code()
+        };
+        assert_eq!(status("no-such-command-led-badge-studio"), Some(1));
+        assert_eq!(status("true && test \"$1\" = arg"), Some(0), "arguments still reach it");
+        assert_eq!(status("exit 126"), Some(1));
     }
 }
