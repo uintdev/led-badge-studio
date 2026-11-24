@@ -195,7 +195,9 @@ GitHub Actions once the project is on GitHub:
   tests, on Linux. A push of a commit that already has its version tag
   skips them, as the tag's run does them (the run still shows, with the
   tests skipped).
-- **A version tag** (for example `git tag v0.2.0 && git push --tags`), or
+- **A version tag** (for example `git tag v0.2.0 && git push origin v0.2.0`:
+  one tag at a time, as GitHub starts no run for tags pushed more than
+  three at once, and the push of that commit then skips its tests), or
   **by hand** (*Actions → Build → Run workflow*): the tests, then the
   Flatpaks and Windows zips, each for x64 and arm64, built on GitHub's
   x64 and ARM runners, and the macOS disk image (Apple silicon). Download them
