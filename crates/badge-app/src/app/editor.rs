@@ -277,6 +277,7 @@ impl BadgeApp {
         let right = fb.content_width();
         let Some(left) = (0..right).find(|&x| lit_col(x)) else {
             self.set_status("Nothing to center: the drawing is empty.", Severity::Info);
+            cx.notify();
             return;
         };
         let drawn = right - left;
@@ -292,6 +293,7 @@ impl BadgeApp {
         let was_text = m.source == Source::Text;
         if start == left && !was_text {
             self.set_status("Already centered.", Severity::Info);
+            cx.notify();
             return;
         }
         let mut moved = Framebuffer::new(fb.height());
