@@ -83,14 +83,24 @@ pub fn decode_image(bytes: &[u8], card: CardType, fit_height: bool) -> Result<Rg
             }
             canvas
         } else {
-            let img = image::load_from_memory_with_format(bytes, format)?;
-            fit(img, height, fit_height)
+            fit(decode_upright(bytes, format)?, height, fit_height)
         }
     } else {
-        let img = image::load_from_memory_with_format(bytes, format)?;
-        fit(img, height, fit_height)
+        fit(decode_upright(bytes, format)?, height, fit_height)
     };
     Ok(canvas)
+}
+
+/// Decodes a still image the right way up: phone photos are often stored
+/// sideways, with the turn to show them by in their EXIF data.
+fn decode_upright(bytes: &[u8], format: ImageFormat) -> Result<DynamicImage> {
+    let mut decoder = image::ImageReader::with_format(Cursor::new(bytes), format).into_decoder()?;
+    let orientation = decoder
+        .orientation()
+        .unwrap_or(image::metadata::Orientation::NoTransforms);
+    let mut img = DynamicImage::from_decoder(decoder)?;
+    img.apply_orientation(orientation);
+    Ok(img)
 }
 
 /// The fast half of an import: thresholds a decoded image into LEDs.
@@ -178,6 +188,25 @@ pub fn export_png(fb: &Framebuffer, color: bool, path: &Path, scale: u32) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_photo_stored_sideways_is_turned_upright() {
+        let mut jpeg = Vec::new();
+        image::RgbImage::new(8, 4)
+            .write_to(&mut Cursor::new(&mut jpeg), ImageFormat::Jpeg)
+            .unwrap();
+        // EXIF (little-endian TIFF), one entry: Orientation (0x0112) = 6,
+        // turn 90 degrees clockwise to show.
+        let tiff: &[u8] = &[
+            b'I', b'I', 42, 0, 8, 0, 0, 0, 1, 0, 0x12, 0x01, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let mut app1 = vec![0xFF, 0xE1, 0, (2 + 6 + tiff.len()) as u8];
+        app1.extend(b"Exif\0\0");
+        app1.extend(tiff);
+        jpeg.splice(2..2, app1);
+        let img = decode_upright(&jpeg, ImageFormat::Jpeg).unwrap();
+        assert_eq!((img.width(), img.height()), (4, 8));
+    }
 
     #[test]
     fn png_roundtrip_mono() {
