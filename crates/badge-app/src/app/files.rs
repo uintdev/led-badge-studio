@@ -422,20 +422,56 @@ impl BadgeApp {
         let rx = cx.prompt_for_new_path(&dir, Some("messages.badge"));
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
-            if let Ok(Ok(Some(mut p))) = rx.await {
-                if p.extension().is_none() {
-                    p.set_extension(badge_formats::PROJECT_EXT);
-                }
+            if let Ok(Ok(Some(p))) = rx.await {
                 this.update_in(cx, |this, window, cx| {
-                    this.save_to(p, cx);
-                    if !this.is_dirty() {
-                        then(this, window, cx);
-                    }
+                    let has_extension = |p: &Path| p.extension().is_some();
+                    let ext = badge_formats::PROJECT_EXT;
+                    this.settle_save_path(p, ext, has_extension, window, cx, move |this, p, window, cx| {
+                        this.save_to(p, cx);
+                        if !this.is_dirty() {
+                            then(this, window, cx);
+                        }
+                    });
                 })
                 .ok();
             }
         })
         .detach();
+    }
+
+    /// Settles the path a save dialog returned: one whose extension
+    /// `accepts` doesn't take (none, or another kind of file's) gets `ext`
+    /// added to what was typed. The dialog only asked about replacing the
+    /// name as typed, so replacing the file the new name is asked here.
+    pub(super) fn settle_save_path(
+        &mut self,
+        typed: PathBuf,
+        ext: &str,
+        accepts: impl Fn(&Path) -> bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        then: impl FnOnce(&mut Self, PathBuf, &mut Window, &mut Context<Self>) + 'static,
+    ) {
+        if accepts(&typed) {
+            then(self, typed, window, cx);
+            return;
+        }
+        let mut name = typed.file_name().unwrap_or_default().to_os_string();
+        name.push(format!(".{ext}"));
+        let path = typed.with_file_name(name);
+        if !path.exists() {
+            then(self, path, window, cx);
+            return;
+        }
+        self.ask(
+            &format!("Replace \u{201c}{}\u{201d}?", file_name(&path)),
+            "A file with that name already exists. Replacing it overwrites what it holds.",
+            "Replace",
+            true,
+            window,
+            cx,
+            move |t, window, cx| then(t, path, window, cx),
+        );
     }
 
     pub(super) fn save_to(&mut self, path: PathBuf, cx: &mut Context<Self>) {

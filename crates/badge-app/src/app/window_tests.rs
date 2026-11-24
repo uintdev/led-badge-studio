@@ -415,6 +415,49 @@ fn saving_over_a_different_file_keeps_it_as_a_version(cx: &mut TestAppContext) {
     app.read_with(cx, |app, _| assert_eq!(app.file_versions.len(), 2));
 }
 
+/// Save dialogs only ask about replacing the name as typed: when an
+/// extension is added, the app asks about the file that names.
+#[gpui::test]
+fn adding_an_extension_asks_before_replacing_a_file(cx: &mut TestAppContext) {
+    let dir = temp_dir("add-extension");
+    let existing = dir.join("party.badge");
+    std::fs::write(&existing, "kept").unwrap();
+    let (app, cx) = open(cx);
+    let saved = Rc::new(RefCell::new(None));
+    let settle = |typed: PathBuf, ext: &'static str, cx: &mut VisualTestContext| {
+        let saved = saved.clone();
+        app.update_in(cx, |app, window, cx| {
+            let known = |p: &Path| ExportFormat::from_path(p).is_some();
+            app.settle_save_path(typed, ext, known, window, cx, move |_, p, _, _| {
+                *saved.borrow_mut() = Some(p);
+            });
+        });
+    };
+
+    settle(dir.join("party"), "badge", cx);
+    app.read_with(cx, |app, _| assert!(matches!(app.dialog, Some(Dialog::Confirm { .. }))));
+    assert_eq!(*saved.borrow(), None, "nothing until answered");
+    cx.dispatch_action(ModalCancel);
+    assert_eq!(*saved.borrow(), None);
+    assert_eq!(std::fs::read_to_string(&existing).unwrap(), "kept");
+
+    settle(dir.join("party"), "badge", cx);
+    app.update_in(cx, |app, window, cx| app.accept_dialog(window, cx));
+    assert_eq!(saved.borrow_mut().take(), Some(existing.clone()));
+
+    // A name that's free, and an extension of no export format.
+    settle(dir.join("new"), "gif", cx);
+    assert_eq!(saved.borrow_mut().take(), Some(dir.join("new.gif")));
+    settle(dir.join("badge.jpg"), "gif", cx);
+    assert_eq!(saved.borrow_mut().take(), Some(dir.join("badge.jpg.gif")));
+    settle(dir.join("anim.webp"), "gif", cx);
+    assert_eq!(
+        saved.borrow_mut().take(),
+        Some(dir.join("anim.webp")),
+        "another format is kept"
+    );
+}
+
 #[gpui::test]
 fn check_project_files_open_repaired_asks_only_once(cx: &mut TestAppContext) {
     let dir = temp_dir("check-open");

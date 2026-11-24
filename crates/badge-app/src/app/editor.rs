@@ -242,17 +242,16 @@ impl BadgeApp {
         let rx = cx.prompt_for_new_path(&dir, Some(&name));
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
-            if let Ok(Ok(Some(mut p))) = rx.await {
-                if p.extension().is_none() {
-                    p.set_extension("png");
-                }
-                let r = badge_render::export_png(&fb, color, &p, 1);
-                this.update(cx, |this, cx| {
-                    match r {
-                        Ok(()) => this.set_status(format!("Saved image {}", p.display()), Severity::Success),
-                        Err(e) => this.set_status(format!("{e:#}"), Severity::Error),
-                    }
-                    cx.notify();
+            if let Ok(Ok(Some(p))) = rx.await {
+                this.update_in(cx, |this, window, cx| {
+                    let is_png = |p: &Path| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("png"));
+                    this.settle_save_path(p, "png", is_png, window, cx, move |this, p, _, cx| {
+                        match badge_render::export_png(&fb, color, &p, 1) {
+                            Ok(()) => this.set_status(format!("Saved image {}", p.display()), Severity::Success),
+                            Err(e) => this.set_status(format!("{e:#}"), Severity::Error),
+                        }
+                        cx.notify();
+                    });
                 })
                 .ok();
             }

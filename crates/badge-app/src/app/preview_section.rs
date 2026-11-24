@@ -196,7 +196,7 @@ impl BadgeApp {
 
     /// Saves one full cycle of the preview, or the frame kept by `open_export`.
     pub(super) fn export_preview(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        use badge_render::preview_export::{Look, Part, save_animation, save_still};
+        use badge_render::preview_export::Look;
         let format = self.export_format();
         let still = self.settings.export_still;
         let messages: Vec<usize> = if self.settings.preview_all {
@@ -225,18 +225,37 @@ impl BadgeApp {
         let rx = cx.prompt_for_new_path(&self.default_dir(), Some(&name));
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
-            let Ok(Ok(Some(mut path))) = rx.await else { return };
-            if path.extension().is_none() {
-                path.set_extension(ext);
-            }
-            // A typed extension of another format picks that format.
-            let format = ExportFormat::from_path(&path).unwrap_or(format);
-            let what = format!("{}{}", format.label(), if still { " image" } else { " animation" });
-            this.update(cx, |t, cx| {
-                t.set_status(format!("Saving the {what}\u{2026}"), Severity::Info);
-                cx.notify();
+            let Ok(Ok(Some(path))) = rx.await else { return };
+            this.update_in(cx, |t, window, cx| {
+                // A typed extension of another format picks that format.
+                let known = |p: &Path| ExportFormat::from_path(p).is_some();
+                t.settle_save_path(path, ext, known, window, cx, move |t, path, window, cx| {
+                    let format = ExportFormat::from_path(&path).unwrap_or(format);
+                    t.write_export(path, format, still, frame, parts, look, window, cx);
+                });
             })
             .ok();
+        })
+        .detach();
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn write_export(
+        &mut self,
+        path: PathBuf,
+        format: ExportFormat,
+        still: bool,
+        frame: Option<(Framebuffer, usize)>,
+        parts: Vec<(Framebuffer, preview::PreviewParams)>,
+        look: badge_render::preview_export::Look,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        use badge_render::preview_export::{Part, save_animation, save_still};
+        let what = format!("{}{}", format.label(), if still { " image" } else { " animation" });
+        self.set_status(format!("Saving the {what}\u{2026}"), Severity::Info);
+        cx.notify();
+        cx.spawn_in(window, async move |this, cx| {
             let target = path.clone();
             let result = cx
                 .background_executor()
