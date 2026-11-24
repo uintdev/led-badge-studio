@@ -62,7 +62,8 @@ fi
 if ! command -v cargo >/dev/null || ! command -v cc >/dev/null || ! command -v pkg-config >/dev/null \
     || ! pkg-config --exists xkbcommon xkbcommon-x11 xcb fontconfig freetype2; then
     "$here/install-build-deps.sh"
-    . "$HOME/.cargo/env"
+    # Only there when Rust came from rustup, not from the system's packages.
+    [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 fi
 # The latest Rust (the Flatpak build uses the same version).
 if command -v rustup >/dev/null; then
