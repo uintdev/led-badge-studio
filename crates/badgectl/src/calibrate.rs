@@ -304,6 +304,7 @@ pub fn run(
                 }
                 true
             })?;
+            badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             eprintln!("\rSent.          ");
             println!("Start the badge, then press Enter at every flash.");
             let mut taps: Vec<Instant> = Vec::new();
