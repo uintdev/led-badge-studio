@@ -13,7 +13,9 @@ impl BadgeApp {
         let recent = h.last_at.elapsed() < Duration::from_millis(1200);
         let group = match kind {
             EditKind::Stroke(_) => h.last_kind == Some(kind),
-            EditKind::Text | EditKind::Slider => h.last_kind == Some(kind) && recent,
+            EditKind::Text | EditKind::Slider => {
+                h.last_kind == Some(kind) && recent && h.baseline.current == self.current
+            }
             EditKind::Other => false,
         };
         if !group || h.undo.is_empty() {

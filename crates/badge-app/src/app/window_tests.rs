@@ -110,6 +110,19 @@ fn typing_in_one_go_is_one_undo_step(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn typing_in_another_message_is_another_undo_step(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "First");
+    app.update_in(cx, |app, window, cx| app.select_message(1, window, cx));
+    type_text(&app, cx, "Second");
+    cx.dispatch_action(Undo);
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.project.messages[0].text, "First");
+        assert_eq!(app.project.messages[1].text, "");
+    });
+}
+
+#[gpui::test]
 fn saving_clears_modified_and_reopening_restores_the_project(cx: &mut TestAppContext) {
     let dir = temp_dir("save");
     let path = dir.join("test.badge");
