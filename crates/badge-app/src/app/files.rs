@@ -741,12 +741,13 @@ impl FileStamp {
     }
 }
 
-/// A fingerprint of a file's contents, to tell whether it changed.
+/// A fingerprint of a file's contents, to tell whether it changed. FNV-1a:
+/// the same in every version of the app, as the recovery copy keeps it
+/// across updates (unlike the standard library's hasher).
 pub(super) fn content_hash(bytes: &[u8]) -> u64 {
-    use std::hash::{DefaultHasher, Hasher};
-    let mut hasher = DefaultHasher::new();
-    hasher.write(bytes);
-    hasher.finish()
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |hash: u64, &b| {
+        (hash ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+    })
 }
 
 fn file_hash(path: &Path) -> Option<u64> {

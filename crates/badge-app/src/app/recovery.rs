@@ -29,6 +29,9 @@ pub(super) struct Recovered {
     pub project: Project,
     /// The project's file, if it had one.
     pub file: Option<PathBuf>,
+    /// The fingerprint of that file as the app last read or wrote it, to
+    /// tell whether another program changed it since.
+    pub file_hash: Option<u64>,
     pub when: SystemTime,
     /// The copy it was read from, removed once it's recovered or discarded.
     pub path: PathBuf,
@@ -187,9 +190,13 @@ pub(super) fn read(path: &Path) -> Option<Recovered> {
         let value: serde_json::Value = serde_json::from_str(&text)?;
         let project = badge_formats::project_from_json(&value["project"].to_string())?;
         let file = value["file"].as_str().map(PathBuf::from);
+        let file_hash = value["file_hash"]
+            .as_str()
+            .and_then(|h| u64::from_str_radix(h, 16).ok());
         Ok(Recovered {
             project,
             file,
+            file_hash,
             when,
             path: path.to_path_buf(),
             claim: None,
@@ -200,11 +207,13 @@ pub(super) fn read(path: &Path) -> Option<Recovered> {
         .ok()
 }
 
-/// The copy: the project as in a project file, and where its file is.
-fn to_json(project: &Project, file: Option<&Path>) -> anyhow::Result<Vec<u8>> {
+/// The copy: the project as in a project file, where its file is, and that
+/// file's fingerprint.
+fn to_json(project: &Project, file: Option<&Path>, file_hash: Option<u64>) -> anyhow::Result<Vec<u8>> {
     let project: serde_json::Value = serde_json::from_str(&badge_formats::project_to_json(project)?)?;
     let value = serde_json::json!({
         "file": file.map(|f| f.to_string_lossy()),
+        "file_hash": file_hash.map(|h| format!("{h:016x}")),
         "project": project,
     });
     Ok(serde_json::to_vec(&value)?)
@@ -334,7 +343,8 @@ impl BadgeApp {
         if current {
             return;
         }
-        match to_json(&self.project, self.path.as_deref()) {
+        let file_hash = self.file_stamp.map(|s| s.hash);
+        match to_json(&self.project, self.path.as_deref(), file_hash) {
             Ok(json) => {
                 submit((Some(Change::Write(path, json)), None));
                 self.recovery_written = Some((self.project.clone(), self.path.clone()));
@@ -378,11 +388,17 @@ impl BadgeApp {
             let Recovered {
                 project,
                 file,
+                file_hash,
                 path,
                 claim,
                 ..
             } = recovered;
             t.replace_project(project, file, cx);
+            // Changes made to the file since the work was kept are another
+            // program's: saving asks whose to keep.
+            if let Some(hash) = file_hash {
+                t.file_stamp = Some(super::files::FileStamp { modified: None, hash });
+            }
             // Unsaved until saved.
             t.saved = None;
             t.set_status("Recovered the unsaved work; save it to keep it", Severity::Success);

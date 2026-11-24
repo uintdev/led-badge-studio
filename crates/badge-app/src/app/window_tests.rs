@@ -1379,6 +1379,42 @@ fn unsaved_work_is_kept_until_saved_and_can_be_recovered(cx: &mut TestAppContext
     );
 }
 
+/// Another program changing the file between keeping the work and
+/// recovering it: saving the recovered work asks whose changes to keep.
+#[gpui::test]
+fn recovered_work_asks_before_saving_over_later_changes(cx: &mut TestAppContext) {
+    let dir = temp_dir("recover-changed");
+    let path = dir.join("mine.badge");
+    let copy = dir.join("unsaved-work.json");
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Mine");
+    save(&app, cx, &path);
+    app.update(cx, |app, _| app.recovery_path = Some(copy.clone()));
+    type_text(&app, cx, "Unsaved");
+    app.update(cx, |app, _| {
+        app.keep_recovery_copy_now();
+    });
+    change_elsewhere(&path, "Theirs");
+    app.update(cx, |app, _| {
+        app.recovered = recovery::read(&copy);
+        app.recovery_path = Some(dir.join("next.json"));
+        app.saved = Some(app.project.clone());
+    });
+    app.update_in(cx, |app, window, cx| app.recover_unsaved_work(window, cx));
+    app.read_with(cx, |app, _| assert_eq!(app.msg().text, "Unsaved"));
+    cx.dispatch_action(SaveProject);
+    app.read_with(cx, |app, _| {
+        assert!(matches!(
+            app.dialog,
+            Some(Dialog::Confirm {
+                alternate_label: Some(_),
+                ..
+            })
+        ));
+    });
+    assert_eq!(badge_formats::open(&path).unwrap().messages[0].text, "Theirs");
+}
+
 /// Quitting with nothing to keep removes the copy and the lock file; one
 /// that can't be removed is left (for a later start) without trouble.
 #[gpui::test]
