@@ -130,25 +130,36 @@ impl BadgeApp {
         )
     }
 
-    /// Why `text` can't become the current message's text, if adding it
-    /// would make the message wider than a message can be, or the ticked
-    /// messages together more than the badge holds. Removing text is always
-    /// allowed, even over a limit (a project from elsewhere can be).
+    /// Why `text` can't become the current message's text (as
+    /// `width_problem` says). Removing text is always allowed, even over a
+    /// limit (a project from elsewhere can be).
     fn text_overflow(&mut self, text: &str, colors: Option<&[LedColor]>) -> Option<String> {
         let old = self.msg();
-        let grows = old.source == Source::Bitmap || text.chars().count() > old.text.chars().count();
-        if !grows {
+        if old.source == Source::Text && text.chars().count() < old.text.chars().count() {
             return None;
         }
+        let before = if old.source == Source::Text {
+            old.bitmap.used_width()
+        } else {
+            0
+        };
         let mut m = old.clone();
         m.text = text.to_string();
         if let Some(c) = colors {
             m.colors = c.to_vec();
         }
         m.source = Source::Text;
+        let width = self.renderer.render_text(&m, self.project.card).used_width();
+        self.width_problem(width, before)
+    }
+
+    /// Why the current message can't go from `before` to `width` columns:
+    /// it would be wider than a message can be, or wider than it was and
+    /// than the badge's memory has room for. Width, not the number of
+    /// characters: a wider character, font or spacing widens it too.
+    fn width_problem(&self, width: usize, before: usize) -> Option<String> {
         // Rendering stops at the widest a message can be, so a message that
         // reaches it counts as full.
-        let width = self.renderer.render_text(&m, self.project.card).used_width();
         if width >= badge_core::MAX_WIDTH {
             return Some(format!(
                 "Message {} is full: a message can be at most {} columns wide.",
@@ -156,7 +167,29 @@ impl BadgeApp {
                 badge_core::MAX_WIDTH
             ));
         }
-        (width > self.room_for_current()).then(Self::memory_full_message)
+        (width > before && width > self.room_for_current()).then(Self::memory_full_message)
+    }
+
+    /// Changes how the current message's text is drawn (its font, size or
+    /// spacing, or a drawing back to its text), unless that makes it too
+    /// wide (as `width_problem` says); then it stays as it was.
+    pub(super) fn restyle(&mut self, cx: &mut Context<Self>, change: impl FnOnce(&mut badge_core::Message)) {
+        let before = self.msg().clone();
+        change(self.msg_mut());
+        self.rerender(self.current);
+        let width = self.msg().bitmap.used_width();
+        let was = if before.source == Source::Text {
+            before.bitmap.used_width()
+        } else {
+            0
+        };
+        if self.msg().source == Source::Text
+            && let Some(why) = self.width_problem(width, was)
+        {
+            *self.msg_mut() = before;
+            self.set_status(why, Severity::Error);
+        }
+        self.changed(cx);
     }
 
     pub(super) fn apply_text(&mut self, text: String, colors: Option<Vec<LedColor>>, cx: &mut Context<Self>) {
@@ -872,10 +905,7 @@ impl BadgeApp {
                 menu_item(
                     builtin_name.clone(),
                     is_builtin,
-                    self.act(cx, |t, _, cx| {
-                        t.msg_mut().font = FontChoice::Builtin;
-                        t.changed(cx);
-                    }),
+                    self.act(cx, |t, _, cx| t.restyle(cx, |m| m.font = FontChoice::Builtin)),
                 )
                 .hint("Default")
                 .tooltip(
@@ -887,10 +917,7 @@ impl BadgeApp {
                 menu_item(
                     font.label(),
                     m.font == FontChoice::Pixel(font),
-                    self.act(cx, move |t, _, cx| {
-                        t.msg_mut().font = FontChoice::Pixel(font);
-                        t.changed(cx);
-                    }),
+                    self.act(cx, move |t, _, cx| t.restyle(cx, |m| m.font = FontChoice::Pixel(font))),
                 )
                 .disabled(!fits)
                 .tooltip(if fits {
@@ -913,10 +940,9 @@ impl BadgeApp {
                         f.clone(),
                         matches!(m.font, FontChoice::System { .. }) && *f == current_family,
                         self.act(cx, move |t, _, cx| {
-                            let font = &mut t.msg_mut().font;
-                            match font {
+                            t.restyle(cx, |m| match &mut m.font {
                                 FontChoice::System { family, .. } => family.clone_from(&chosen),
-                                FontChoice::Builtin | FontChoice::Pixel(_) => {
+                                font @ (FontChoice::Builtin | FontChoice::Pixel(_)) => {
                                     *font = FontChoice::System {
                                         family: chosen.clone(),
                                         size_px: height as u32,
@@ -924,8 +950,7 @@ impl BadgeApp {
                                         italic: false,
                                     };
                                 }
-                            }
-                            t.changed(cx);
+                            })
                         }),
                     )
                 }));
@@ -964,10 +989,7 @@ impl BadgeApp {
                 font_row = font_row.child(checkbox("vertical", "Vertical (Fall)", m.vertical, {
                     let this = cx.entity().downgrade();
                     move |v, _, cx| {
-                        this.update(cx, |t, cx| {
-                            t.msg_mut().vertical = v;
-                            t.changed(cx);
-                        })
+                        this.update(cx, |t, cx| t.restyle(cx, |m| m.vertical = v))
                         .ok();
                     }
                 })
@@ -1006,10 +1028,11 @@ impl BadgeApp {
                             let this = cx.entity().downgrade();
                             move |v, _, cx| {
                                 this.update(cx, |t, cx| {
-                                    if let FontChoice::System { size_px, .. } = &mut t.msg_mut().font {
-                                        *size_px = v as u32;
-                                    }
-                                    t.changed(cx);
+                                    t.restyle(cx, |m| {
+                                        if let FontChoice::System { size_px, .. } = &mut m.font {
+                                            *size_px = v as u32;
+                                        }
+                                    })
                                 })
                                 .ok();
                             }
@@ -1018,20 +1041,22 @@ impl BadgeApp {
                     .child(segmented([
                         button("bold", "B").selected(bold).tooltip("Bold").on_click(cx.listener(
                             |t, _: &ClickEvent, _, cx| {
-                                if let FontChoice::System { bold, .. } = &mut t.msg_mut().font {
-                                    bold.toggle();
-                                }
-                                t.changed(cx);
+                                t.restyle(cx, |m| {
+                                    if let FontChoice::System { bold, .. } = &mut m.font {
+                                        bold.toggle();
+                                    }
+                                })
                             },
                         )),
                         button("italic", "I")
                             .selected(italic)
                             .tooltip("Italic")
                             .on_click(cx.listener(|t, _: &ClickEvent, _, cx| {
-                                if let FontChoice::System { italic, .. } = &mut t.msg_mut().font {
-                                    italic.toggle();
-                                }
-                                t.changed(cx);
+                                t.restyle(cx, |m| {
+                                    if let FontChoice::System { italic, .. } = &mut m.font {
+                                        italic.toggle();
+                                    }
+                                })
                             })),
                     ]));
             }
@@ -1048,11 +1073,7 @@ impl BadgeApp {
                 {
                     let this = cx.entity().downgrade();
                     move |v, _, cx| {
-                        this.update(cx, |t, cx| {
-                            t.msg_mut().top_offset = v as i32;
-                            t.changed(cx);
-                        })
-                        .ok();
+                        this.update(cx, |t, cx| t.restyle(cx, |m| m.top_offset = v as i32)).ok();
                     }
                 },
             ),
@@ -1069,11 +1090,8 @@ impl BadgeApp {
                 {
                     let this = cx.entity().downgrade();
                     move |v, _, cx| {
-                        this.update(cx, |t, cx| {
-                            t.msg_mut().letter_spacing = v as i32;
-                            t.changed(cx);
-                        })
-                        .ok();
+                        this.update(cx, |t, cx| t.restyle(cx, |m| m.letter_spacing = v as i32))
+                            .ok();
                     }
                 },
             ),

@@ -452,8 +452,7 @@ impl BadgeApp {
                 })
                 .on_click(cx.listener(move |t, _: &ClickEvent, _, cx| {
                     if can_go_back {
-                        t.msg_mut().source = Source::Text;
-                        t.changed(cx);
+                        t.restyle(cx, |m| m.source = Source::Text);
                     }
                 })),
         );

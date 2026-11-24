@@ -1180,6 +1180,43 @@ fn text_that_does_not_fit_is_refused(cx: &mut TestAppContext) {
     });
 }
 
+/// Width decides, not the number of characters: wider characters, a wider
+/// style or a drawing going back to text are refused too.
+#[gpui::test]
+fn wider_text_or_style_that_does_not_fit_is_refused(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    let status = |app: &BadgeApp| app.status.as_ref().map(|(t, _)| t.to_string()).unwrap_or_default();
+    app.update(cx, |app, cx| {
+        // Near the widest a message can be: wider spacing would pass it.
+        app.apply_text("W".repeat(500), None, cx);
+        assert_eq!(app.msg().text.len(), 500);
+        app.restyle(cx, |m| m.letter_spacing = 2);
+        assert_eq!(app.msg().letter_spacing, 0, "refused");
+        assert!(status(app).starts_with("Message 1 is full"), "{}", status(app));
+        app.restyle(cx, |m| m.letter_spacing = -1);
+        assert_eq!(app.msg().letter_spacing, -1, "narrower is fine");
+
+        // The memory full: wider characters, as many of them, are refused.
+        app.apply_text("ii".into(), None, cx);
+        for m in &mut app.project.messages[1..6] {
+            m.source = Source::Bitmap;
+            m.selected = true;
+            m.bitmap.set(badge_core::MAX_WIDTH - 1, 0, LedColor::RED);
+        }
+        let narrow = app.msg().bitmap.used_width();
+        app.apply_text("\u{6f22}\u{5b57}".into(), None, cx);
+        assert_eq!(app.msg().text, "ii", "refused ({narrow} columns before)");
+        assert!(status(app).starts_with("The badge's memory is full"), "{}", status(app));
+
+        // A drawing going back to text wider than it.
+        app.msg_mut().source = Source::Bitmap;
+        app.msg_mut().bitmap = Framebuffer::new(app.project.card.height());
+        app.msg_mut().text = "W".repeat(40);
+        app.restyle(cx, |m| m.source = Source::Text);
+        assert_eq!(app.msg().source, Source::Bitmap, "refused");
+    });
+}
+
 /// Drawing can't go past the badge's memory either: painting is refused,
 /// Center stops where the room ends, and erasing always works.
 #[gpui::test]
