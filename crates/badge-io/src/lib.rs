@@ -64,12 +64,24 @@ pub enum SendError {
 impl From<hidapi::HidError> for SendError {
     fn from(e: hidapi::HidError) -> Self {
         let s = e.to_string();
-        if s.contains("ermission") || s.contains("EACCES") || s.contains("os error 13") {
+        if is_permission_denied(&s) {
             SendError::PermissionDenied
         } else {
             SendError::Hid(s)
         }
     }
+}
+
+/// Whether hidapi's error text says the badge couldn't be opened for lack of
+/// permission, or because another program holds it: Windows says "Access is
+/// denied" (os error 5, which elsewhere is an I/O error), and macOS that
+/// another program has exclusive access.
+fn is_permission_denied(s: &str) -> bool {
+    s.contains("ermission")
+        || s.contains("EACCES")
+        || s.contains("os error 13")
+        || (cfg!(windows) && s.contains("(os error 5)"))
+        || (cfg!(target_os = "macos") && (s.contains("exclusive access") || s.contains("0xE00002C5")))
 }
 
 /// True when this process may write to the device (always true off Linux,
@@ -720,5 +732,24 @@ mod tests {
         assert_eq!(p.hold_for(6), Duration::from_millis(6 * 325));
         assert_eq!(p.hold_for(7), p.tail_hold, "paced: little is queued");
         assert_eq!(p.estimate(5), Duration::from_millis(5 * 20 + 6 * 325));
+    }
+
+    #[test]
+    fn being_refused_the_badge_is_told_apart_on_each_system() {
+        use super::is_permission_denied as denied;
+        assert!(denied("Permission denied (os error 13)"));
+        assert_eq!(denied("Access is denied. (os error 5)"), cfg!(windows));
+        assert_eq!(
+            denied("Input/output error (os error 5)"),
+            cfg!(windows),
+            "EIO off Windows"
+        );
+        assert_eq!(
+            denied(
+                "hid_open_path: failed to open IOHIDDevice from mach entry: (0xE00002C5) (iokit/common) exclusive access and device already open"
+            ),
+            cfg!(target_os = "macos")
+        );
+        assert!(!denied("hid_error is not implemented yet"));
     }
 }
