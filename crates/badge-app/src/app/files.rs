@@ -439,9 +439,11 @@ impl BadgeApp {
     }
 
     pub(super) fn save_to(&mut self, path: PathBuf, cx: &mut Context<Self>) {
-        // The file as last saved becomes an earlier version (File → Revert
-        // To).
-        if self.is_dirty() && self.path.as_ref() == Some(&path) {
+        // A file this changes becomes an earlier version (File → Revert To),
+        // whether or not the project was modified: saving a repaired
+        // project, or over another program's changes, replaces what's there.
+        let new = badge_formats::project_to_json(&self.project).ok();
+        if std::fs::read(&path).is_ok_and(|old| new.as_deref().map(str::as_bytes) != Some(old.as_slice())) {
             self.keep_version(&path);
         }
         match badge_formats::save_project(&self.project, &path) {

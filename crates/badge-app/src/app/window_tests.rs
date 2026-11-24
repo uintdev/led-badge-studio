@@ -380,6 +380,41 @@ fn reopening_the_open_file_after_saving_shows_the_saved_changes(cx: &mut TestApp
     assert_eq!(badge_formats::open(&path).unwrap().messages[0].text, "Edited again");
 }
 
+/// Saves that replace a file keep it as an earlier version even when the
+/// project isn't modified: Repair, Save and Open, and Keep Mine.
+#[gpui::test]
+fn saving_over_a_different_file_keeps_it_as_a_version(cx: &mut TestAppContext) {
+    let dir = temp_dir("keep-versions");
+    let path = dir.join("bad.badge");
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| app.versions_dir = Some(dir.join("versions")));
+    save(&app, cx, &path);
+    let mut json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    json["project"]["messages"][0]["speed"] = 9.into();
+    let original = serde_json::to_string_pretty(&json).unwrap();
+    std::fs::write(&path, &original).unwrap();
+    open_file(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.finish_repair(true, true, window, cx));
+    app.read_with(cx, |app, _| {
+        assert!(!app.is_dirty());
+        assert_eq!(app.file_versions.len(), 1);
+        assert_eq!(std::fs::read_to_string(&app.file_versions[0].1).unwrap(), original);
+    });
+
+    change_elsewhere(&path, "Theirs");
+    let theirs = std::fs::read_to_string(&path).unwrap();
+    cx.dispatch_action(SaveProject);
+    app.update_in(cx, |app, window, cx| app.accept_dialog(window, cx));
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.file_versions.len(), 2);
+        assert_eq!(std::fs::read_to_string(&app.file_versions[0].1).unwrap(), theirs);
+    });
+
+    // Saving what's already there keeps nothing.
+    save(&app, cx, &path);
+    app.read_with(cx, |app, _| assert_eq!(app.file_versions.len(), 2));
+}
+
 #[gpui::test]
 fn check_project_files_open_repaired_asks_only_once(cx: &mut TestAppContext) {
     let dir = temp_dir("check-open");
