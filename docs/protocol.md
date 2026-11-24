@@ -152,7 +152,7 @@ tells the sender. So the app paces the upload by time:
 | Fast gap | 20 ms | Pause between reports of a short upload |
 | Gap | 325 ms | Pause between reports of a longer upload |
 | Padding report | on | The extra report of zeros after the data |
-| Tail hold | 1200 ms | How long the device stays open after the last report |
+| Tail hold | 1200 ms | How long the device stays open after the last report (after a short upload, at least the gap for each report) |
 
 Measured with an 82-report upload: 250 ms gaps fail, 300 ms and 350 ms work;
 325 ms leaves some margin. A long upload therefore takes about a third of a
@@ -163,7 +163,9 @@ and around 10 minutes for a full color 16-row one. The app's estimate
 **Keep the device open until the badge is done.** Closing it right after the
 last write lost the last reports: the operating system stops talking to the
 device, and what was still queued never got stored. The tail hold gives the
-badge time to work through its queue.
+badge time to work through its queue. A short upload is all still queued when
+its last report goes out, so the device stays open at least as long as the
+badge takes to store each report when paced: the gap (325 ms) for each.
 
 For experiments, each setting can be overridden with an environment
 variable: `LED_BADGE_STUDIO_FAST_LIMIT`,

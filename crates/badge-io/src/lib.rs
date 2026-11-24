@@ -463,7 +463,7 @@ fn send_usb_once(stream: &[u8], path: &str, progress: Progress) -> Result<(), Se
     }
     // Keep the device open (and the kernel polling it) while the badge works
     // through its queue; closing early loses the last reports.
-    sleep(pacing.tail_hold);
+    sleep(pacing.hold_for(total));
     drop(dev);
     Ok(())
 }
@@ -482,7 +482,9 @@ fn send_usb_once(stream: &[u8], path: &str, progress: Progress) -> Result<(), Se
 /// * one extra all-zero report follows the data: the badge only finishes a
 ///   report when the next arrives, so without it the last one was sometimes
 ///   lost (it ignores bytes beyond the lengths in the header),
-/// * the device stays open for `tail_hold` so the queue drains.
+/// * the device stays open for `tail_hold` so the queue drains; after a quick
+///   upload, the whole of it is still queued, so it stays open at least as
+///   long as storing each report takes when paced (`gap` each).
 ///
 /// Observed with 82-report uploads: 250 ms gaps fail, 300 ms and 350 ms work;
 /// the default leaves some margin.
@@ -532,10 +534,19 @@ impl Pacing {
         }
     }
 
+    /// How long the device stays open after the last of `total` reports.
+    fn hold_for(&self, total: usize) -> Duration {
+        if total <= self.fast_limit {
+            self.tail_hold.max(self.gap * total as u32)
+        } else {
+            self.tail_hold
+        }
+    }
+
     /// Expected duration of an upload of `data_reports` data reports.
     pub fn estimate(&self, data_reports: usize) -> Duration {
         let total = data_reports + usize::from(self.trailing_pad);
-        self.gap_for(total) * total.saturating_sub(1) as u32 + self.tail_hold
+        self.gap_for(total) * total.saturating_sub(1) as u32 + self.hold_for(total)
     }
 }
 
@@ -697,5 +708,17 @@ mod tests {
                 t.join().unwrap();
             }
         }
+    }
+
+    /// A short upload is all queued when its last report goes out: the
+    /// device stays open long enough for the badge to store each one.
+    #[test]
+    fn a_short_upload_is_held_open_until_its_queue_is_stored() {
+        use std::time::Duration;
+        let p = super::Pacing::default();
+        assert_eq!(p.hold_for(2), p.tail_hold);
+        assert_eq!(p.hold_for(6), Duration::from_millis(6 * 325));
+        assert_eq!(p.hold_for(7), p.tail_hold, "paced: little is queued");
+        assert_eq!(p.estimate(5), Duration::from_millis(5 * 20 + 6 * 325));
     }
 }
