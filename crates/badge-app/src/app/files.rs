@@ -170,8 +170,14 @@ impl BadgeApp {
                 Severity::Info,
             );
         }
-        // Made elsewhere, or for fonts that draw wider here: editing can't
-        // get a project past the badge's memory, but opening one can.
+        self.tell_memory_overflow();
+        cx.notify();
+    }
+
+    /// Adds to the status what the badge's memory leaves out, if anything.
+    /// Made elsewhere, or for fonts that draw wider here: editing can't get a
+    /// project past the badge's memory, but opening one can.
+    fn tell_memory_overflow(&mut self) {
         if let Some(over) = badge_core::wording::memory_overflow(&self.project) {
             let opened = self.status.take().map(|(s, _)| s).unwrap_or_default();
             self.set_status(
@@ -179,7 +185,6 @@ impl BadgeApp {
                 Severity::Error,
             );
         }
-        cx.notify();
     }
 
     /// File → Check Project File.
@@ -401,6 +406,7 @@ impl BadgeApp {
                 self.show_loaded(path.clone(), loaded, false, cx);
                 if self.saved.is_some() {
                     self.set_status(format!("Reloaded {}", file_name(&path)), Severity::Success);
+                    self.tell_memory_overflow();
                 }
             }
             Err(e) => self.show_open_error(&path, &e, window, cx),

@@ -878,6 +878,22 @@ fn opening_a_project_past_the_badges_memory_says_what_is_cut(cx: &mut TestAppCon
 }
 
 #[gpui::test]
+fn reloading_a_project_past_the_badges_memory_says_what_is_cut(cx: &mut TestAppContext) {
+    let dir = temp_dir("reload-past-memory");
+    let path = dir.join("big.badge");
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| fill_past_memory(app));
+    save(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.reload(path.clone(), window, cx));
+    app.read_with(cx, |app, _| {
+        let (status, sev) = app.status.clone().unwrap();
+        assert!(matches!(sev, Severity::Error));
+        assert!(status.starts_with("Reloaded big.badge."), "{status}");
+        assert!(status.contains("leaves out messages 6, 7 and 8"), "{status}");
+    });
+}
+
+#[gpui::test]
 fn sending_past_the_badges_memory_asks_first(cx: &mut TestAppContext) {
     let (app, cx) = open(cx);
     app.update_in(cx, |app, window, cx| {
