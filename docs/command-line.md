@@ -142,6 +142,10 @@ badgectl preview -t "Hi ~f" --mode laser --export hi.webp   # ...and save the an
 badgectl preview -t "Hi ~f" --export hi.png --still          # ...or one still frame
 ```
 
+Pressing Ctrl+C while a message is being sent lets the upload finish first:
+stopping it partway would leave the badge ignoring every upload until it's
+unplugged and plugged back in. `badgectl` then stops, with exit status 130.
+
 **Measure the badge's timing** (so the preview can match it):
 
 ```bash

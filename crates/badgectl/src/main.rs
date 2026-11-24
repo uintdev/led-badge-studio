@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 mod calibrate;
+mod interrupt;
 
 use anyhow::{Context, Result, bail};
 use badge_core::{AddressMode, Brightness, CardType, FontChoice, Framebuffer, Mode, Project, Source};
@@ -631,15 +632,6 @@ fn run(cli: Cli) -> Result<()> {
             }
         }
         Command::Send { content, target } => {
-            let mut last = 0;
-            let mut progress = |done: usize, total: usize| {
-                let pct = done * 100 / total.max(1);
-                if pct / 10 != last / 10 || done == total {
-                    eprint!("\rSending… {pct:3}%");
-                    last = pct;
-                }
-                true
-            };
             let project = build_project(&content)?;
             if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 eprintln!("warning: {over}");
@@ -650,9 +642,26 @@ fn run(cli: Cli) -> Result<()> {
                 (_, Some(a)) => AddressMode::SendTo(a),
                 _ => AddressMode::Ignore,
             };
+            let interrupt = interrupt::Deferred::new();
+            let (mut last, mut told) = (0, false);
+            let mut progress = |done: usize, total: usize| {
+                if interrupt.pressed() && !told {
+                    eprintln!("\n{}", interrupt::FINISHING);
+                    told = true;
+                }
+                let pct = done * 100 / total.max(1);
+                if pct / 10 != last / 10 || done == total {
+                    eprint!("\rSending… {pct:3}%");
+                    last = pct;
+                }
+                true
+            };
             badge_io::send(&project, address, &device, &mut progress).inspect_err(|_| eprint!("\r{:18}\r", ""))?;
             badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             eprintln!("\rSent to {}.        ", device.label);
+            if interrupt.pressed() {
+                std::process::exit(interrupt::EXIT_STATUS);
+            }
         }
     }
     Ok(())
