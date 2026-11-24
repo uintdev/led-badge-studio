@@ -19,13 +19,29 @@ pub enum Plane {
 
 /// Pixels of one message: `height` rows by up to [`MAX_WIDTH`] columns, one
 /// [`LedColor`] per pixel. Storage grows to the right on demand.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct Framebuffer {
     height: usize,
     width: usize,
     /// Row-major, `height * width` entries, each a 3-bit color index.
     data: Vec<u8>,
 }
+
+/// Equal when they show the same pixels: storage past the last lit column
+/// (left by erasing, which doesn't shrink it) doesn't count.
+impl PartialEq for Framebuffer {
+    fn eq(&self, other: &Self) -> bool {
+        let width = self.content_width();
+        self.height == other.height
+            && width == other.content_width()
+            && (0..self.height).all(|y| {
+                self.data[y * self.width..y * self.width + width]
+                    == other.data[y * other.width..y * other.width + width]
+            })
+    }
+}
+
+impl Eq for Framebuffer {}
 
 impl Framebuffer {
     pub fn new(height: usize) -> Self {
@@ -201,6 +217,19 @@ impl<'de> Deserialize<'de> for Framebuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn erasing_back_to_the_same_pixels_is_equal() {
+        let mut a = Framebuffer::new(11);
+        a.set(3, 2, LedColor::RED);
+        let before = a.clone();
+        a.set(30, 5, LedColor::RED);
+        assert_ne!(a, before);
+        a.set(30, 5, LedColor::OFF);
+        assert!(a.width() > before.width(), "storage stays wider");
+        assert_eq!(a, before);
+        assert_ne!(Framebuffer::new(11), Framebuffer::new(12), "the height counts");
+    }
 
     #[test]
     fn set_get_and_width() {
