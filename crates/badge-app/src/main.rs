@@ -115,9 +115,6 @@ fn main() {
         cx.bind_keys(text_input::bindings());
         cx.bind_keys(app::bindings());
         cx.bind_keys(preview_window::bindings());
-        // The window handles Quit itself (asking about unsaved changes);
-        // this only runs when no window does.
-        cx.on_action(|_: &app::Quit, cx| cx.quit());
 
         // As large as is comfortable, within 90% of the screen.
         let screen = cx.primary_display().map(|d| d.bounds().size);
@@ -166,6 +163,7 @@ fn main() {
                 cx.activate(true);
             })
             .ok();
+        app::route_quit(window, cx);
         #[cfg(target_os = "macos")]
         app_menu::install(window, cx);
         let main_id = window.window_id();

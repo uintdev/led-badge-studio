@@ -1147,6 +1147,21 @@ impl BadgeApp {
     }
 }
 
+/// Quit from a window that doesn't handle it (Pop Out) goes to the main
+/// window, which asks about a send in progress and unsaved changes first;
+/// once that window is gone, the app just quits.
+pub fn route_quit(main: gpui::WindowHandle<BadgeApp>, cx: &mut App) {
+    cx.on_action(move |_: &Quit, cx| {
+        let asked = main.update(cx, |app, window, cx| {
+            window.activate_window();
+            app.quit(&Quit, window, cx);
+        });
+        if asked.is_err() {
+            cx.quit();
+        }
+    });
+}
+
 pub fn bindings() -> Vec<gpui::KeyBinding> {
     use gpui::KeyBinding;
     vec![

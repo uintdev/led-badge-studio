@@ -215,6 +215,26 @@ fn opening_over_changes_asks_whether_to_save_them(cx: &mut TestAppContext) {
     assert_eq!(badge_formats::open(&mine).unwrap().messages[0].text, "Mine, changed");
 }
 
+/// Quit in the Pop Out window asks in the main window, as there.
+#[gpui::test]
+fn quitting_from_pop_out_asks_first(cx: &mut TestAppContext) {
+    let (app, vcx) = open(cx);
+    let main = vcx.window_handle().downcast::<BadgeApp>().unwrap();
+    vcx.update(|_, cx| route_quit(main, cx));
+    type_text(&app, vcx, "Not saved");
+    app.update(vcx, |app, cx| app.pop_out_preview(cx));
+    vcx.run_until_parked();
+    let pop_out = app
+        .read_with(vcx, |app, _| app.preview_window)
+        .expect("Pop Out is open");
+    let mut pop_cx = VisualTestContext::from_window(pop_out.into(), cx);
+    pop_cx.dispatch_action(Quit);
+    app.read_with(&pop_cx, |app, _| {
+        assert!(matches!(app.dialog, Some(Dialog::Confirm { .. })), "asked first");
+    });
+    assert!(pop_cx.update(|_, cx| cx.windows().len()) >= 2, "nothing closed");
+}
+
 /// Closing with unsaved changes asks; nothing is saved without asking.
 #[gpui::test]
 fn closing_with_unsaved_changes_asks_whether_to_save_them(cx: &mut TestAppContext) {
