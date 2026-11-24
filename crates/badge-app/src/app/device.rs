@@ -99,11 +99,11 @@ impl BadgeApp {
     /// Offers what was last sent if it differs from the project (badges can't
     /// be read back).
     pub(super) fn offer_last_sent(&mut self) {
-        self.last_sent_offer = LastSent::load().filter(|l| !l.matches(&self.project));
+        self.last_sent_offer = last_sent().filter(|l| !l.matches(&self.project));
     }
 
     pub(super) fn load_last_sent(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(last) = self.last_sent_offer.take().or_else(LastSent::load) else {
+        let Some(last) = self.last_sent_offer.take().or_else(last_sent) else {
             self.set_status("Nothing has been sent from this computer yet.", Severity::Info);
             cx.notify();
             return;
@@ -348,7 +348,9 @@ impl BadgeApp {
                                              If it keeps showing the old ones, unplug it, plug it back in and send again.",
                                             Severity::Success,
                                         );
-                                        LastSent::record(&sent_copy);
+                                        if !cfg!(test) {
+                                            LastSent::record(&sent_copy);
+                                        }
                                         this.last_sent_offer = None;
                                         this.send = SendState::Sent;
                                         cx.spawn(async move |this: WeakEntity<Self>, cx| {
@@ -417,4 +419,10 @@ fn show_send_progress(_fraction: Option<f64>) {
     taskbar::set_progress(_fraction);
     #[cfg(all(target_os = "linux", not(test)))]
     launcher_entry::set(_fraction);
+}
+
+/// The last-sent record; tests run without one and never touch the real
+/// one.
+fn last_sent() -> Option<LastSent> {
+    if cfg!(test) { None } else { LastSent::load() }
 }
