@@ -319,8 +319,20 @@ impl Fixes<'_> {
         let fixed = (x.round() as i64).clamp(lo, hi);
         if x != fixed as f64 {
             self.add(setting, num(x), fixed.to_string(), format!("allowed: {lo} to {hi}"));
-            *v = fixed.into();
         }
+        // Written back also when it's only `4.0` for 4: it's read as an
+        // integer, which a number with a fraction isn't.
+        *v = fixed.into();
+    }
+}
+
+/// A whole number written with a fraction (`3.0`, as some programs write
+/// every number) as the integer it is, which is how colors are read.
+fn as_integer(v: &mut Value) {
+    if let Some(x) = v.as_f64().filter(|x| x.fract() == 0.0 && x.abs() < 1e15)
+        && !(v.is_i64() || v.is_u64())
+    {
+        *v = (x as i64).into();
     }
 }
 
@@ -344,6 +356,9 @@ fn repair(root: &mut Value, out: &mut Vec<Fix>) {
     // The LED color of a mono badge: 1-7 (an LED color, not off). Color
     // badges don't use one, so it's ignored there whatever it holds.
     if let Some(project) = root.get_mut("project").and_then(Value::as_object_mut) {
+        if let Some(v) = project.get_mut("led_color") {
+            as_integer(v);
+        }
         if card.is_color() {
             project.remove("led_color");
         } else if let Some(v) = project
@@ -405,6 +420,12 @@ fn repair(root: &mut Value, out: &mut Vec<Fix>) {
 
         // Colors: 0-7 (off, blue, green, cyan, red, magenta, yellow, white).
         // Anything else becomes red.
+        if let Some(v) = m.get_mut("default_color") {
+            as_integer(v);
+        }
+        if let Some(colors) = m.get_mut("colors").and_then(Value::as_array_mut) {
+            colors.iter_mut().for_each(as_integer);
+        }
         if let Some(v) = m.get_mut("default_color").filter(|v| v.is_number() && !is_color(v)) {
             fx.add(
                 "Default text color",
@@ -496,6 +517,26 @@ mod tests {
     use super::*;
     use badge_core::{CardType, LedColor, Source};
     use std::assert_matches;
+
+    #[test]
+    fn whole_numbers_written_with_a_fraction_are_read() {
+        let mut project = Project::new(CardType::Mono11);
+        project.messages[0].text = "Hi".into();
+        let mut doc: Value = serde_json::from_str(&project_to_json(&project).unwrap()).unwrap();
+        doc["project"]["led_color"] = 1.0.into();
+        let m = &mut doc["project"]["messages"][0];
+        m["speed"] = 4.0.into();
+        m["top_offset"] = 0.0.into();
+        m["letter_spacing"] = (-1.0).into();
+        m["default_color"] = 3.0.into();
+        m["colors"] = serde_json::json!([2.0, 6.0]);
+        let loaded = project_from_json_checked(&doc.to_string()).expect("read");
+        assert!(loaded.fixes.is_empty(), "nothing to repair: {:?}", loaded.fixes);
+        let m = &loaded.project.messages[0];
+        assert_eq!((m.speed, m.top_offset, m.letter_spacing), (4, 0, -1));
+        assert_eq!(m.default_color, badge_core::LedColor::new(3));
+        assert_eq!(loaded.project.led_color, Some(badge_core::LedColor::new(1)));
+    }
 
     #[test]
     fn a_pasted_message_is_repaired_as_a_files_are() {
