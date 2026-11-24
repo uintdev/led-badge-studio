@@ -2,3 +2,5 @@
 * text=auto
 # cmd.exe can misread labels (goto) in batch files with LF line endings.
 *.cmd text eol=crlf
+# Bash (Git Bash on Windows too) can't run scripts with CRLF line endings.
+*.sh text eol=lf
