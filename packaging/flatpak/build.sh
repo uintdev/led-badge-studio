@@ -83,6 +83,12 @@ fetch() {
 }
 rust=""
 command -v rustc >/dev/null && rust="$(rustc --version | awk '{ print $2 }')"
+# One older than the project needs (a distribution's own Rust) can't build it.
+minimum="$(sed -n 's/^rust-version = "\(.*\)"/\1/p' "$root/Cargo.toml")"
+if [[ -n $rust && -n $minimum && "$(printf '%s\n' "$minimum" "$rust" | sort -V | head -n1)" != "$minimum" ]]; then
+    echo "Rust $rust is older than the $minimum this needs; the Flatpak uses the latest instead." >&2
+    rust=""
+fi
 if [[ -z $rust || $rust == *-* ]]; then
     rust=""
     if channel="$(fetch https://static.rust-lang.org/dist/channel-rust-stable.toml)"; then
