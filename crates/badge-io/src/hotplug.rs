@@ -376,6 +376,7 @@ cfg_select! {
                     CFRunLoopAddSource(run_loop, IONotificationPortGetRunLoopSource(port), kCFRunLoopDefaultMode);
                     let refcon = &on_change as *const Callback as *mut c_void;
                     let mut iterators = Vec::new();
+                    let mut badge_notifications = 0;
                     // Badges, by their USB ID, and serial ports (for the
                     // older serial badges), each when they appear and when
                     // they go.
@@ -397,12 +398,13 @@ cfg_select! {
                                 // the notification (and isn't a change).
                                 drain(it);
                                 iterators.push(it);
+                                badge_notifications += usize::from(matches!(kind, Kind::Badge));
                             }
                         }
                     }
-                    // Without badge notifications they wouldn't be noticed;
-                    // poll instead.
-                    if iterators.len() < 2 {
+                    // Without both badge notifications they wouldn't be
+                    // noticed; poll instead.
+                    if badge_notifications < 2 {
                         iterators.into_iter().for_each(|it| _ = IOObjectRelease(it));
                         IONotificationPortDestroy(port);
                         let _ = ready.send(None);
