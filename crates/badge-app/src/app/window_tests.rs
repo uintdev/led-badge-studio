@@ -1655,9 +1655,16 @@ fn closing_the_window_with_nothing_to_ask_removes_the_lock_file(cx: &mut TestApp
     // Only the window holds the app then, as when it runs.
     drop(app);
     // The system's close (the red button, Alt+F4), with nothing unsaved. The
-    // test window only asks, so it's removed here as the system would.
-    assert!(cx.simulate_close());
-    cx.update(|window, _| window.remove_window());
+    // test window only asks, so it's removed here as the system would. On
+    // Windows the app refuses it and quits instead, which the test app
+    // doesn't do on its own either.
+    if cfg!(windows) {
+        assert!(!cx.simulate_close(), "closed the app's way");
+        cx.cx.update(|cx| cx.shutdown());
+    } else {
+        assert!(cx.simulate_close());
+        cx.update(|window, _| window.remove_window());
+    }
     cx.run_until_parked();
     assert!(!lock.exists());
 }
