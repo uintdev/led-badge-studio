@@ -203,12 +203,14 @@ impl TextInput {
 
     fn on_mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus_handle, cx);
-        self.is_selecting = true;
+        // Double-click selects all; moving the pointer before letting go
+        // doesn't make it a drag.
         if event.click_count >= 2 {
             self.selected_range = 0..self.content.len();
             cx.notify();
             return;
         }
+        self.is_selecting = true;
         if event.modifiers.shift {
             self.select_to(self.index_for_mouse_position(event.position), cx);
         } else {
@@ -888,5 +890,29 @@ impl TextInput {
 
     pub fn select(&mut self, range: Range<usize>) {
         self.selected_range = range;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use gpui::{MouseDownEvent, MouseMoveEvent, TestAppContext};
+
+    use super::*;
+
+    #[gpui::test]
+    fn moving_after_a_double_click_keeps_everything_selected(cx: &mut TestAppContext) {
+        let (input, cx) = cx.add_window_view(|_, cx| TextInput::new("", cx));
+        input.update_in(cx, |input, window, cx| {
+            input.set_text("HELLO WORLD", None, cx);
+            let click = |count| MouseDownEvent {
+                click_count: count,
+                ..Default::default()
+            };
+            input.on_mouse_down(&click(1), window, cx);
+            input.on_mouse_up(&Default::default(), window, cx);
+            input.on_mouse_down(&click(2), window, cx);
+            input.on_mouse_move(&MouseMoveEvent::default(), window, cx);
+            assert_eq!(input.selection(), 0..11);
+        });
     }
 }
