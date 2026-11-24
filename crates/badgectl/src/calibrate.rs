@@ -303,7 +303,8 @@ pub fn run(
                     done_pct = pct;
                 }
                 true
-            })?;
+            })
+            .inspect_err(|_| eprint!("\r{:18}\r", ""))?;
             badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             eprintln!("\rSent.          ");
             println!("Start the badge, then press Enter at every flash.");
