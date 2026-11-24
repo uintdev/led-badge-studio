@@ -1535,21 +1535,13 @@ Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
   * windows-collections 0.3.2 - https://github.com/microsoft/windows-rs
-  * windows-core 0.57.0 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-core 0.62.2 - https://github.com/microsoft/windows-rs
   * windows-future 0.3.2 - https://github.com/microsoft/windows-rs
-  * windows-implement 0.57.0 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-implement 0.60.2 - https://github.com/microsoft/windows-rs
-  * windows-interface 0.57.0 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-interface 0.59.3 - https://github.com/microsoft/windows-rs
   * windows-link 0.2.1 - https://github.com/microsoft/windows-rs
   * windows-numerics 0.3.1 - https://github.com/microsoft/windows-rs
   * windows-registry 0.6.1 - https://github.com/microsoft/windows-rs
-  * windows-result 0.1.2 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows-result 0.4.1 - https://github.com/microsoft/windows-rs
   * windows-strings 0.5.1 - https://github.com/microsoft/windows-rs
   * windows-sys 0.48.0 - https://github.com/microsoft/windows-rs
@@ -1563,8 +1555,6 @@ Used by:
     Authors: Microsoft
   * windows-threading 0.2.1 - https://github.com/microsoft/windows-rs
   * windows-version 0.1.7 - https://github.com/microsoft/windows-rs
-  * windows 0.57.0 - https://github.com/microsoft/windows-rs
-    Authors: Microsoft
   * windows 0.62.2 - https://github.com/microsoft/windows-rs
   * windows_aarch64_msvc 0.48.5 - https://github.com/microsoft/windows-rs
     Authors: Microsoft
@@ -9123,15 +9113,9 @@ Used by:
   * linebender_resource_handle 0.1.1 - https://github.com/linebender/raw_resource_handle
   * litrs 1.0.1 - https://github.com/LukasKalbertodt/litrs
     Authors: Lukas Kalbertodt <lukas.kalbertodt@gmail.com>
-  * lyon 1.0.19 - https://github.com/nical/lyon
-    Authors: Nicolas Silva <nical@fastmail.com>
-  * lyon_algorithms 1.0.22 - https://github.com/nical/lyon
-    Authors: Nicolas Silva <nical@fastmail.com>
   * lyon_geom 1.0.20 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
   * lyon_path 1.0.19 - https://github.com/nical/lyon
-    Authors: Nicolas Silva <nical@fastmail.com>
-  * lyon_tessellation 1.0.23 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
   * mac-notification-sys 0.6.15 - https://github.com/h4llow3En/mac-notification-sys
     Authors: Felix Döring <development@felixdoering.com>; Hendrik Sollich <hendrik@hoodie.de>
@@ -9331,24 +9315,24 @@ limitations under the License.
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * gpui-pre-wgpu 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-apple 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-collections 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-derive-refineable 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-http-client 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-linux 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-macos 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-macros 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-platform 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-refineable 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-scheduler 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-shared-string 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-sum-tree 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-util 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-windows 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-ztracing-macro 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre-ztracing 0.3.12 - https://github.com/zed-industries/zed
-  * gpui-pre 0.3.12 - https://github.com/zed-industries/zed
+  * gpui-pre-wgpu 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-apple 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-collections 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-derive-refineable 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-http-client 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-linux 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-macos 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-macros 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-platform 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-refineable 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-scheduler 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-shared-string 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-sum-tree 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-util 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-windows 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-ztracing-macro 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre-ztracing 0.3.14 - https://github.com/zed-industries/zed
+  * gpui-pre 0.3.14 - https://github.com/zed-industries/zed
     Authors: Nathan Sobo <nathan@zed.dev>
 
 
@@ -11769,39 +11753,6 @@ Used by:
 MIT License
 
 Copyright (c) 2020 Samuele Esposito
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
---------------------------------------------------------------------------------
-MIT License
---------------------------------------------------------------------------------
-Used by:
-  * float_next_after 1.0.0 - https://gitlab.com/bronsonbdevost/next_afterf
-    Authors: Bronson Brown-deVost <bronsonbdevost@gmail.com>
-
-
-MIT License
-
-Copyright (c) 2020 Scripta Qumranica Electronica
-
-Created by Bronson Brown-deVost
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
