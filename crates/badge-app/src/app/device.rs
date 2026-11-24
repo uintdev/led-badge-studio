@@ -68,6 +68,8 @@ impl BadgeApp {
                 .selected_device()
                 .is_some_and(|d| d.kind == DeviceKind::Usb || self.device_chosen || !usb);
             if !keep {
+                // The app's own choice, not the user's.
+                self.device_chosen = false;
                 self.device = self
                     .devices
                     .iter()
