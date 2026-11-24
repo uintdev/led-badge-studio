@@ -58,6 +58,10 @@ impl BadgeApp {
     }
 
     pub(super) fn undo(&mut self, _: &Undo, _: &mut Window, cx: &mut Context<Self>) {
+        // A question's answer acts on the project it was asked about.
+        if self.dialog.is_some() {
+            return;
+        }
         self.commit_history();
         if let Some(prev) = self.history.undo.pop() {
             let now = self.history.baseline.clone();
@@ -68,6 +72,9 @@ impl BadgeApp {
     }
 
     pub(super) fn redo(&mut self, _: &Redo, _: &mut Window, cx: &mut Context<Self>) {
+        if self.dialog.is_some() {
+            return;
+        }
         self.commit_history();
         if let Some(next) = self.history.redo.pop() {
             let now = self.history.baseline.clone();

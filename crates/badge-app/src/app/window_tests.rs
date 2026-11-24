@@ -545,6 +545,34 @@ fn a_built_in_font_too_tall_for_the_badge_is_reported(cx: &mut TestAppContext) {
     });
 }
 
+/// Undo while a question is open would change the message its answer
+/// acts on: it waits until the question is answered.
+#[gpui::test]
+fn undo_waits_while_a_question_is_open(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Hello");
+    app.update_in(cx, |app, window, cx| {
+        app.select_message(1, window, cx);
+        let m = app.msg_mut();
+        m.source = Source::Bitmap;
+        m.bitmap.set(0, 0, LedColor::RED);
+        app.commit_history();
+    });
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    input.update_in(cx, |input, window, cx| input.insert("x", window, cx));
+    cx.run_until_parked();
+    cx.dispatch_action(Undo);
+    app.read_with(cx, |app, _| {
+        assert!(matches!(app.dialog, Some(Dialog::Confirm { .. })));
+        assert_eq!(app.current, 1);
+    });
+    app.update_in(cx, |app, window, cx| app.accept_dialog(window, cx));
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.project.messages[0].text, "Hello");
+        assert_eq!(app.project.messages[1].text, "x");
+    });
+}
+
 #[gpui::test]
 fn typing_over_a_drawing_asks_first(cx: &mut TestAppContext) {
     let (app, cx) = open(cx);
