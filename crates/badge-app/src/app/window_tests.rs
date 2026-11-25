@@ -2065,3 +2065,52 @@ fn pop_out_gets_each_preview_frame(cx: &mut TestAppContext) {
     pop_cx.run_until_parked();
     assert_eq!(renders(&app, &mut pop_cx), (content, leds, pop_out.map(|n| n + 2)));
 }
+
+/// Work the main window started, and the text box's events, go to the main
+/// window even while Pop Out is the window that last drew the app (where
+/// GPUI's own `update_in` and `subscribe_in` would go).
+#[gpui::test]
+fn the_main_windows_work_stays_in_it_while_pop_out_plays(cx: &mut TestAppContext) {
+    let (app, vcx) = open(cx);
+    type_text(&app, vcx, "Hello");
+    app.update(vcx, |app, cx| app.pop_out_preview(cx));
+    vcx.run_until_parked();
+    preview_step(&app, vcx);
+    let main = vcx.window_handle().window_id();
+    let ran = Rc::new(Cell::new(None));
+    let weak = app.downgrade();
+    vcx.update(|window, cx| {
+        let ran = ran.clone();
+        window
+            .spawn(cx, async move |cx| {
+                ran.set(update_here(&weak, cx, |_, window, _| window.window_handle().window_id()).ok());
+            })
+            .detach();
+    });
+    vcx.run_until_parked();
+    assert_eq!(ran.get(), Some(main));
+
+    // A question raised by typing takes the keyboard in the main window;
+    // Pop Out keeps its own.
+    app.update(vcx, |app, _| {
+        let m = app.msg_mut();
+        m.source = Source::Bitmap;
+        m.bitmap.set(0, 0, LedColor::RED);
+        app.commit_history();
+    });
+    preview_step(&app, vcx);
+    let pop_out = app.read_with(vcx, |app, _| app.preview_window).unwrap();
+    let pop_focus = pop_out.update(vcx, |_, window, cx| window.focused(cx)).unwrap();
+    let input = app.read_with(vcx, |app, _| app.input.clone());
+    input.update_in(vcx, |input, window, cx| input.insert("x", window, cx));
+    vcx.run_until_parked();
+    let modal = app.read_with(vcx, |app, _| {
+        assert!(matches!(app.dialog, Some(Dialog::Confirm { .. })));
+        app.modal_focus.clone()
+    });
+    vcx.update(|window, _| assert!(modal.is_focused(window), "the question has the keyboard"));
+    assert_eq!(
+        pop_out.update(vcx, |_, window, cx| window.focused(cx)).unwrap(),
+        pop_focus
+    );
+}

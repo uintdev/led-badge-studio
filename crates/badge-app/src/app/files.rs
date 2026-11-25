@@ -110,8 +110,7 @@ impl BadgeApp {
             if let Ok(Ok(Some(paths))) = rx.await
                 && let Some(p) = paths.into_iter().next()
             {
-                this.update_in(cx, |this, window, cx| this.open_requested(p, window, cx))
-                    .ok();
+                update_here(&this, cx, |this, window, cx| this.open_requested(p, window, cx)).ok();
             }
         })
         .detach();
@@ -200,8 +199,7 @@ impl BadgeApp {
             if let Ok(Ok(Some(paths))) = rx.await
                 && let Some(p) = paths.into_iter().next()
             {
-                this.update_in(cx, |this, window, cx| this.check_file(p, window, cx))
-                    .ok();
+                update_here(&this, cx, |this, window, cx| this.check_file(p, window, cx)).ok();
             }
         })
         .detach();
@@ -429,7 +427,7 @@ impl BadgeApp {
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
             if let Ok(Ok(Some(p))) = rx.await {
-                this.update_in(cx, |this, window, cx| {
+                update_here(&this, cx, |this, window, cx| {
                     let has_extension = |p: &Path| p.extension().is_some();
                     let ext = badge_formats::PROJECT_EXT;
                     this.settle_save_path(p, ext, has_extension, window, cx, move |this, p, window, cx| {

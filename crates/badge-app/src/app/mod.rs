@@ -389,8 +389,22 @@ impl BadgeApp {
         let (settings, damaged_settings) = Settings::load();
         let renderer = Renderer::new(FontLibrary::discover());
         let input = cx.new(|cx| TextInput::new("Type your message…  (~0 … ~f insert icons)", cx));
+        let on_input = {
+            // Not `subscribe_in`: that hands over whichever window last drew
+            // the app, which is Pop Out while it plays.
+            let app = cx.entity().downgrade();
+            let main = window.window_handle();
+            App::subscribe(cx, &input, move |input, ev: &InputEvent, cx| {
+                if let Some(app) = app.upgrade() {
+                    main.update(cx, |_, window, cx| {
+                        app.update(cx, |app, cx| app.on_input_event(&input, ev, window, cx))
+                    })
+                    .ok();
+                }
+            })
+        };
         let subs = vec![
-            cx.subscribe_in(&input, window, Self::on_input_event),
+            on_input,
             // Fonts or badge access may have changed while the app was in the
             // background.
             cx.observe_window_activation(window, |this, window, cx| {
@@ -1179,6 +1193,17 @@ impl BadgeApp {
                 d.child(deferred(self.render_dialog(dlg, window, cx)).with_priority(3))
             })
     }
+}
+
+/// Updates the app in the window the task was started in. Not GPUI's
+/// `update_in`: that takes whichever window last drew the app, which is Pop
+/// Out while it plays, and none for a moment after Pop Out closes.
+fn update_here<R>(
+    this: &WeakEntity<BadgeApp>,
+    cx: &mut gpui::AsyncWindowContext,
+    f: impl FnOnce(&mut BadgeApp, &mut Window, &mut Context<BadgeApp>) -> R,
+) -> anyhow::Result<R> {
+    cx.update(|window, cx| this.update(cx, |app, cx| f(app, window, cx)))?
 }
 
 /// Quit from a window that doesn't handle it (Pop Out) goes to the main

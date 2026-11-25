@@ -25,11 +25,10 @@ impl BadgeApp {
                     0
                 };
                 last = now;
-                let Ok(playing) = this.update_in(cx, |this, _, cx| {
+                let Ok(playing) = update_here(&this, cx, |this, _, cx| {
                     let target = this.preview_target();
                     let step_us = preview::step_interval_us(&this.preview_params(target));
-                    // The window GPUI passes here is whichever drew this
-                    // last, the pop-out included, so ask which is active.
+                    // Pop Out counts as ours too, so ask which is active.
                     let active = cx.active_window();
                     let ours =
                         active == Some(main_window) || this.preview_window.is_some_and(|w| active == Some(w.into()));
@@ -243,7 +242,7 @@ impl BadgeApp {
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
             let Ok(Ok(Some(path))) = rx.await else { return };
-            this.update_in(cx, |t, window, cx| {
+            update_here(&this, cx, |t, window, cx| {
                 // A typed extension of another format picks that format.
                 let known = |p: &Path| ExportFormat::from_path(p).is_some();
                 t.settle_save_path(path, ext, known, window, cx, move |t, path, window, cx| {

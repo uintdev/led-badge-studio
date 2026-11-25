@@ -243,7 +243,7 @@ impl BadgeApp {
         let rx = self.during_system_dialog(rx, cx);
         cx.spawn_in(window, async move |this, cx| {
             if let Ok(Ok(Some(p))) = rx.await {
-                this.update_in(cx, |this, window, cx| {
+                update_here(&this, cx, |this, window, cx| {
                     let is_png = |p: &Path| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("png"));
                     this.settle_save_path(p, "png", is_png, window, cx, move |this, p, _, cx| {
                         match badge_render::export_png(&fb, color, &p, 1) {

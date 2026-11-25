@@ -166,10 +166,7 @@ fn attach(window: &mut Window, cx: &mut Context<BadgeApp>) -> bool {
     }));
     cx.spawn_in(window, async move |this, cx| {
         while let Some(event) = rx.next().await {
-            if this
-                .update_in(cx, |app, window, cx| app.on_document_event(event, window, cx))
-                .is_err()
-            {
+            if super::update_here(&this, cx, |app, window, cx| app.on_document_event(event, window, cx)).is_err() {
                 break;
             }
         }
