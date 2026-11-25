@@ -145,6 +145,9 @@ pub fn project_from_json_checked(s: &str) -> Result<Loaded> {
                 .into());
         }
     }
+    if let Some(v) = value.get_mut("version") {
+        as_integer(v);
+    }
     if let Some(v) = value.get("version").and_then(Value::as_u64)
         && v > u64::from(FORMAT_VERSION)
     {
@@ -459,6 +462,9 @@ fn repair(root: &mut Value, out: &mut Vec<Fix>) {
         // Pixels: at most 16 rows of up to 4096 columns, digits 0-7.
         let drawing = m.get("source").and_then(Value::as_str) == Some("Bitmap");
         if let Some(bitmap) = m.get_mut("bitmap").and_then(Value::as_object_mut) {
+            if let Some(h) = bitmap.get_mut("height") {
+                as_integer(h);
+            }
             if let Some(h) = bitmap.get("height").and_then(Value::as_u64)
                 && h > 16
             {
@@ -523,6 +529,7 @@ mod tests {
         let mut project = Project::new(CardType::Mono11);
         project.messages[0].text = "Hi".into();
         let mut doc: Value = serde_json::from_str(&project_to_json(&project).unwrap()).unwrap();
+        doc["version"] = 1.0.into();
         doc["project"]["led_color"] = 1.0.into();
         let m = &mut doc["project"]["messages"][0];
         m["speed"] = 4.0.into();
@@ -530,12 +537,16 @@ mod tests {
         m["letter_spacing"] = (-1.0).into();
         m["default_color"] = 3.0.into();
         m["colors"] = serde_json::json!([2.0, 6.0]);
+        m["bitmap"]["height"] = 11.0.into();
         let loaded = project_from_json_checked(&doc.to_string()).expect("read");
         assert!(loaded.fixes.is_empty(), "nothing to repair: {:?}", loaded.fixes);
         let m = &loaded.project.messages[0];
         assert_eq!((m.speed, m.top_offset, m.letter_spacing), (4, 0, -1));
         assert_eq!(m.default_color, badge_core::LedColor::new(3));
         assert_eq!(loaded.project.led_color, Some(badge_core::LedColor::new(1)));
+        doc["version"] = f64::from(FORMAT_VERSION + 1).into();
+        let e = project_from_json_checked(&doc.to_string()).expect_err("refused");
+        assert!(format!("{e:#}").contains("newer version"), "{e:#}");
     }
 
     #[test]
