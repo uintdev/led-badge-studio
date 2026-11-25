@@ -681,7 +681,9 @@ fn run(cli: Cli) -> Result<()> {
             };
             badge_io::send(&project, address, &device, &mut progress)
                 .inspect_err(|_| interrupt::note(format_args!("\r{:18}\r", "")))?;
-            badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
+            if !matches!(address, AddressMode::SendTo(_)) {
+                badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
+            }
             interrupt::note(format_args!("\rSent to {}.        \n", device.label));
             if let Some(status) = interrupt.stop_status() {
                 std::process::exit(status);

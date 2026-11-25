@@ -383,7 +383,7 @@ impl BadgeApp {
                                              If it keeps showing the old ones, unplug it, plug it back in and send again.",
                                             Severity::Success,
                                         );
-                                        if !cfg!(test) {
+                                        if !cfg!(test) && !matches!(address, AddressMode::SendTo(_)) {
                                             LastSent::record(&sent_copy);
                                         }
                                         this.last_sent_offer = None;

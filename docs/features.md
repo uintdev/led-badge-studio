@@ -216,7 +216,8 @@
 - One-click badge access setup on Linux, with copyable commands for doing it
   by hand
 - Remembers what was last sent and offers to load it when the badge is
-  plugged in (the badges can't be read back)
+  plugged in (the badges can't be read back). A send to one badge address
+  isn't remembered: a badge without that address ignores it
 - `badgectl`, a command-line tool for scripting: list badges, send text,
   images or projects, preview as text art, check and repair `.badge` files,
   manage badge access
