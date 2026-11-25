@@ -558,7 +558,7 @@ impl Pacing {
     /// How long the device stays open after the last of `total` reports.
     fn hold_for(&self, total: usize) -> Duration {
         if total <= self.fast_limit {
-            self.tail_hold.max(self.gap * total as u32)
+            self.tail_hold.max(self.gap.saturating_mul(total as u32))
         } else {
             self.tail_hold
         }
@@ -567,7 +567,7 @@ impl Pacing {
     /// Expected duration of an upload of `data_reports` data reports.
     pub fn estimate(&self, data_reports: usize) -> Duration {
         let total = data_reports + usize::from(self.trailing_pad);
-        self.gap_for(total) * total.saturating_sub(1) as u32 + self.hold_for(total)
+        (self.gap_for(total).saturating_mul(total.saturating_sub(1) as u32)).saturating_add(self.hold_for(total))
     }
 }
 
