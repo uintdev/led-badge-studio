@@ -1739,7 +1739,7 @@ fn reverting_to_an_earlier_version_is_an_edit(cx: &mut TestAppContext) {
         assert!(menu.can_revert);
         assert_eq!(menu.revert_label, "Last Saved Version");
     });
-    app.update(cx, |app, cx| app.revert_to_saved(cx));
+    app.update_in(cx, |app, window, cx| app.revert_to_saved(window, cx));
     app.read_with(cx, |app, _| {
         assert_eq!(app.msg().text, "Saved");
         assert!(!app.is_dirty());
@@ -1935,9 +1935,9 @@ fn an_image_is_dropped_when_its_message_is_cleared_or_reverted(cx: &mut TestAppC
     });
     cx.run_until_parked();
     app.read_with(cx, |app, _| assert_eq!(app.msg().source, Source::Text, "Clear All"));
-    app.update(cx, |app, cx| {
+    app.update_in(cx, |app, window, cx| {
         app.import_image_from(&image, cx);
-        app.revert_to_saved(cx);
+        app.revert_to_saved(window, cx);
     });
     cx.run_until_parked();
     app.read_with(cx, |app, _| assert_eq!(app.msg().source, Source::Text, "Revert To"));
@@ -2309,5 +2309,29 @@ fn replacing_the_message_shown_drops_its_selection(cx: &mut TestAppContext) {
     app.read_with(cx, |app, _| assert_eq!(app.msg().text, "Hello world"));
     input.read_with(cx, |input, _| {
         assert!(input.selection().is_empty(), "{:?}", input.selection())
+    });
+}
+
+/// A question still open when the project is replaced counts as cancelled:
+/// its answer would act on the new project.
+#[gpui::test]
+fn replacing_the_project_cancels_an_open_question(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    app.update(cx, |app, _| {
+        let m = app.msg_mut();
+        m.source = Source::Bitmap;
+        m.bitmap.set(0, 0, LedColor::RED);
+        app.commit_history();
+        app.saved = Some(app.project.clone());
+    });
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    input.update_in(cx, |input, window, cx| input.insert("x", window, cx));
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| assert!(matches!(app.dialog, Some(Dialog::Confirm { .. }))));
+    cx.dispatch_action(NewProject);
+    app.read_with(cx, |app, _| {
+        assert!(app.dialog.is_none() && app.pending_confirm.is_none());
+        assert_eq!(app.msg().source, Source::Text, "the new project");
+        assert_ne!(app.msg().text, "x");
     });
 }

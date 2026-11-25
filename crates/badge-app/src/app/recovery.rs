@@ -388,6 +388,7 @@ impl BadgeApp {
     /// The banner's Recover: the work as it was, unsaved (saving it is up to
     /// you), in place of the current project (saved or asked about first).
     pub(super) fn recover_unsaved_work(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.drop_question(window, cx);
         self.ask_to_save_first(window, cx, |t, _, cx| {
             let Some(recovered) = t.recovered.take() else {
                 return;

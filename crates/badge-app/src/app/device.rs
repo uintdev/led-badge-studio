@@ -103,6 +103,7 @@ impl BadgeApp {
     }
 
     pub(super) fn load_last_sent(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.drop_question(window, cx);
         let Some(last) = self.last_sent_offer.take().or_else(last_sent) else {
             self.set_status("Nothing has been sent from this computer yet.", Severity::Info);
             cx.notify();

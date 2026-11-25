@@ -62,7 +62,7 @@ impl BadgeApp {
             .on_action(cx.listener(|t, a: &OpenRecent, w, cx| t.open_requested(a.path.clone(), w, cx)))
             .on_action(cx.listener(|t, _: &ShowAbout, w, cx| t.open_dialog(Dialog::About, w, cx)))
             .on_action(cx.listener(|t, _: &ShowLicenses, w, cx| t.open_dialog(Dialog::Licenses(0), w, cx)))
-            .on_action(cx.listener(|t, _: &RevertToSaved, _, cx| t.revert_to_saved(cx)))
+            .on_action(cx.listener(|t, _: &RevertToSaved, w, cx| t.revert_to_saved(w, cx)))
             .on_action(cx.listener(|t, a: &RevertToVersion, w, cx| t.revert_to_version(a.path.clone(), w, cx)))
     }
 
@@ -106,7 +106,7 @@ impl BadgeApp {
         } else if a.is::<ShowLicenses>() {
             self.open_dialog(Dialog::Licenses(0), window, cx);
         } else if a.is::<RevertToSaved>() {
-            self.revert_to_saved(cx);
+            self.revert_to_saved(window, cx);
         } else if let Some(revert) = a.downcast_ref::<RevertToVersion>() {
             self.revert_to_version(revert.path.clone(), window, cx);
         }

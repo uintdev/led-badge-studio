@@ -110,6 +110,7 @@ impl BadgeApp {
     }
 
     pub(super) fn new_project(&mut self, _: &NewProject, window: &mut Window, cx: &mut Context<Self>) {
+        self.drop_question(window, cx);
         self.ask_to_save_first(window, cx, |this, _, cx| {
             this.replace_project(Project::new(this.project.card), None, cx);
             this.set_status("New project", Severity::Info);
@@ -557,6 +558,7 @@ impl BadgeApp {
     /// Opens a project from outside the app (a drop, or the file manager).
     /// The file is read before asking about unsaved changes.
     pub fn open_requested(&mut self, path: PathBuf, window: &mut Window, cx: &mut Context<Self>) {
+        self.drop_question(window, cx);
         let read = file_hash(&path);
         match badge_formats::open_checked(&path) {
             Ok(loaded) if loaded.fixes.is_empty() => {

@@ -298,6 +298,15 @@ impl BadgeApp {
         }
     }
 
+    /// Before the project is replaced: a question still open would act on
+    /// the new one once answered, so it counts as cancelled.
+    pub(super) fn drop_question(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.pending_confirm.is_some() || self.pending_alternate.is_some() || self.pending_cancel.is_some() {
+            self.replace_dialog(window, cx);
+            self.close_dialog(window, cx);
+        }
+    }
+
     pub(super) fn close_dialog(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.dialog = None;
         self.send_needs_dialog_closed = false;

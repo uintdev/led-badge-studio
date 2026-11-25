@@ -79,7 +79,7 @@ impl BadgeApp {
             menu_item(
                 self.revert_label(),
                 false,
-                self.act(cx, |t, _, cx| t.revert_to_saved(cx)),
+                self.act(cx, |t, w, cx| t.revert_to_saved(w, cx)),
             )
             .disabled(!self.can_revert()),
         ];
@@ -97,7 +97,8 @@ impl BadgeApp {
 
     /// Revert To → Last Opened (or Saved) Version: the project as it was
     /// then.
-    pub(super) fn revert_to_saved(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn revert_to_saved(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.drop_question(window, cx);
         let Some(saved) = self.saved.clone() else {
             return;
         };
@@ -107,6 +108,7 @@ impl BadgeApp {
 
     /// Revert To → an earlier version.
     pub(super) fn revert_to_version(&mut self, path: PathBuf, window: &mut Window, cx: &mut Context<Self>) {
+        self.drop_question(window, cx);
         match badge_formats::open_checked(&path) {
             Ok(loaded) => {
                 let label = self
