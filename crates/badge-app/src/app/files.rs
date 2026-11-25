@@ -452,9 +452,8 @@ impl BadgeApp {
         cx.spawn_in(window, async move |this, cx| {
             if let Ok(Ok(Some(p))) = rx.await {
                 update_here(&this, cx, |this, window, cx| {
-                    let has_extension = |p: &Path| p.extension().is_some();
                     let ext = badge_formats::PROJECT_EXT;
-                    this.settle_save_path(p, ext, has_extension, window, cx, move |this, p, window, cx| {
+                    this.settle_save_path(p, ext, is_project_file, window, cx, move |this, p, window, cx| {
                         this.save_to(p, cx);
                         if !this.is_dirty() {
                             then(this, window, cx);
@@ -800,4 +799,10 @@ fn modified_time(path: &Path) -> Option<std::time::SystemTime> {
 pub(super) fn file_name(path: &Path) -> String {
     path.file_name()
         .map_or_else(|| path.display().to_string(), |n| n.to_string_lossy().into_owned())
+}
+
+/// A name that ends in the project file extension, in any case.
+pub(super) fn is_project_file(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case(badge_formats::PROJECT_EXT))
 }

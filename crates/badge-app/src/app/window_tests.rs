@@ -2357,3 +2357,11 @@ fn repairing_a_file_changed_meanwhile_checks_it_again(cx: &mut TestAppContext) {
     assert_eq!(std::fs::read_to_string(&path).unwrap(), newer, "not saved over");
     app.read_with(cx, |app, _| assert!(matches!(app.dialog, Some(Dialog::Repair { .. }))));
 }
+
+#[test]
+fn save_as_adds_the_extension_to_any_other_name() {
+    assert!(super::files::is_project_file(Path::new("a.badge")));
+    assert!(super::files::is_project_file(Path::new("a.BADGE")));
+    assert!(!super::files::is_project_file(Path::new("Dr. Jones")));
+    assert!(!super::files::is_project_file(Path::new("logo.png")));
+}
