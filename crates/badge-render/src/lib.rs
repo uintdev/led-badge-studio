@@ -16,7 +16,10 @@ pub use image_import::{ImportOptions, MonoThreshold, export_png, import_image};
 pub use system_font::SystemFonts;
 pub use text::{Token, parse_text};
 
+use std::collections::HashMap;
+
 use badge_core::{CardType, FontChoice, Framebuffer, LedColor, Message, Source};
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Owns the font resources needed to render messages.
 pub struct Renderer {
@@ -86,6 +89,37 @@ impl Renderer {
             }
         }
         (fb, cut)
+    }
+
+    /// The characters of the message's text, as they're seen (an emoji
+    /// joined from several, with its skin tone, is one), that no font here
+    /// draws all of, so they're left out: each once, in order. Invisible
+    /// characters that only shape their neighbours (joiners, variation
+    /// selectors) don't count.
+    pub fn missing_chars(&mut self, msg: &Message, card: CardType) -> Vec<String> {
+        let height = card.height();
+        let mut drawn: HashMap<char, bool> = HashMap::new();
+        let mut gone = Vec::new();
+        for token in parse_text(&msg.text) {
+            if let Token::Char { ch, char_index } = token
+                && !invisible(ch)
+                && !*drawn
+                    .entry(ch)
+                    .or_insert_with(|| self.token_glyph(msg, &token, height).is_some())
+            {
+                gone.push(char_index);
+            }
+        }
+        let mut missing: Vec<String> = Vec::new();
+        let mut start = 0;
+        for seen in msg.text.graphemes(true) {
+            let end = start + seen.chars().count();
+            if gone.iter().any(|i| (start..end).contains(i)) && !missing.iter().any(|m| m == seen) {
+                missing.push(seen.to_string());
+            }
+            start = end;
+        }
+        missing
     }
 
     /// A token's glyph, and how far it moves the pen.
@@ -176,6 +210,18 @@ fn stamp(fb: &mut Framebuffer, g: &Glyph, pen_x: i64, pen_y: i64, color: LedColo
     }
 }
 
+fn invisible(ch: char) -> bool {
+    matches!(
+        ch,
+        '\u{200B}'..='\u{200F}'
+            | '\u{202A}'..='\u{202E}'
+            | '\u{2060}'..='\u{206F}'
+            | '\u{FE00}'..='\u{FE0F}'
+            | '\u{FEFF}'
+            | '\u{E0000}'..='\u{E01EF}'
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -245,6 +291,28 @@ mod tests {
         };
         assert_eq!(width("a\u{a0}b"), width("a b"));
         assert_eq!(width("a\u{3000}b"), width("a  b"), "a full-width space");
+    }
+
+    #[test]
+    fn characters_no_font_draws_are_named_once() {
+        let mut r = Renderer {
+            builtin: FontLibrary::embedded(),
+            system: SystemFonts::from_db(fontdb::Database::new(), &[]),
+        };
+        let factory_worker = "\u{1F468}\u{1F3FB}\u{200D}\u{1F3ED}";
+        let msg = Message {
+            text: format!("Hi {factory_worker} ~1 \u{1F31F}\u{FE0F} \u{1F468} {factory_worker}"),
+            ..Message::default()
+        };
+        assert_eq!(
+            r.missing_chars(&msg, CardType::Mono11),
+            [factory_worker, "\u{1F31F}\u{FE0F}", "\u{1F468}"]
+        );
+        let plain = Message {
+            text: "Hi \u{a0}\u{3000}\u{4E2D}".into(),
+            ..Message::default()
+        };
+        assert!(r.missing_chars(&plain, CardType::Mono11).is_empty());
     }
 
     #[test]

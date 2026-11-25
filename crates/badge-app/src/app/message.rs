@@ -197,6 +197,7 @@ impl BadgeApp {
             *self.msg_mut() = m;
         }
         self.changed(cx);
+        self.note_undrawable(&before);
     }
 
     pub(super) fn apply_text(&mut self, text: String, colors: Option<Vec<LedColor>>, cx: &mut Context<Self>) {
@@ -207,7 +208,8 @@ impl BadgeApp {
             cx.notify();
             return;
         }
-        let was_bitmap = self.msg().source == Source::Bitmap;
+        let before = self.msg().clone();
+        let was_bitmap = before.source == Source::Bitmap;
         // Switching a drawing back to text is its own step; plain typing groups.
         self.edit_hint = Some(if was_bitmap { EditKind::Other } else { EditKind::Text });
         let m = self.msg_mut();
@@ -224,8 +226,37 @@ impl BadgeApp {
         }
         self.sync_input(cx);
         self.changed(cx);
+        self.note_undrawable(&before);
         if !self.msg().text.is_empty() {
             self.tick_current_if_room();
+        }
+    }
+
+    /// Says which characters of the current message no font draws when it
+    /// gains one it didn't have as `before`; after that, while the status
+    /// line still says so, keeps it in step with the text, back to nothing
+    /// once they're gone.
+    pub(super) fn note_undrawable(&mut self, before: &badge_core::Message) {
+        let card = self.project.card;
+        let m = &self.project.messages[self.current];
+        let missing = self.renderer.missing_chars(m, card);
+        let showing =
+            self.undrawable_said.is_some() && self.status.as_ref().map(|(t, _)| t) == self.undrawable_said.as_ref();
+        let gained = !missing.is_empty()
+            && (before.source != Source::Text || {
+                let was = self.renderer.missing_chars(before, card);
+                missing.iter().any(|c| !was.contains(c))
+            });
+        if !(gained || showing) {
+            return;
+        }
+        if missing.is_empty() {
+            self.status = None;
+            self.undrawable_said = None;
+        } else {
+            let text: SharedString = sentence_case(&badge_core::wording::undrawable(&missing), true).into();
+            self.set_status(text.clone(), Severity::Error);
+            self.undrawable_said = Some(text);
         }
     }
 

@@ -284,6 +284,9 @@ pub struct BadgeApp {
     playing: bool,
     send: SendState,
     status: Option<(SharedString, Severity)>,
+    /// The status saying which characters no font draws, kept in step with
+    /// the text while the status line still shows it.
+    undrawable_said: Option<SharedString>,
     /// The Send shortcut was pressed with a dialog open: the status line says
     /// to close it first, until it closes (the status itself is kept).
     send_needs_dialog_closed: bool,
@@ -482,6 +485,7 @@ impl BadgeApp {
             playing: true,
             send: SendState::Idle,
             status: None,
+            undrawable_said: None,
             send_needs_dialog_closed: false,
             file_stamp: None,
             told_changed_elsewhere: false,

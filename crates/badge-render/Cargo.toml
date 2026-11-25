@@ -22,6 +22,7 @@ miniz_oxide = "0.8"
 # would add a second.
 fontdb = "0.23"
 swash = "0.2"
+unicode-segmentation = "1"
 
 [dev-dependencies]
 # Decodes the WebP files the tests write (already used by `image`).

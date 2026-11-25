@@ -652,6 +652,7 @@ dependencies = [
  "miniz_oxide",
  "png 0.18.1",
  "swash",
+ "unicode-segmentation",
 ]
 
 [[package]]

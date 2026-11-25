@@ -752,6 +752,18 @@ fn render_all(project: &mut Project) -> Vec<usize> {
             );
         }
     }
+    for (i, m) in project.messages.iter().enumerate() {
+        if m.selected && m.source == Source::Text {
+            let missing = r.missing_chars(m, card);
+            if !missing.is_empty() {
+                eprintln!(
+                    "warning: message {}: {}",
+                    i + 1,
+                    badge_core::wording::undrawable(&missing)
+                );
+            }
+        }
+    }
     for &i in &cut {
         eprintln!("warning: {}", cut_off_wording(i));
     }
@@ -952,6 +964,16 @@ mod tests {
             let e = run(parse(args).expect("read")).expect_err("refused");
             assert_eq!(error_status(&e), USAGE_ERROR, "{args:?}: {e:#}");
         }
+    }
+
+    #[test]
+    fn a_character_no_font_draws_is_left_out() {
+        let mut project = Project::new(CardType::Mono11);
+        project.messages[0].selected = true;
+        project.messages[0].text = "a\u{10FFFD}".into();
+        let mut r = Renderer::new(FontLibrary::discover());
+        assert_eq!(r.missing_chars(&project.messages[0], project.card), ["\u{10FFFD}"]);
+        assert!(render_all(&mut project).is_empty(), "only a warning");
     }
 
     #[test]

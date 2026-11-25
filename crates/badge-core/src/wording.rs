@@ -61,10 +61,35 @@ pub fn messages_phrase(indices: impl Iterator<Item = usize>) -> String {
     }
 }
 
+/// What's said about characters no font can draw, such as an emoji where
+/// every installed one is a color picture.
+pub fn undrawable(chars: &[String]) -> String {
+    let quoted: Vec<String> = chars.iter().map(|c| format!("\u{201c}{c}\u{201d}")).collect();
+    let list = match quoted.as_slice() {
+        [rest @ .., last] if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
+        _ => quoted.concat(),
+    };
+    let left_out = if chars.len() == 1 { "it's" } else { "they're" };
+    format!("{list} can't be drawn in any font on this computer, so {left_out} left out")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{CardType, LedColor};
+
+    #[test]
+    fn undrawable_names_each_character() {
+        assert_eq!(
+            undrawable(&["\u{1F600}".into()]),
+            "\u{201c}\u{1F600}\u{201d} can't be drawn in any font on this computer, so it's left out"
+        );
+        assert_eq!(
+            undrawable(&["a".into(), "b".into(), "c".into()]),
+            "\u{201c}a\u{201d}, \u{201c}b\u{201d} and \u{201c}c\u{201d} can't be drawn in any font on \
+             this computer, so they're left out"
+        );
+    }
 
     #[test]
     fn memory_overflow_names_whats_left_out() {

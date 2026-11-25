@@ -2447,3 +2447,57 @@ fn whole_messages_stay_within_the_widest_a_message_can_be(cx: &mut TestAppContex
         assert!(detail.contains("Message 3 is wider than a message can be"), "{detail}");
     });
 }
+
+/// Characters no font draws are named when one is typed, and the status
+/// follows as they're erased in the text box (Backspace and Cut replace the
+/// selection with nothing), until it's back to Ready; another status is
+/// left alone.
+#[gpui::test]
+fn characters_no_font_draws_are_named_until_erased(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    let status = |app: &BadgeApp| app.status.as_ref().map(|(t, _)| t.to_string()).unwrap_or_default();
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    let erase = |cx: &mut VisualTestContext, range: std::ops::Range<usize>| {
+        input.update_in(cx, |input, window, cx| {
+            input.select(range);
+            input.insert("", window, cx);
+        });
+        cx.run_until_parked();
+    };
+    let (one, two) = ("\u{201c}\u{10FFFC}\u{201d}", "\u{201c}\u{10FFFD}\u{201d}");
+    type_text(&app, cx, "Hi \u{10FFFC}\u{10FFFD}");
+    app.read_with(cx, |app, _| {
+        assert!(
+            status(app).starts_with(&format!("{one} and {two} can't be drawn")),
+            "{}",
+            status(app)
+        );
+    });
+    erase(cx, 7..11);
+    app.read_with(cx, |app, _| {
+        assert!(
+            status(app).starts_with(&format!("{one} can't be drawn")),
+            "{}",
+            status(app)
+        );
+    });
+    type_text(&app, cx, "Hi \u{10FFFC}!");
+    app.read_with(cx, |app, _| {
+        assert!(
+            status(app).starts_with(&format!("{one} can't be drawn")),
+            "{}",
+            status(app)
+        );
+    });
+    erase(cx, 2..8);
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.msg().text, "Hi");
+        assert!(app.status.is_none(), "{}", status(app));
+    });
+
+    type_text(&app, cx, "Hi \u{10FFFD}");
+    app.update(cx, |app, _| app.set_status("Other", Severity::Info));
+    type_text(&app, cx, "Hi \u{10FFFD}!");
+    erase(cx, 3..7);
+    app.read_with(cx, |app, _| assert_eq!(status(app), "Other"));
+}
