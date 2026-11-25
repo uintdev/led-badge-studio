@@ -178,6 +178,7 @@ impl BadgeApp {
         if !repaired {
             self.set_status(format!("Opened {name}"), Severity::Success);
         } else if save {
+            self.saved = None;
             self.save_to(path, cx);
             if !self.is_dirty() {
                 self.set_status(format!("Repaired, saved and opened {name}"), Severity::Success);

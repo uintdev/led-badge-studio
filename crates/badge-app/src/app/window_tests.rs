@@ -2238,3 +2238,29 @@ fn dont_save_keeps_the_changes_when_the_other_file_doesnt_open(cx: &mut TestAppC
         ));
     });
 }
+
+/// Repair, Save and Open whose save fails says so, and leaves the repaired
+/// project unsaved.
+#[cfg(unix)]
+#[gpui::test]
+fn a_repair_that_cant_be_saved_stays_unsaved(cx: &mut TestAppContext) {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = temp_dir("repair-save-fails");
+    let path = dir.join("bad.badge");
+    let (app, cx) = open(cx);
+    save(&app, cx, &path);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replacen("\"speed\": ", "\"speed\": 9", 1)).unwrap();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555)).unwrap();
+    let root = std::fs::write(dir.join("probe"), "").is_ok();
+    open_file(&app, cx, &path);
+    app.update_in(cx, |app, window, cx| app.finish_repair(true, true, window, cx));
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+    if !root {
+        app.read_with(cx, |app, _| {
+            assert!(app.is_dirty());
+            let status = app.status.as_ref().map(|(t, _)| t.to_string()).unwrap_or_default();
+            assert!(status.starts_with("Save failed"), "{status}");
+        });
+    }
+}
