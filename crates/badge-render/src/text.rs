@@ -8,9 +8,10 @@ pub enum Token {
     Icon { index: usize, char_index: usize },
 }
 
-/// Splits text into characters and `~x` icon escapes. Line breaks are
-/// dropped (the badge has a single line), and a `~` not followed by a valid
-/// icon digit is kept as a literal character.
+/// Splits text into characters and `~x` icon escapes. Line breaks and other
+/// control characters are dropped (the badge has a single line), a tab is a
+/// space, and a `~` not followed by a valid icon digit is kept as a literal
+/// character.
 pub fn parse_text(text: &str) -> Vec<Token> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::with_capacity(chars.len());
@@ -30,8 +31,10 @@ pub fn parse_text(text: &str) -> Vec<Token> {
                 continue;
             }
         }
-        if ch != '\r' && ch != '\n' {
-            out.push(Token::Char { ch, char_index: i });
+        match ch {
+            '\t' => out.push(Token::Char { ch: ' ', char_index: i }),
+            c if c.is_control() => {}
+            _ => out.push(Token::Char { ch, char_index: i }),
         }
         i += 1;
     }
@@ -62,6 +65,19 @@ mod tests {
                 Token::Char { ch: 'x', char_index: 7 },
                 Token::Char { ch: '~', char_index: 8 },
                 Token::Char { ch: 'G', char_index: 9 },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_tab_is_a_space_and_other_control_characters_show_nothing() {
+        assert_eq!(
+            parse_text("a\tb\u{7}\u{7f}c"),
+            vec![
+                Token::Char { ch: 'a', char_index: 0 },
+                Token::Char { ch: ' ', char_index: 1 },
+                Token::Char { ch: 'b', char_index: 2 },
+                Token::Char { ch: 'c', char_index: 5 },
             ]
         );
     }
