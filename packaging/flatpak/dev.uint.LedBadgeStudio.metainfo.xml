@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.6" date="2026-11-25">
+      <description>
+        <p>A question still open no longer acts on a newly opened project; messages stay within the widest a badge allows; tabs, spaces and characters no font can draw are handled clearly; and in the Flatpak, Ctrl+C waits for badgectl's upload.</p>
+      </description>
+    </release>
     <release version="0.2.5" date="2026-11-24">
       <description>
         <p>Saving and reopening no longer loses edits or replaces files without asking; typing, fonts and spacing stay within the badge's limits; long animation exports use far less memory; and badgectl finishes an upload when you press Ctrl+C.</p>

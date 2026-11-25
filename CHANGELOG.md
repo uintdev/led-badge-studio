@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.2.6 (2026-11-25)
+
+### All platforms
+
+- A question still open is cancelled when the project is replaced.
+- Repair checks the file again if it changed meanwhile.
+- Save As adds .badge to any name without it.
+- Projects opened by a relative path reopen from Open Recent.
+- Keys that change nothing no longer tick a message.
+- Use Default Font and paste keep messages within 4096 columns.
+- Send asks first when a message is too wide.
+- The badge picked in the menu is chosen again when back.
+- Sends to one badge address aren't remembered as last sent.
+- Tabs show as spaces; other control characters show nothing.
+- Missing characters come from a font that really draws them.
+- Spaces no font has show as spaces instead of vanishing.
+- Characters no font can draw are named when typed.
+- badgectl finishes the upload when killed or its terminal closes.
+- badgectl warns about characters no font can draw.
+
+### Linux
+
+- In the Flatpak, Ctrl+C also waits for badgectl's upload.
+- badgectl pauses on Ctrl+Z only after the upload.
+
+### macOS
+
+- badgectl pauses on Ctrl+Z only after the upload.
+
+### Windows
+
+- Badges show up even if device notifications fail.
+
 ## 0.2.5 (2026-11-24)
 
 ### All platforms

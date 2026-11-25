@@ -11932,12 +11932,12 @@ SOFTWARE.
 MIT License
 --------------------------------------------------------------------------------
 Used by:
-  * badge-app 0.2.5 - https://github.com/uintdev/led-badge-studio
-  * badge-core 0.2.5 - https://github.com/uintdev/led-badge-studio
-  * badge-formats 0.2.5 - https://github.com/uintdev/led-badge-studio
-  * badge-io 0.2.5 - https://github.com/uintdev/led-badge-studio
-  * badge-render 0.2.5 - https://github.com/uintdev/led-badge-studio
-  * badgectl 0.2.5 - https://github.com/uintdev/led-badge-studio
+  * badge-app 0.2.6 - https://github.com/uintdev/led-badge-studio
+  * badge-core 0.2.6 - https://github.com/uintdev/led-badge-studio
+  * badge-formats 0.2.6 - https://github.com/uintdev/led-badge-studio
+  * badge-io 0.2.6 - https://github.com/uintdev/led-badge-studio
+  * badge-render 0.2.6 - https://github.com/uintdev/led-badge-studio
+  * badgectl 0.2.6 - https://github.com/uintdev/led-badge-studio
   * block2 0.6.2 - https://github.com/madsmtm/objc2
     Authors: Mads Marquart <mads@marquart.dk>
   * harfrust 0.5.2 - https://github.com/harfbuzz/harfrust
