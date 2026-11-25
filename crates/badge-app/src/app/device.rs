@@ -244,8 +244,21 @@ impl BadgeApp {
         self.send_checked(false, window, cx);
     }
 
+    /// The ticked text messages whose end is left out: wider than a message
+    /// can be.
+    fn cut_text(&mut self) -> Vec<usize> {
+        let card = self.project.card;
+        (0..MESSAGE_COUNT)
+            .filter(|&i| {
+                let m = &self.project.messages[i];
+                m.selected && m.source == Source::Text && self.renderer.render_text_cut(m, card).1
+            })
+            .collect()
+    }
+
     /// Sends, asking first if the ticked messages don't all fit in the
-    /// badge's memory, unless `cut_ok` (that was asked already).
+    /// badge's memory, or some text in a message, unless `cut_ok` (that was
+    /// asked already).
     fn send_checked(&mut self, cut_ok: bool, window: &mut Window, cx: &mut Context<Self>) {
         log::info!(
             "send requested (device {:?}, {} devices known)",
@@ -277,10 +290,27 @@ impl BadgeApp {
             cx.notify();
             return;
         }
-        if !cut_ok && let Some(over) = badge_core::wording::memory_overflow(&self.project) {
+        let wide = if cut_ok { Vec::new() } else { self.cut_text() };
+        let over = (!cut_ok)
+            .then(|| badge_core::wording::memory_overflow(&self.project))
+            .flatten();
+        if over.is_some() || !wide.is_empty() {
+            let mut why: Vec<String> = over.into_iter().collect();
+            if !wide.is_empty() {
+                why.push(super::dialogs::sentence_case(
+                    &format!(
+                        "{} {} wider than a message can be ({} columns): sending leaves {} end out.",
+                        badge_core::wording::messages_phrase(wide.iter().copied()),
+                        if wide.len() == 1 { "is" } else { "are" },
+                        badge_core::MAX_WIDTH,
+                        if wide.len() == 1 { "its" } else { "their" },
+                    ),
+                    false,
+                ));
+            }
             self.ask(
                 "The messages don't all fit on the badge",
-                &format!("{over} Untick or shorten messages to send them whole."),
+                &format!("{} Untick or shorten messages to send them whole.", why.join(" ")),
                 "Send Anyway",
                 false,
                 window,

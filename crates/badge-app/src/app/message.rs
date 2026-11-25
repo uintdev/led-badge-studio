@@ -336,6 +336,20 @@ impl BadgeApp {
         self.project.messages[i] = m;
         self.project.normalize();
         self.rerender(i);
+        let pasted = &self.project.messages[i];
+        if pasted.source == Source::Text && self.renderer.render_text_cut(pasted, self.project.card).1 {
+            self.project = before;
+            self.set_status(
+                format!(
+                    "Message {} would be wider than a message can be ({} columns) on this badge.",
+                    i + 1,
+                    badge_core::MAX_WIDTH
+                ),
+                Severity::Error,
+            );
+            cx.notify();
+            return;
+        }
         // Kept if it fits, or at least uses no more than what it replaced.
         let cap = badge_core::protocol::MAX_TOTAL_COLUMNS;
         let used = self.project.used_columns();
@@ -432,20 +446,63 @@ impl BadgeApp {
             .collect()
     }
 
+    /// Switches the messages whose font is missing to the default font,
+    /// except those it would make wider than a message can be. None switch
+    /// if that overfills the badge's memory.
     pub(super) fn use_default_font(&mut self, cx: &mut Context<Self>) {
-        let fixed = self.unavailable_fonts();
-        for &(i, _) in &fixed {
-            self.project.messages[i].font = FontChoice::Builtin;
-            self.rerender(i);
+        let card = self.project.card;
+        let before = self.project.clone();
+        let (mut fixed, mut kept) = (Vec::new(), Vec::new());
+        for (i, _) in self.unavailable_fonts() {
+            let mut m = self.project.messages[i].clone();
+            m.font = FontChoice::Builtin;
+            if m.source == Source::Text {
+                let (bitmap, cut) = self.renderer.render_text_cut(&m, card);
+                if cut && !self.renderer.render_text_cut(&self.project.messages[i], card).1 {
+                    kept.push(i);
+                    continue;
+                }
+                m.bitmap = bitmap;
+            }
+            self.project.messages[i] = m;
+            fixed.push(i);
+        }
+        let used = self.project.used_columns();
+        if used > badge_core::protocol::MAX_TOTAL_COLUMNS && used > before.used_columns() {
+            self.project = before;
+            self.set_status(Self::memory_full_message(), Severity::Error);
+            cx.notify();
+            return;
         }
         self.sync_input(cx);
-        self.set_status(
-            format!(
+        let mut status = Vec::new();
+        if !fixed.is_empty() {
+            status.push(format!(
                 "Switched {} to the default font.",
-                messages_phrase(fixed.iter().map(|f| f.0))
-            ),
-            Severity::Success,
-        );
+                messages_phrase(fixed.iter().copied())
+            ));
+        }
+        if !kept.is_empty() {
+            status.push(sentence_case(
+                &format!(
+                    "{} would be wider than a message can be in it ({} columns), so {}.",
+                    messages_phrase(kept.iter().copied()),
+                    badge_core::MAX_WIDTH,
+                    if kept.len() == 1 {
+                        "it keeps its font"
+                    } else {
+                        "they keep their font"
+                    },
+                ),
+                false,
+            ));
+        }
+        let severity = if kept.is_empty() {
+            Severity::Success
+        } else {
+            Severity::Error
+        };
+        self.set_status(status.join(" "), severity);
         cx.notify();
     }
 

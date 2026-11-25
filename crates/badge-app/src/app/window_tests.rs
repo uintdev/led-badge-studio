@@ -2381,3 +2381,61 @@ fn a_key_that_changes_nothing_is_no_edit(cx: &mut TestAppContext) {
         assert!(app.edit_hint.is_none());
     });
 }
+
+/// Use Default Font, pasting a message and sending each mind the widest a
+/// message can be.
+#[gpui::test]
+fn whole_messages_stay_within_the_widest_a_message_can_be(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    let status = |app: &BadgeApp| app.status.as_ref().map(|(t, _)| t.to_string()).unwrap_or_default();
+    let missing = FontChoice::System {
+        family: "No Such Font Anywhere".into(),
+        size_px: 4,
+        bold: false,
+        italic: false,
+    };
+    app.update(cx, |app, cx| {
+        app.project.messages[1].text = "W".repeat(600);
+        app.project.messages[1].font = missing.clone();
+        app.rerender(1);
+        app.use_default_font(cx);
+        assert_eq!(
+            app.project.messages[1].font, missing,
+            "it would be cut in the default font"
+        );
+        assert!(status(app).contains("keeps its font"), "{}", status(app));
+        let m = &mut app.project.messages[1];
+        m.source = Source::Bitmap;
+        m.bitmap = Framebuffer::new(app.project.card.height());
+        m.bitmap.set(3, 3, LedColor::RED);
+        app.use_default_font(cx);
+        assert_eq!(app.project.messages[1].font, FontChoice::Builtin);
+        assert!(app.project.messages[1].bitmap.is_on(3, 3), "a drawing keeps its pixels");
+        assert_eq!(app.project.messages[1].bitmap.used_width(), 8);
+
+        app.project.messages[2].text = "W".repeat(600);
+        app.copy_message(2, cx);
+        app.paste_message(3, cx);
+        assert_eq!(app.project.messages[3].text, "", "refused");
+        assert!(status(app).contains("wider than a message can be"), "{}", status(app));
+    });
+    app.update_in(cx, |app, window, cx| {
+        app.set_devices(
+            vec![badge_io::DeviceInfo {
+                id: "test".into(),
+                label: "USB badge 1".into(),
+                kind: DeviceKind::Usb,
+            }],
+            cx,
+        );
+        app.device = Some("test".into());
+        app.project.messages[2].selected = true;
+        app.rerender(2);
+        app.send(&SendToBadge, window, cx);
+        assert!(!app.is_sending(), "asked first");
+        let Some(Dialog::Confirm { detail, .. }) = &app.dialog else {
+            panic!("no question");
+        };
+        assert!(detail.contains("Message 3 is wider than a message can be"), "{detail}");
+    });
+}
