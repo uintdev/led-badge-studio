@@ -2194,3 +2194,47 @@ fn a_message_is_full_when_its_end_would_be_left_out(cx: &mut TestAppContext) {
         assert_eq!(app.msg().text.len(), 599, "not lengthened");
     });
 }
+
+/// Don't Save counts the changes as saved only once the other file opens:
+/// a file that can't be opened now, or needs repairs first, leaves them
+/// unsaved.
+#[gpui::test]
+fn dont_save_keeps_the_changes_when_the_other_file_doesnt_open(cx: &mut TestAppContext) {
+    let dir = temp_dir("dont-save-unopened");
+    let other = dir.join("other.badge");
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Other");
+    save(&app, cx, &other);
+    let good = std::fs::read_to_string(&other).unwrap();
+    cx.dispatch_action(NewProject);
+    type_text(&app, cx, "Mine");
+
+    open_file(&app, cx, &other);
+    std::fs::write(&other, "{").unwrap();
+    app.update_in(cx, |app, window, cx| app.accept_alternate(window, cx));
+    app.read_with(cx, |app, _| {
+        assert_eq!(app.msg().text, "Mine");
+        assert!(app.is_dirty(), "still unsaved");
+    });
+    app.update_in(cx, |app, window, cx| app.close_dialog(window, cx));
+
+    std::fs::write(&other, &good).unwrap();
+    open_file(&app, cx, &other);
+    std::fs::write(&other, good.replacen("\"speed\": ", "\"speed\": 9", 1)).unwrap();
+    app.update_in(cx, |app, window, cx| app.accept_alternate(window, cx));
+    app.read_with(cx, |app, _| {
+        assert!(matches!(app.dialog, Some(Dialog::Repair { .. })));
+        assert!(app.is_dirty(), "still unsaved");
+    });
+    // Opening after the repair asks about them again.
+    app.update_in(cx, |app, window, cx| app.finish_repair(true, false, window, cx));
+    app.read_with(cx, |app, _| {
+        assert!(matches!(
+            app.dialog,
+            Some(Dialog::Confirm {
+                alternate_label: Some(_),
+                ..
+            })
+        ));
+    });
+}

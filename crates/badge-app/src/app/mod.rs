@@ -229,6 +229,9 @@ pub struct BadgeApp {
     /// Which message the text box shows; `None` after the whole project
     /// changed.
     input_shows: Option<usize>,
+    /// While Don't Save or Use Theirs goes on: what was saved before
+    /// (`set_aside_changes`).
+    set_aside: Option<Option<Project>>,
     _subs: Vec<Subscription>,
     devices: Vec<DeviceInfo>,
     device: Option<String>,
@@ -447,6 +450,7 @@ impl BadgeApp {
             saved,
             input,
             input_shows: None,
+            set_aside: None,
             _subs: subs,
             devices: Vec::new(),
             address_kind: 0,

@@ -39,11 +39,32 @@ impl BadgeApp {
             },
             move |t, window, cx| {
                 if let Some(f) = dont_save.take() {
-                    t.saved = Some(t.project.clone());
-                    f(t, window, cx);
+                    t.set_aside_changes(window, cx, f);
                 }
             },
         );
+    }
+
+    /// Runs `then` with the changes counted as saved (Don't Save, Use
+    /// Theirs). If it doesn't go ahead after all (a file that can't be
+    /// opened now), they count as unsaved again.
+    fn set_aside_changes(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        then: impl FnOnce(&mut Self, &mut Window, &mut Context<Self>),
+    ) {
+        self.set_aside = Some(self.saved.replace(self.project.clone()));
+        then(self, window, cx);
+        self.set_aside = None;
+    }
+
+    /// `then` of `set_aside_changes` didn't go ahead: the changes still
+    /// shown are unsaved again.
+    fn keep_changes(&mut self) {
+        if let Some(saved) = self.set_aside.take() {
+            self.saved = saved;
+        }
     }
 
     /// Saves as Save does (choosing where for a new project), then runs
@@ -73,8 +94,7 @@ impl BadgeApp {
                     },
                     move |t, window, cx| {
                         if let Some(f) = theirs.take() {
-                            t.saved = Some(t.project.clone());
-                            f(t, window, cx);
+                            t.set_aside_changes(window, cx, f);
                         }
                     },
                 );
@@ -575,8 +595,16 @@ impl BadgeApp {
         }
         match badge_formats::open_checked(&path) {
             Ok(loaded) if loaded.fixes.is_empty() => self.show_loaded(path, loaded, false, cx),
-            Ok(loaded) => self.offer_repair(path, loaded, now, true, window, cx),
-            Err(e) => self.show_open_error(&path, &e, window, cx),
+            // Not opened (yet): the changes shown are still unsaved, and
+            // opening after the repair asks about them again.
+            Ok(loaded) => {
+                self.keep_changes();
+                self.offer_repair(path, loaded, now, true, window, cx);
+            }
+            Err(e) => {
+                self.keep_changes();
+                self.show_open_error(&path, &e, window, cx);
+            }
         }
     }
 
