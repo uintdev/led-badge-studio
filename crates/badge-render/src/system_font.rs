@@ -162,14 +162,10 @@ impl SystemFonts {
         self.render(id, size_px as u32, false, false, ch)
     }
 
-    fn find_face_with(&self, ch: char) -> Option<ID> {
-        let has = |id: ID| {
-            self.db
-                .with_face_data(id, |data, index| {
-                    FontRef::from_index(data, index as usize).is_some_and(|f| f.charmap().map(ch) != 0)
-                })
-                .unwrap_or(false)
-        };
+    /// The first installed face that draws `ch`: one that has it, and,
+    /// unless it's a space, draws something (a color emoji font has the
+    /// character, but only as a picture, which comes out blank).
+    fn find_face_with(&mut self, ch: char) -> Option<ID> {
         let preferred = FALLBACK_FAMILIES.iter().filter_map(|name| {
             self.db.query(&Query {
                 families: &[Family::Name(name)],
@@ -180,13 +176,25 @@ impl SystemFonts {
             families: &[Family::SansSerif],
             ..Query::default()
         });
-        preferred.chain(generic).find(|&id| has(id)).or_else(|| {
-            self.db
-                .faces()
-                .filter(|f| f.style == Style::Normal && f.weight == Weight::NORMAL)
-                .map(|f| f.id)
-                .find(|&id| has(id))
+        let rest = (self.db.faces())
+            .filter(|f| f.style == Style::Normal && f.weight == Weight::NORMAL)
+            .map(|f| f.id);
+        let ids: Vec<ID> = preferred.chain(generic).chain(rest).collect();
+        ids.into_iter().find(|&id| {
+            self.has(id, ch)
+                && (ch.is_whitespace()
+                    || self
+                        .render(id, 16, false, false, ch)
+                        .is_some_and(|g| g.pixels.contains(&true)))
         })
+    }
+
+    fn has(&self, id: ID, ch: char) -> bool {
+        self.db
+            .with_face_data(id, |data, index| {
+                FontRef::from_index(data, index as usize).is_some_and(|f| f.charmap().map(ch) != 0)
+            })
+            .unwrap_or(false)
     }
 
     /// The font file behind face `id` and the face's index in it, read once.
