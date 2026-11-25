@@ -1,105 +1,191 @@
-//! Ctrl+C during an upload: the upload finishes first. Stopping it partway
-//! leaves the badge ignoring every upload until it's unplugged.
+//! Stop requests during an upload (Ctrl+C, the terminal closing, `kill`):
+//! the upload finishes first. Stopping it partway leaves the badge ignoring
+//! every upload until it's unplugged.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
-static PRESSED: AtomicBool = AtomicBool::new(false);
+/// The signal asking to stop (on Windows, 2 for Ctrl+C or Break, 1 for
+/// closing the console), 0 while none has.
+static STOP: AtomicI32 = AtomicI32::new(0);
+static HELD: AtomicBool = AtomicBool::new(false);
 
-/// Said once Ctrl+C was pressed during an upload.
-pub const FINISHING: &str = "Finishing the upload first: stopping it partway would leave the badge \
-                             ignoring uploads until it's unplugged and plugged back in.";
+/// Said once, as soon as a stop is asked for.
+const FINISHING: &str = "\nFinishing the upload first: stopping it partway would leave the badge \
+                         ignoring uploads until it's unplugged and plugged back in.\n";
 
-/// The exit status after an interrupted run, as shells report one.
-pub const EXIT_STATUS: i32 = 130;
-
-/// While it's held, Ctrl+C is noted instead of ending the program.
+/// While it's held, a request to stop is noted instead of ending the
+/// program, and output that can't be written doesn't end it either.
 pub struct Deferred(());
 
 impl Deferred {
     pub fn new() -> Self {
-        PRESSED.store(false, Ordering::Relaxed);
+        STOP.store(0, Ordering::Relaxed);
+        HELD.store(true, Ordering::Relaxed);
         install();
         Deferred(())
     }
 
-    pub fn pressed(&self) -> bool {
-        PRESSED.load(Ordering::Relaxed)
+    /// The exit status to stop with, once the upload is done, if a stop
+    /// was asked for: 130 for Ctrl+C, as shells report it.
+    pub fn stop_status(&self) -> Option<i32> {
+        match STOP.load(Ordering::Relaxed) {
+            0 => None,
+            signal => Some(128 + signal),
+        }
     }
 }
 
 impl Drop for Deferred {
     fn drop(&mut self) {
+        HELD.store(false, Ordering::Relaxed);
         uninstall();
     }
 }
 
 #[cfg(unix)]
-extern "C" fn on_interrupt(_: libc::c_int) {
-    PRESSED.store(true, Ordering::Relaxed);
-}
+mod platform {
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
-#[cfg(unix)]
-fn install() {
-    // SAFETY: the handler only stores to an atomic, which is safe in a
-    // signal handler.
-    unsafe {
-        libc::signal(libc::SIGINT, on_interrupt as *const () as libc::sighandler_t);
+    use super::{FINISHING, STOP};
+
+    const SIGNALS: [libc::c_int; 4] = [libc::SIGINT, libc::SIGTERM, libc::SIGHUP, libc::SIGPIPE];
+    static PREVIOUS: [AtomicUsize; 4] = [const { AtomicUsize::new(0) }; 4];
+
+    extern "C" fn on_signal(signal: libc::c_int) {
+        if STOP
+            .compare_exchange(0, signal, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok()
+        {
+            // SAFETY: write(2) is safe in a signal handler; a failed write
+            // is ignored.
+            unsafe {
+                libc::write(2, FINISHING.as_ptr().cast(), FINISHING.len());
+            }
+        }
     }
-}
 
-#[cfg(unix)]
-fn uninstall() {
-    // SAFETY: puts back the default handler.
-    unsafe {
-        libc::signal(libc::SIGINT, libc::SIG_DFL);
+    pub fn install() {
+        for (signal, previous) in SIGNALS.into_iter().zip(&PREVIOUS) {
+            let handler = if signal == libc::SIGPIPE {
+                libc::SIG_IGN
+            } else {
+                on_signal as *const () as libc::sighandler_t
+            };
+            // SAFETY: the handler only uses an atomic and write(2), which
+            // are safe in a signal handler.
+            let was = unsafe { libc::signal(signal, handler) };
+            previous.store(was, Ordering::Relaxed);
+            if was == libc::SIG_IGN {
+                // SAFETY: as above.
+                unsafe {
+                    libc::signal(signal, libc::SIG_IGN);
+                }
+            }
+        }
+    }
+
+    pub fn uninstall() {
+        for (signal, previous) in SIGNALS.into_iter().zip(&PREVIOUS) {
+            // SAFETY: puts back the handler there was before `install`.
+            unsafe {
+                libc::signal(signal, previous.load(Ordering::Relaxed));
+            }
+        }
     }
 }
 
 #[cfg(windows)]
-unsafe extern "system" fn on_ctrl(kind: u32) -> windows_sys::core::BOOL {
-    use windows_sys::Win32::System::Console::{CTRL_BREAK_EVENT, CTRL_C_EVENT};
-    if kind == CTRL_C_EVENT || kind == CTRL_BREAK_EVENT {
-        PRESSED.store(true, Ordering::Relaxed);
+mod platform {
+    use std::io::Write;
+    use std::sync::atomic::Ordering;
+    use std::time::{Duration, Instant};
+
+    use windows_sys::Win32::System::Console::{CTRL_BREAK_EVENT, CTRL_C_EVENT, SetConsoleCtrlHandler};
+
+    use super::{FINISHING, HELD, STOP};
+
+    unsafe extern "system" fn on_ctrl(kind: u32) -> windows_sys::core::BOOL {
+        let interrupt = kind == CTRL_C_EVENT || kind == CTRL_BREAK_EVENT;
+        let signal = if interrupt { 2 } else { 1 };
+        if STOP
+            .compare_exchange(0, signal, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok()
+        {
+            let _ = std::io::stderr().write_all(FINISHING.as_bytes());
+        }
+        if !interrupt {
+            let until = Instant::now() + Duration::from_secs(30);
+            while HELD.load(Ordering::Relaxed) && Instant::now() < until {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
         1
-    } else {
-        0
     }
-}
 
-#[cfg(windows)]
-fn install() {
-    // SAFETY: adds a handler that only stores to an atomic.
-    unsafe {
-        windows_sys::Win32::System::Console::SetConsoleCtrlHandler(Some(on_ctrl), 1);
+    pub fn install() {
+        // SAFETY: adds a handler that only uses atomics and stderr.
+        unsafe {
+            SetConsoleCtrlHandler(Some(on_ctrl), 1);
+        }
     }
-}
 
-#[cfg(windows)]
-fn uninstall() {
-    // SAFETY: removes the handler `install` added.
-    unsafe {
-        windows_sys::Win32::System::Console::SetConsoleCtrlHandler(Some(on_ctrl), 0);
+    pub fn uninstall() {
+        // SAFETY: removes the handler `install` added.
+        unsafe {
+            SetConsoleCtrlHandler(Some(on_ctrl), 0);
+        }
     }
 }
 
 #[cfg(not(any(unix, windows)))]
-fn install() {}
+mod platform {
+    pub fn install() {}
+    pub fn uninstall() {}
+}
 
-#[cfg(not(any(unix, windows)))]
-fn uninstall() {}
+use platform::{install, uninstall};
+
+/// Writes to stderr, ignoring a failure (a reader that went away), which
+/// mustn't stop an upload.
+pub fn note(args: std::fmt::Arguments) {
+    use std::io::Write;
+    let _ = std::io::stderr().write_fmt(args);
+}
 
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
 
     #[test]
-    fn ctrl_c_while_held_is_noted_not_fatal() {
+    fn stop_requests_while_held_are_noted_not_fatal() {
         let held = Deferred::new();
-        assert!(!held.pressed());
-        // SAFETY: raises SIGINT in this process, whose handler is ours.
+        assert_eq!(held.stop_status(), None);
+        // SAFETY: raises signals in this process, whose handlers are ours.
         unsafe {
+            libc::raise(libc::SIGPIPE);
+            libc::raise(libc::SIGTERM);
             libc::raise(libc::SIGINT);
         }
-        assert!(held.pressed(), "still running, and it's noted");
+        assert_eq!(
+            held.stop_status(),
+            Some(128 + libc::SIGTERM),
+            "still running, the first noted"
+        );
+        drop(held);
+
+        // SAFETY: changes this process's SIGHUP handling, put back below.
+        let was = unsafe { libc::signal(libc::SIGHUP, libc::SIG_IGN) };
+        let held = Deferred::new();
+        // SAFETY: reads SIGHUP's handling without changing it.
+        let during = unsafe {
+            let mut action: libc::sigaction = std::mem::zeroed();
+            libc::sigaction(libc::SIGHUP, std::ptr::null(), &mut action);
+            action.sa_sigaction
+        };
+        assert_eq!(during, libc::SIG_IGN);
+        drop(held);
+        // SAFETY: as above.
+        let after = unsafe { libc::signal(libc::SIGHUP, was) };
+        assert_eq!(after, libc::SIG_IGN);
     }
 }

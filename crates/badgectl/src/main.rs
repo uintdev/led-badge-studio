@@ -670,24 +670,21 @@ fn run(cli: Cli) -> Result<()> {
                 _ => AddressMode::Ignore,
             };
             let interrupt = interrupt::Deferred::new();
-            let (mut last, mut told) = (0, false);
+            let mut last = 0;
             let mut progress = |done: usize, total: usize| {
-                if interrupt.pressed() && !told {
-                    eprintln!("\n{}", interrupt::FINISHING);
-                    told = true;
-                }
                 let pct = done * 100 / total.max(1);
                 if pct / 10 != last / 10 || done == total {
-                    eprint!("\rSending… {pct:3}%");
+                    interrupt::note(format_args!("\rSending… {pct:3}%"));
                     last = pct;
                 }
                 true
             };
-            badge_io::send(&project, address, &device, &mut progress).inspect_err(|_| eprint!("\r{:18}\r", ""))?;
+            badge_io::send(&project, address, &device, &mut progress)
+                .inspect_err(|_| interrupt::note(format_args!("\r{:18}\r", "")))?;
             badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
-            eprintln!("\rSent to {}.        ", device.label);
-            if interrupt.pressed() {
-                std::process::exit(interrupt::EXIT_STATUS);
+            interrupt::note(format_args!("\rSent to {}.        \n", device.label));
+            if let Some(status) = interrupt.stop_status() {
+                std::process::exit(status);
             }
         }
     }

@@ -296,24 +296,20 @@ pub fn run(
                 (steps as u64 * step_us(speed)) as f64 / 1e6
             );
             let interrupt = crate::interrupt::Deferred::new();
-            let (mut done_pct, mut told) = (0, false);
+            let mut done_pct = 0;
             badge_io::send(&project, AddressMode::Ignore, device, &mut |done, total| {
-                if interrupt.pressed() && !told {
-                    eprintln!("\n{}", crate::interrupt::FINISHING);
-                    told = true;
-                }
                 let pct = done * 100 / total.max(1);
                 if pct / 25 != done_pct / 25 {
-                    eprint!("\rSending… {pct:3}%");
+                    crate::interrupt::note(format_args!("\rSending… {pct:3}%"));
                     done_pct = pct;
                 }
                 true
             })
-            .inspect_err(|_| eprint!("\r{:18}\r", ""))?;
+            .inspect_err(|_| crate::interrupt::note(format_args!("\r{:18}\r", "")))?;
             badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
-            eprintln!("\rSent.          ");
-            if interrupt.pressed() {
-                std::process::exit(crate::interrupt::EXIT_STATUS);
+            crate::interrupt::note(format_args!("\rSent.          \n"));
+            if let Some(status) = interrupt.stop_status() {
+                std::process::exit(status);
             }
             drop(interrupt);
             println!("Start the badge, then press Enter at every flash.");

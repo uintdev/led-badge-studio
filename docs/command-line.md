@@ -145,6 +145,9 @@ badgectl preview -t "Hi ~f" --export hi.png --still          # ...or one still f
 Pressing Ctrl+C while a message is being sent lets the upload finish first:
 stopping it partway would leave the badge ignoring every upload until it's
 unplugged and plugged back in. `badgectl` then stops, with exit status 130.
+Closing the terminal, `kill` and a reader of its output going away (`| head`)
+also wait for the upload; Windows allows only a few seconds after the
+console window is closed.
 
 **Measure the badge's timing** (so the preview can match it):
 
