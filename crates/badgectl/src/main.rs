@@ -424,6 +424,27 @@ fn exit_status(e: &clap::Error) -> i32 {
     if e.use_stderr() { USAGE_ERROR } else { 0 }
 }
 
+/// A command line that's wrong in a way only found once it's read (a value
+/// out of range, nothing to send): it exits as clap's own errors do.
+#[derive(Debug)]
+struct UsageError(String);
+
+impl std::fmt::Display for UsageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for UsageError {}
+
+fn usage(message: impl Into<String>) -> anyhow::Error {
+    UsageError(message.into()).into()
+}
+
+fn error_status(e: &anyhow::Error) -> i32 {
+    if e.is::<UsageError>() { USAGE_ERROR } else { 1 }
+}
+
 /// Reads the command line, keeping where each --text and --image came.
 fn parse<I, T>(args: I) -> Result<Cli, clap::Error>
 where
@@ -453,7 +474,7 @@ fn main() {
     });
     if let Err(e) = run(cli) {
         eprintln!("error: {e:#}");
-        std::process::exit(1);
+        std::process::exit(error_status(&e));
     }
 }
 
@@ -545,7 +566,10 @@ fn run(cli: Cli) -> Result<()> {
             if let Some(path) = &export {
                 use badge_render::preview_export::{Format, Look, Part, busiest_frame, save_animation, save_still};
                 let Some(format) = Format::from_path(path) else {
-                    bail!("{}: use a .gif, .png or .webp file name", path.display());
+                    return Err(usage(format!(
+                        "{}: use a .gif, .png or .webp file name",
+                        path.display()
+                    )));
                 };
                 let width = badge_render::preview::display_width(project.card);
                 let parts: Vec<Part> = project
@@ -759,10 +783,10 @@ fn build_project(c: &Content) -> Result<Project> {
         loaded.project
     } else {
         if c.text.is_empty() && c.image.is_empty() {
-            bail!("give --text, --image or --project");
+            return Err(usage("give --text, --image or --project"));
         }
         if c.text.len() + c.image.len() > badge_core::MESSAGE_COUNT {
-            bail!("at most {} messages", badge_core::MESSAGE_COUNT);
+            return Err(usage(format!("at most {} messages", badge_core::MESSAGE_COUNT)));
         }
         let mut p = Project::new(card);
         p.brightness = match c.brightness {
@@ -770,7 +794,7 @@ fn build_project(c: &Content) -> Result<Project> {
             50 => Brightness::Half,
             25 => Brightness::Quarter,
             100 => Brightness::Full,
-            b => bail!("brightness must be 100, 75, 50 or 25 (got {b})"),
+            b => return Err(usage(format!("brightness must be 100, 75, 50 or 25 (got {b})"))),
         };
         let font = match &c.font {
             None => FontChoice::Builtin,
@@ -793,7 +817,7 @@ fn build_project(c: &Content) -> Result<Project> {
                     match p {
                         "bold" => bold = true,
                         "italic" => italic = true,
-                        n => size_px = n.parse().with_context(|| format!("bad font size {n:?}"))?,
+                        n => size_px = n.parse().map_err(|_| usage(format!("bad font size {n:?}")))?,
                     }
                 }
                 FontChoice::System {
@@ -916,6 +940,19 @@ mod tests {
             assert_eq!(exit_status(&e), USAGE_ERROR, "{args:?}");
         }
         assert_eq!(exit_status(&parse(["badgectl", "--help"]).err().unwrap()), 0);
+        for args in [
+            &["badgectl", "preview"][..],
+            &["badgectl", "preview", "-t", "Hi", "--brightness", "60"],
+            &["badgectl", "preview", "-t", "Hi", "--font", "Arial:big"],
+            &["badgectl", "preview", "-t", "Hi", "--export", "x.bmp"],
+            &[
+                "badgectl", "preview", "-t", "1", "-t", "2", "-t", "3", "-t", "4", "-t", "5", "-t", "6", "-t", "7",
+                "-t", "8", "-t", "9",
+            ],
+        ] {
+            let e = run(parse(args).expect("read")).expect_err("refused");
+            assert_eq!(error_status(&e), USAGE_ERROR, "{args:?}: {e:#}");
+        }
     }
 
     #[test]

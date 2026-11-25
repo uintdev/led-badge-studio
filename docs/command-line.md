@@ -212,7 +212,7 @@ makes it usable in scripts:
 | 1 | A file can't be opened (broken JSON, wrong kind of value, …) |
 | 2 | A file has values that can be repaired (run with `--fix`) |
 | 3 | With `--strict`, when nothing else is wrong: the ticked messages in a file need more than the badge's memory, or a text message is wider than a message can be (4096 columns), so sending would cut them short |
-| 64 | The command line is wrong (an unknown option, no file named); every command uses this status for that |
+| 64 | The command line is wrong (an unknown option, no file named, a value out of range, nothing to send); every command uses this status for that |
 
 See [Damaged or hand-edited files](project-files.md#damaged-or-hand-edited-files) for what is
 repaired and what is refused.
