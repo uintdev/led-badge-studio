@@ -37,6 +37,12 @@ impl BadgeApp {
             (i.text().to_string(), i.colors().map(<[LedColor]>::to_vec))
         };
         let m = self.msg();
+        let same_colors = colors
+            .as_ref()
+            .is_none_or(|c| c.iter().enumerate().all(|(i, &c)| m.color_at(i) == c));
+        if text == m.text && same_colors {
+            return;
+        }
         let has_drawing = m.source == Source::Bitmap && m.bitmap.used_width() > 0;
         if has_drawing {
             if self.dialog.is_some() {

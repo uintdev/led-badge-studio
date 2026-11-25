@@ -2365,3 +2365,19 @@ fn save_as_adds_the_extension_to_any_other_name() {
     assert!(!super::files::is_project_file(Path::new("Dr. Jones")));
     assert!(!super::files::is_project_file(Path::new("logo.png")));
 }
+
+/// A key that changes nothing (Backspace at the start) isn't an edit: it
+/// doesn't tick the message.
+#[gpui::test]
+fn a_key_that_changes_nothing_is_no_edit(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Hi");
+    app.update(cx, |app, cx| app.set_ticked(0, false, cx));
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    input.update(cx, |_, cx| cx.emit(InputEvent::Changed));
+    cx.run_until_parked();
+    app.read_with(cx, |app, _| {
+        assert!(!app.msg().selected, "still unticked");
+        assert!(app.edit_hint.is_none());
+    });
+}
