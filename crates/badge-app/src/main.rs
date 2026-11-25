@@ -100,7 +100,9 @@ fn main() {
     gpu::configure();
 
     // A project to open: an argument, or an "open URLs" event on macOS.
-    let open: Option<PathBuf> = std::env::args_os().nth(1).map(PathBuf::from);
+    let open: Option<PathBuf> = std::env::args_os()
+        .nth(1)
+        .map(|p| std::path::absolute(&p).unwrap_or_else(|_| p.into()));
     #[cfg(target_os = "macos")]
     app_menu::name_unbundled_app();
     let (opened_tx, mut opened_rx) = futures::channel::mpsc::unbounded::<PathBuf>();
