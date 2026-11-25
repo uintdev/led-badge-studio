@@ -121,7 +121,15 @@ impl Settings {
     }
 
     fn load_from(p: &Path) -> (Self, Option<PathBuf>) {
-        let read = std::fs::read(p);
+        let mut read = std::fs::read(p);
+        for _ in 0..3 {
+            match &read {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => {}
+                _ => break,
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            read = std::fs::read(p);
+        }
         if read.as_ref().is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound) {
             return (Settings::default(), None); // first run
         }
@@ -135,7 +143,13 @@ impl Settings {
                 (s, None)
             }
             Err(e) => {
-                let kept = p.with_extension("json.damaged");
+                let kept = (1..100)
+                    .map(|n| match n {
+                        1 => p.with_extension("json.damaged"),
+                        n => p.with_extension(format!("json.damaged-{n}")),
+                    })
+                    .find(|k| !k.exists())
+                    .unwrap_or_else(|| p.with_extension("json.damaged"));
                 log::warn!(
                     "settings file {} is damaged ({e}); moved to {}",
                     p.display(),
@@ -238,6 +252,10 @@ mod tests {
         assert_eq!(settings.appearance, Appearance::System);
         let kept = kept.expect("moved aside");
         assert!(kept.exists() && !p.exists());
+        std::fs::write(&p, b"{").unwrap();
+        let again = Settings::load_from(&p).1.expect("moved aside");
+        assert_ne!(again, kept);
+        assert!(kept.exists() && again.exists());
         let _ = std::fs::remove_dir_all(p.parent().unwrap());
     }
 

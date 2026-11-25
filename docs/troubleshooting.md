@@ -26,7 +26,8 @@
   [Damaged or hand-edited files](project-files.md#damaged-or-hand-edited-files).
   `badgectl check <file>` shows the same from a terminal.
 - **"Your settings were reset" at startup.** The settings file couldn't be
-  read. The old one is kept as `settings.json.damaged` in the settings folder
+  read. The old one is kept as `settings.json.damaged` (or `…damaged-2` and
+  so on, if one is there already) in the settings folder
   (`~/.config/led-badge-studio/`; in the Flatpak
   `~/.var/app/dev.uint.LedBadgeStudio/config/led-badge-studio/`; on Windows
   `%APPDATA%\led-badge-studio\`; on macOS

@@ -119,7 +119,8 @@ badgectl check --fix messages.badge     # also save the repairs to the file
 
 If the app's own settings file (`settings.json`) is ever damaged or can't be
 read, the app starts with default settings and says so. The damaged file is
-kept next to it as `settings.json.damaged` instead of being overwritten.
+kept next to it as `settings.json.damaged` instead of being overwritten (or
+`settings.json.damaged-2` and so on, so an earlier one is kept too).
 
 The vendor software's `.tls` projects and `.led` files aren't supported:
 recreate those messages in the app.
