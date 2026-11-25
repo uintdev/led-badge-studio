@@ -2146,3 +2146,14 @@ fn resizing_lays_the_preview_out_for_its_led_size(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert_ne!(laid_out(cx), wide, "the LEDs got smaller");
 }
+
+/// Clear Recent Files shows at once, from any menu.
+#[gpui::test]
+fn clearing_recent_files_draws_the_window(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    cx.run_until_parked();
+    let (content, ..) = renders(&app, cx);
+    app.update(cx, |app, cx| app.clear_recent_files(cx));
+    cx.run_until_parked();
+    assert!(renders(&app, cx).0 > content);
+}

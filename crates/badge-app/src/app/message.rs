@@ -745,6 +745,7 @@ impl BadgeApp {
                 };
                 cx.stop_propagation();
                 widgets::set_focus_visible(true);
+                cx.notify();
                 if to != i {
                     t.select_message(to, w, cx);
                 }

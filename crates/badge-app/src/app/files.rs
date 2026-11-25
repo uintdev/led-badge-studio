@@ -580,10 +580,11 @@ impl BadgeApp {
         }
     }
 
-    pub(super) fn clear_recent_files(&mut self) {
+    pub(super) fn clear_recent_files(&mut self, cx: &mut Context<Self>) {
         self.settings.recent_files.clear();
         self.settings.save();
         self.set_status("Recent files cleared.", Severity::Info);
+        cx.notify();
     }
 
     pub(super) fn recent_items(&self, cx: &mut Context<Self>) -> Vec<MenuItem> {
@@ -610,7 +611,7 @@ impl BadgeApp {
             menu_item(
                 "Clear Recent Files",
                 false,
-                self.act(cx, |t, _, _| t.clear_recent_files()),
+                self.act(cx, |t, _, cx| t.clear_recent_files(cx)),
             )
             .disabled(files.is_empty())
             .separator(),

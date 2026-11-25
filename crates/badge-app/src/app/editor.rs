@@ -207,6 +207,7 @@ impl BadgeApp {
                             t.reapply_import(kind, cx);
                             if t.status.as_ref().is_some_and(|(text, _)| text == LOADING_IMAGE) {
                                 t.status = None;
+                                cx.notify();
                             }
                         }
                         Err(e) => {

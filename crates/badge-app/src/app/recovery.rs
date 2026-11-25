@@ -312,7 +312,14 @@ impl BadgeApp {
         cx.spawn(async move |this: WeakEntity<Self>, cx| {
             loop {
                 cx.background_executor().timer(INTERVAL).await;
-                if this.update(cx, |t, _| t.keep_recovery_copy()).is_err() {
+                let kept = this.update(cx, |t, cx| {
+                    t.keep_recovery_copy();
+                    // The banner offering earlier work says how long ago.
+                    if t.recovered.is_some() {
+                        cx.notify();
+                    }
+                });
+                if kept.is_err() {
                     break;
                 }
             }

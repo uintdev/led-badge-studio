@@ -58,7 +58,7 @@ impl BadgeApp {
         d.on_action(cx.listener(|t, _: &CloseWindow, w, cx| t.request_close(w, cx)))
             .on_action(cx.listener(|t, _: &LoadLastSent, w, cx| t.load_last_sent(w, cx)))
             .on_action(cx.listener(|t, _: &CheckProjectFile, w, cx| t.check_project_file(w, cx)))
-            .on_action(cx.listener(|t, _: &ClearRecentFiles, _, _| t.clear_recent_files()))
+            .on_action(cx.listener(|t, _: &ClearRecentFiles, _, cx| t.clear_recent_files(cx)))
             .on_action(cx.listener(|t, a: &OpenRecent, w, cx| t.open_requested(a.path.clone(), w, cx)))
             .on_action(cx.listener(|t, _: &ShowAbout, w, cx| t.open_dialog(Dialog::About, w, cx)))
             .on_action(cx.listener(|t, _: &ShowLicenses, w, cx| t.open_dialog(Dialog::Licenses(0), w, cx)))
@@ -96,7 +96,7 @@ impl BadgeApp {
         } else if a.is::<CheckProjectFile>() {
             self.check_project_file(window, cx);
         } else if a.is::<ClearRecentFiles>() {
-            self.clear_recent_files();
+            self.clear_recent_files(cx);
         } else if a.is::<ShowAbout>() {
             self.open_dialog(Dialog::About, window, cx);
         } else if a.is::<ShowSettings>() {
