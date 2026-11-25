@@ -1103,7 +1103,7 @@ fn a_usb_badge_is_preferred_to_a_remembered_serial_port(cx: &mut TestAppContext)
 
         // Picked in the menu: kept, also when the devices change.
         app.device = Some(serial.id.clone());
-        app.device_chosen = true;
+        app.picked = Some(serial.id.clone());
         let other = device(DeviceKind::Usb, "test-usb-2", "USB badge 2");
         app.set_devices(vec![usb.clone(), other, serial.clone()], cx);
         assert_eq!(app.device.as_ref(), Some(&serial.id), "the port picked");
@@ -1111,11 +1111,19 @@ fn a_usb_badge_is_preferred_to_a_remembered_serial_port(cx: &mut TestAppContext)
         // The badge picked, then unplugged: the port is only a stand-in,
         // and the badge is used again once it's back.
         app.device = Some(usb.id.clone());
-        app.device_chosen = true;
+        app.picked = Some(usb.id.clone());
         app.set_devices(vec![serial.clone()], cx);
         assert_eq!(app.device.as_ref(), Some(&serial.id));
         app.set_devices(vec![usb.clone(), serial.clone()], cx);
         assert_eq!(app.device.as_ref(), Some(&usb.id), "the badge picked, back");
+
+        let second = device(DeviceKind::Usb, "test-usb-2", "USB badge 2");
+        app.device = Some(second.id.clone());
+        app.picked = Some(second.id.clone());
+        app.set_devices(vec![usb.clone()], cx);
+        assert_eq!(app.device.as_ref(), Some(&usb.id));
+        app.set_devices(vec![usb.clone(), second.clone()], cx);
+        assert_eq!(app.device.as_ref(), Some(&second.id), "the badge picked, back");
     });
 }
 

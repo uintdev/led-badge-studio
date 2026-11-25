@@ -64,12 +64,16 @@ impl BadgeApp {
             // no USB badge around: any USB serial adapter shows up as one, as
             // do some computers' own ports (the Steam Deck's, for one).
             let usb = self.usb_badge_connected();
+            let picked = self
+                .picked
+                .as_ref()
+                .filter(|p| self.devices.iter().any(|d| &d.id == *p));
             let keep = self
                 .selected_device()
-                .is_some_and(|d| d.kind == DeviceKind::Usb || self.device_chosen || !usb);
-            if !keep {
-                // The app's own choice, not the user's.
-                self.device_chosen = false;
+                .is_some_and(|d| d.kind == DeviceKind::Usb || self.picked.as_ref() == Some(&d.id) || !usb);
+            if let Some(p) = picked {
+                self.device = Some(p.clone());
+            } else if !keep {
                 self.device = self
                     .devices
                     .iter()

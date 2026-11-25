@@ -235,9 +235,10 @@ pub struct BadgeApp {
     _subs: Vec<Subscription>,
     devices: Vec<DeviceInfo>,
     device: Option<String>,
-    /// The device was picked in the device menu in this session (not just
-    /// remembered from the last send or chosen by the app).
-    device_chosen: bool,
+    /// The device picked in the device menu in this session (not just
+    /// remembered from the last send or chosen by the app), used again
+    /// whenever it's there.
+    picked: Option<String>,
     address_kind: u8,
     address: u16,
     menu: Option<Menu>,
@@ -444,7 +445,7 @@ impl BadgeApp {
             current: 0,
             renderer,
             device: settings.last_device.clone(),
-            device_chosen: false,
+            picked: None,
             settings,
             path: None,
             saved,
