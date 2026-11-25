@@ -15,19 +15,24 @@ const FINISHING: &str = "\nFinishing the upload first: stopping it partway would
 
 /// While it's held, a request to stop is noted instead of ending the
 /// program, and output that can't be written doesn't end it either.
-pub struct Deferred(());
+pub struct Deferred {
+    terminal: Option<Terminal>,
+}
 
 impl Deferred {
     pub fn new() -> Self {
         STOP.store(0, Ordering::Relaxed);
         HELD.store(true, Ordering::Relaxed);
         install();
-        Deferred(())
+        Deferred {
+            terminal: Terminal::hold(),
+        }
     }
 
-    /// The exit status to stop with, once the upload is done, if a stop
-    /// was asked for: 130 for Ctrl+C, as shells report it.
-    pub fn stop_status(&self) -> Option<i32> {
+    /// Ends the hold, once the upload is done: the exit status to stop
+    /// with, if a stop was asked for (130 for Ctrl+C, as shells report it).
+    pub fn finish(self) -> Option<i32> {
+        drop(self);
         match STOP.load(Ordering::Relaxed) {
             0 => None,
             signal => Some(128 + signal),
@@ -38,15 +43,24 @@ impl Deferred {
 impl Drop for Deferred {
     fn drop(&mut self) {
         HELD.store(false, Ordering::Relaxed);
+        if let Some(terminal) = self.terminal.take() {
+            terminal.release();
+        }
         uninstall();
     }
 }
 
 #[cfg(unix)]
 mod platform {
+    use std::fs::{File, OpenOptions};
+    use std::io::Read;
+    use std::os::fd::{AsRawFd, RawFd};
+    use std::os::unix::fs::OpenOptionsExt;
+    use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::thread::JoinHandle;
 
-    use super::{FINISHING, STOP};
+    use super::{FINISHING, HELD, STOP};
 
     const SIGNALS: [libc::c_int; 4] = [libc::SIGINT, libc::SIGTERM, libc::SIGHUP, libc::SIGPIPE];
     static PREVIOUS: [AtomicUsize; 4] = [const { AtomicUsize::new(0) }; 4];
@@ -89,6 +103,104 @@ mod platform {
             // SAFETY: puts back the handler there was before `install`.
             unsafe {
                 libc::signal(signal, previous.load(Ordering::Relaxed));
+            }
+        }
+    }
+
+    /// In the Flatpak, Ctrl+C would also end `flatpak run`, outside the
+    /// sandbox, at once: the upload goes on, but the shell stops waiting
+    /// for it. So while it's held there, the terminal doesn't turn Ctrl+C
+    /// into a signal, and the key is watched for instead.
+    pub struct Terminal {
+        tty: File,
+        saved: libc::termios,
+        watcher: JoinHandle<()>,
+    }
+
+    impl Terminal {
+        pub fn hold() -> Option<Self> {
+            if !Path::new("/.flatpak-info").exists() {
+                return None;
+            }
+            let tty = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .custom_flags(libc::O_NOCTTY | libc::O_CLOEXEC)
+                .open("/dev/tty")
+                .ok()?;
+            let fd = tty.as_raw_fd();
+            if !foreground(fd) {
+                return None;
+            }
+            // SAFETY: a termios is plain data, filled in by tcgetattr.
+            let mut saved: libc::termios = unsafe { std::mem::zeroed() };
+            // SAFETY: `fd` is open, and `saved` is a termios.
+            if unsafe { libc::tcgetattr(fd, &mut saved) } != 0 {
+                return None;
+            }
+            let reader = tty.try_clone().ok()?;
+            let mut quiet = saved;
+            quiet.c_lflag &= !(libc::ISIG | libc::ICANON);
+            quiet.c_cc[libc::VMIN] = 0;
+            quiet.c_cc[libc::VTIME] = 0;
+            // SAFETY: `fd` is open, and `quiet` is a termios.
+            if unsafe { libc::tcsetattr(fd, libc::TCSANOW, &quiet) } != 0 {
+                return None;
+            }
+            let intr = saved.c_cc[libc::VINTR];
+            let watcher = std::thread::spawn(move || watch(reader, intr));
+            Some(Terminal { tty, saved, watcher })
+        }
+
+        pub fn release(self) {
+            let _ = self.watcher.join();
+            // SAFETY: the terminal is open, and `saved` is how it was.
+            unsafe {
+                libc::tcsetattr(self.tty.as_raw_fd(), libc::TCSANOW, &self.saved);
+            }
+        }
+    }
+
+    /// Whether this process is in the terminal's foreground: reading from
+    /// the background fails instead (with SIGTTIN ignored, which would
+    /// otherwise stop it), and reading nothing takes no input.
+    fn foreground(fd: RawFd) -> bool {
+        let mut byte = 0u8;
+        // SAFETY: SIGTTIN is ignored only for this read, and the read
+        // writes nothing into `byte`.
+        unsafe {
+            let was = libc::signal(libc::SIGTTIN, libc::SIG_IGN);
+            let read = libc::read(fd, (&raw mut byte).cast(), 0);
+            libc::signal(libc::SIGTTIN, was);
+            read == 0
+        }
+    }
+
+    /// Notes Ctrl+C typed while it's held, then once more what was typed
+    /// up to the end.
+    fn watch(mut tty: File, intr: u8) {
+        let mut buf = [0u8; 256];
+        loop {
+            let held = HELD.load(Ordering::Relaxed);
+            let mut poll = libc::pollfd {
+                fd: tty.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            // SAFETY: `poll` is one pollfd for an open file.
+            let ready = unsafe { libc::poll(&mut poll, 1, if held { 100 } else { 0 }) };
+            if ready > 0 && poll.revents & libc::POLLIN == 0 {
+                return;
+            }
+            while ready > 0
+                && let Ok(n @ 1..) = tty.read(&mut buf)
+            {
+                if buf[..n].contains(&intr) {
+                    on_signal(libc::SIGINT);
+                }
+            }
+            if !held {
+                return;
             }
         }
     }
@@ -135,15 +247,35 @@ mod platform {
             SetConsoleCtrlHandler(Some(on_ctrl), 0);
         }
     }
+
+    pub struct Terminal;
+
+    impl Terminal {
+        pub fn hold() -> Option<Self> {
+            None
+        }
+
+        pub fn release(self) {}
+    }
 }
 
 #[cfg(not(any(unix, windows)))]
 mod platform {
     pub fn install() {}
     pub fn uninstall() {}
+
+    pub struct Terminal;
+
+    impl Terminal {
+        pub fn hold() -> Option<Self> {
+            None
+        }
+
+        pub fn release(self) {}
+    }
 }
 
-use platform::{install, uninstall};
+use platform::{Terminal, install, uninstall};
 
 /// Writes to stderr, ignoring a failure (a reader that went away), which
 /// mustn't stop an upload.
@@ -159,7 +291,6 @@ mod tests {
     #[test]
     fn stop_requests_while_held_are_noted_not_fatal() {
         let held = Deferred::new();
-        assert_eq!(held.stop_status(), None);
         // SAFETY: raises signals in this process, whose handlers are ours.
         unsafe {
             libc::raise(libc::SIGPIPE);
@@ -167,11 +298,10 @@ mod tests {
             libc::raise(libc::SIGINT);
         }
         assert_eq!(
-            held.stop_status(),
+            held.finish(),
             Some(128 + libc::SIGTERM),
             "still running, the first noted"
         );
-        drop(held);
 
         // SAFETY: changes this process's SIGHUP handling, put back below.
         let was = unsafe { libc::signal(libc::SIGHUP, libc::SIG_IGN) };

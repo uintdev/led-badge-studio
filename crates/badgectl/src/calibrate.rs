@@ -308,10 +308,9 @@ pub fn run(
             .inspect_err(|_| crate::interrupt::note(format_args!("\r{:18}\r", "")))?;
             badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             crate::interrupt::note(format_args!("\rSent.          \n"));
-            if let Some(status) = interrupt.stop_status() {
+            if let Some(status) = interrupt.finish() {
                 std::process::exit(status);
             }
-            drop(interrupt);
             println!("Start the badge, then press Enter at every flash.");
             let mut taps: Vec<Instant> = Vec::new();
             let action = loop {

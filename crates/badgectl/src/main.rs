@@ -685,7 +685,7 @@ fn run(cli: Cli) -> Result<()> {
                 badge_formats::last_sent::LastSent::record(&badge_core::protocol::as_sent(&project));
             }
             interrupt::note(format_args!("\rSent to {}.        \n", device.label));
-            if let Some(status) = interrupt.stop_status() {
+            if let Some(status) = interrupt.finish() {
                 std::process::exit(status);
             }
         }
