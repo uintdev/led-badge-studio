@@ -81,8 +81,7 @@ fetch() {
         return 1
     fi
 }
-rust=""
-command -v rustc >/dev/null && rust="$(rustc --version | awk '{ print $2 }')"
+rust="$(rustc --version 2>/dev/null | awk '{ print $2 }')" || rust=""
 # One older than the project needs (a distribution's own Rust) can't build it.
 minimum="$(sed -n 's/^rust-version = "\(.*\)"/\1/p' "$root/Cargo.toml")"
 if [[ -n $rust && -n $minimum && "$(printf '%s\n' "$minimum" "$rust" | sort -V | head -n1)" != "$minimum" ]]; then
