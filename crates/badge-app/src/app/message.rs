@@ -138,43 +138,42 @@ impl BadgeApp {
     }
 
     /// Why `text` can't become the current message's text (as
-    /// `width_problem` says). Removing text is always allowed, even over a
-    /// limit (a project from elsewhere can be).
+    /// `width_problem` says).
     fn text_overflow(&mut self, text: &str, colors: Option<&[LedColor]>) -> Option<String> {
-        let old = self.msg();
-        if old.source == Source::Text && text.chars().count() < old.text.chars().count() {
-            return None;
-        }
-        let before = if old.source == Source::Text {
-            old.bitmap.used_width()
-        } else {
-            0
-        };
-        let mut m = old.clone();
+        let before = self.msg().clone();
+        let mut m = before.clone();
         m.text = text.to_string();
         if let Some(c) = colors {
             m.colors = c.to_vec();
         }
         m.source = Source::Text;
-        let width = self.renderer.render_text(&m, self.project.card).used_width();
-        self.width_problem(width, before)
+        self.width_problem(&m, &before)
     }
 
-    /// Why the current message can't go from `before` to `width` columns:
-    /// it would be wider than a message can be, or wider than it was and
-    /// than the badge's memory has room for. Width, not the number of
-    /// characters: a wider character, font or spacing widens it too.
-    fn width_problem(&self, width: usize, before: usize) -> Option<String> {
-        // Rendering stops at the widest a message can be, so a message that
-        // reaches it counts as full.
-        if width >= badge_core::MAX_WIDTH {
+    /// Why the current message's text can't become `m` (from `before`): its
+    /// end would be left out, as drawing stops at the widest a message can
+    /// be, or it would be wider than it was and than the badge's memory has
+    /// room for. Width, not the number of characters: a wider character,
+    /// font or spacing widens it too. A message already cut short (a
+    /// project from elsewhere can be) can still be restyled or shortened.
+    fn width_problem(&mut self, m: &badge_core::Message, before: &badge_core::Message) -> Option<String> {
+        let card = self.project.card;
+        let was_text = before.source == Source::Text;
+        let (bitmap, cut) = self.renderer.render_text_cut(m, card);
+        if cut
+            && !(was_text
+                && m.text.chars().count() <= before.text.chars().count()
+                && self.renderer.render_text_cut(before, card).1)
+        {
             return Some(format!(
                 "Message {} is full: a message can be at most {} columns wide.",
                 self.current + 1,
                 badge_core::MAX_WIDTH
             ));
         }
-        (width > before && width > self.room_for_current()).then(Self::memory_full_message)
+        let width = bitmap.used_width();
+        let was = if was_text { before.bitmap.used_width() } else { 0 };
+        (width > was && width > self.room_for_current()).then(Self::memory_full_message)
     }
 
     /// Changes how the current message's text is drawn (its font, size or
@@ -182,19 +181,14 @@ impl BadgeApp {
     /// wide (as `width_problem` says); then it stays as it was.
     pub(super) fn restyle(&mut self, cx: &mut Context<Self>, change: impl FnOnce(&mut badge_core::Message)) {
         let before = self.msg().clone();
-        change(self.msg_mut());
-        self.rerender(self.current);
-        let width = self.msg().bitmap.used_width();
-        let was = if before.source == Source::Text {
-            before.bitmap.used_width()
-        } else {
-            0
-        };
-        if self.msg().source == Source::Text
-            && let Some(why) = self.width_problem(width, was)
+        let mut m = before.clone();
+        change(&mut m);
+        if m.source == Source::Text
+            && let Some(why) = self.width_problem(&m, &before)
         {
-            *self.msg_mut() = before;
             self.set_status(why, Severity::Error);
+        } else {
+            *self.msg_mut() = m;
         }
         self.changed(cx);
     }

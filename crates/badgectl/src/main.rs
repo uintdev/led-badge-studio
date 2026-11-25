@@ -380,19 +380,22 @@ fn check(files: &[PathBuf], fix: bool, strict: bool) -> i32 {
             // Text is drawn with this computer's fonts, as sending would;
             // they're loaded once, and only for ticked text.
             let card = project.card;
-            for m in project
-                .messages
-                .iter_mut()
-                .filter(|m| m.selected && m.source == Source::Text)
+            let mut cut = Vec::new();
+            for (i, m) in
+                (project.messages.iter_mut().enumerate()).filter(|(_, m)| m.selected && m.source == Source::Text)
             {
                 let r = renderer.get_or_insert_with(|| Renderer::new(FontLibrary::discover()));
-                m.bitmap = r.render(m, card);
+                let is_cut;
+                (m.bitmap, is_cut) = r.render_text_cut(m, card);
+                if is_cut {
+                    cut.push(i);
+                }
             }
             if let Some(over) = badge_core::wording::memory_overflow(&project) {
                 println!("  warning: {over}");
                 over_memory = true;
             }
-            for i in cut_off(&project) {
+            for i in cut {
                 println!("  warning: {}", cut_off_wording(i));
                 over_memory = true;
             }
@@ -681,7 +684,9 @@ fn pick_device(want: Option<&str>) -> Result<badge_io::DeviceInfo> {
     }
 }
 
-fn render_all(project: &mut Project) {
+/// Renders every message, warning about what doesn't come out as written.
+/// Returns the ticked text messages whose end is left out.
+fn render_all(project: &mut Project) -> Vec<usize> {
     let mut r = Renderer::new(FontLibrary::discover());
     let card = project.card;
     let mut warned: Vec<&str> = Vec::new();
@@ -699,8 +704,17 @@ fn render_all(project: &mut Project) {
             warned.push(family);
         }
     }
-    for m in &mut project.messages {
-        m.bitmap = r.render(m, card);
+    let mut cut = Vec::new();
+    for (i, m) in project.messages.iter_mut().enumerate() {
+        if m.source == Source::Text {
+            let is_cut;
+            (m.bitmap, is_cut) = r.render_text_cut(m, card);
+            if is_cut && m.selected {
+                cut.push(i);
+            }
+        } else {
+            m.bitmap = r.render(m, card);
+        }
     }
     for (i, m) in project.messages.iter().enumerate() {
         if let FontChoice::Pixel(font) = m.font
@@ -715,18 +729,10 @@ fn render_all(project: &mut Project) {
             );
         }
     }
-    for i in cut_off(project) {
+    for &i in &cut {
         eprintln!("warning: {}", cut_off_wording(i));
     }
-}
-
-/// The ticked text messages that reach the widest a message can be, where
-/// drawing stops: their end is left out.
-fn cut_off(project: &Project) -> Vec<usize> {
-    (project.messages.iter().enumerate())
-        .filter(|(_, m)| m.selected && m.source == Source::Text && m.bitmap.used_width() >= badge_core::MAX_WIDTH)
-        .map(|(i, _)| i)
-        .collect()
+    cut
 }
 
 fn cut_off_wording(i: usize) -> String {
@@ -917,11 +923,15 @@ mod tests {
         let mut project = Project::new(CardType::Mono11);
         project.messages[0].selected = true;
         project.messages[0].text = "W".repeat(600);
-        render_all(&mut project);
-        assert_eq!(cut_off(&project), [0]);
+        assert_eq!(render_all(&mut project), [0]);
         project.messages[0].text = "W".repeat(10);
-        render_all(&mut project);
-        assert!(cut_off(&project).is_empty());
+        assert!(render_all(&mut project).is_empty());
+        // Exactly as wide as a message can be: nothing is left out.
+        project.messages[0].text = "W".repeat(badge_core::MAX_WIDTH / 8);
+        assert!(render_all(&mut project).is_empty());
+        // Cut where a space reaches the edge, ahead of more text.
+        project.messages[0].text = format!("{} more", "W".repeat(badge_core::MAX_WIDTH / 8 - 1));
+        assert_eq!(render_all(&mut project), [0]);
     }
 
     #[test]

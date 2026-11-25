@@ -2157,3 +2157,40 @@ fn clearing_recent_files_draws_the_window(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert!(renders(&app, cx).0 > content);
 }
+
+/// A message is full when the end of its text would be left out: not by
+/// its number of characters, nor where its last lit LED is.
+#[gpui::test]
+fn a_message_is_full_when_its_end_would_be_left_out(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    let status = |app: &BadgeApp| app.status.as_ref().map(|(t, _)| t.to_string()).unwrap_or_default();
+    // 8 columns each in the default font.
+    let fit = badge_core::MAX_WIDTH / 8;
+    app.update(cx, |app, cx| {
+        app.apply_text("W".repeat(fit), None, cx);
+        assert_eq!(app.msg().text.len(), fit, "exactly as wide as a message can be");
+        app.apply_text(format!("{} more", "W".repeat(fit - 1)), None, cx);
+        assert_eq!(
+            app.msg().text.len(),
+            fit,
+            "a space reaching the edge leaves the rest out"
+        );
+        assert!(status(app).starts_with("Message 1 is full"), "{}", status(app));
+
+        // Fewer characters, but wider ones.
+        app.apply_text("A".repeat(509), None, cx);
+        app.apply_text(format!("{}{}", "A".repeat(464), "\u{6f22}".repeat(44)), None, cx);
+        assert_eq!(app.msg().text, "A".repeat(509), "refused");
+
+        // A message already cut short (from a file) can still be restyled
+        // and shortened, but not lengthened.
+        app.msg_mut().text = "W".repeat(600);
+        app.rerender(0);
+        app.restyle(cx, |m| m.top_offset = 1);
+        assert_eq!(app.msg().top_offset, 1, "restyled");
+        app.apply_text("W".repeat(599), None, cx);
+        assert_eq!(app.msg().text.len(), 599, "shortened");
+        app.apply_text("W".repeat(601), None, cx);
+        assert_eq!(app.msg().text.len(), 599, "not lengthened");
+    });
+}

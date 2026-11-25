@@ -697,7 +697,8 @@ impl BadgeApp {
     }
 
     /// Why the messages don't fit as `card` (re-drawn for its height, text
-    /// can get wider): a message would reach the widest a message can be, or
+    /// can get wider): a message's end would be cut off at the widest a
+    /// message can be (unless it already is), or
     /// the ticked messages would need more than the badge's memory (and more
     /// than now, so a project already over it can still switch).
     fn card_overflow(&mut self, card: CardType) -> Option<String> {
@@ -707,9 +708,14 @@ impl BadgeApp {
             if m.source != Source::Text {
                 continue;
             }
-            m.bitmap = self.renderer.render(m, card);
-            let before = self.project.messages[i].bitmap.used_width();
-            if m.bitmap.used_width() >= badge_core::MAX_WIDTH && before < badge_core::MAX_WIDTH {
+            let cut;
+            (m.bitmap, cut) = self.renderer.render_text_cut(m, card);
+            if cut
+                && !self
+                    .renderer
+                    .render_text_cut(&self.project.messages[i], self.project.card)
+                    .1
+            {
                 return Some(format!(
                     "Can't switch to {}: message {} would be wider than a message can be ({} columns). \
                      Shorten it first.",
