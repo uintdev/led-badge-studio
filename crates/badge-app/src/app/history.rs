@@ -55,6 +55,7 @@ impl BadgeApp {
         self.preview_step = 0;
         // Any message may be another one now.
         self.import_into = None;
+        self.input_shows = None;
         self.sync_input(cx);
         cx.notify();
     }

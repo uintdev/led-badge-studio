@@ -342,6 +342,7 @@ impl BadgeApp {
         self.drop_import_into(i);
         self.current = i;
         self.set_status(format!("Pasted into message {}", i + 1), Severity::Success);
+        self.input_shows = None;
         self.sync_input(cx);
         self.changed(cx);
     }

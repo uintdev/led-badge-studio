@@ -2284,3 +2284,30 @@ fn quitting_with_the_focus_on_nothing_shown_asks_first(cx: &mut TestAppContext) 
         assert!(matches!(app.dialog, Some(Dialog::Confirm { .. })), "asked first");
     });
 }
+
+/// A selection made in the text shown doesn't stay on the text that
+/// replaces it: a message pasted over it, or undo.
+#[gpui::test]
+fn replacing_the_message_shown_drops_its_selection(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    let input = app.read_with(cx, |app, _| app.input.clone());
+    app.update_in(cx, |app, window, cx| app.select_message(1, window, cx));
+    type_text(&app, cx, "ABCDEFGH");
+    app.update(cx, |app, cx| app.copy_message(1, cx));
+    app.update_in(cx, |app, window, cx| app.select_message(0, window, cx));
+    type_text(&app, cx, "Hello world");
+
+    input.update(cx, |input, _| input.select(3..5));
+    app.update(cx, |app, cx| app.paste_message(0, cx));
+    app.read_with(cx, |app, _| assert_eq!(app.msg().text, "ABCDEFGH"));
+    input.read_with(cx, |input, _| {
+        assert!(input.selection().is_empty(), "{:?}", input.selection())
+    });
+
+    input.update(cx, |input, _| input.select(2..4));
+    cx.dispatch_action(Undo);
+    app.read_with(cx, |app, _| assert_eq!(app.msg().text, "Hello world"));
+    input.read_with(cx, |input, _| {
+        assert!(input.selection().is_empty(), "{:?}", input.selection())
+    });
+}

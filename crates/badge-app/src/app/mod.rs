@@ -226,8 +226,8 @@ pub struct BadgeApp {
     /// Unsaved work found at the start, offered back.
     recovered: Option<recovery::Recovered>,
     input: Entity<TextInput>,
-    /// Which message the text box shows; `None` after the whole project
-    /// changed.
+    /// Which message the text box shows; `None` after the whole project, or
+    /// the message shown, was replaced.
     input_shows: Option<usize>,
     /// While Don't Save or Use Theirs goes on: what was saved before
     /// (`set_aside_changes`).
