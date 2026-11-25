@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.2.5 (2026-11-24)
+
+### All platforms
+
+- Reopening the open file after saving shows your saved edits.
+- Saves that change a file keep it under Revert To.
+- Save As and exports ask before replacing a file.
+- Exports with another extension get their format's added.
+- Recovered work asks before saving over later changes.
+- Use Theirs keeps the "doesn't fit the badge" warning.
+- Unreadable settings are kept aside, not reset, and earlier ones too.
+- Files opened in another running copy stay in Open Recent.
+- Undo waits while a question is open.
+- Undo no longer merges typing in two messages.
+- Typing, fonts or spacing can't push a message past its limits.
+- Edits tick a message only when the badge has room.
+- A badge plugged back in wins over a serial port.
+- Clear and Revert To drop an image still loading.
+- Switching messages clears the text selection.
+- A double-click keeps the whole text selected.
+- Pasted messages are repaired like project files.
+- Erasing a drawing back to before isn't a change.
+- Short uploads wait longer for the badge to store them.
+- Project files with decimals like `4.0` open normally.
+- Long exports use far less memory and say if cut.
+- Spaces a system font lacks show blank, not as boxes.
+- Phone photos import the right way up.
+- Large images import with far less memory.
+- A failed save in Repair, Save and Open says so.
+- Center's messages show when it's used from the keyboard.
+- The preview and Pop Out use less CPU while playing.
+- badgectl warns about cut text; `check --strict` fails on it.
+- badgectl warns when a font is too tall.
+- badgectl keeps the order of `-t` and `-i`.
+- badgectl exits with 64 when the command line is wrong.
+- badgectl finishes the upload when you press Ctrl+C.
+- badgectl calibrate records what it sent and reports errors cleanly.
+
+### Linux
+
+- Ctrl+Q in Pop Out asks before quitting.
+- Badge access setup shows its real error when it fails.
+- Badge Access no longer opens over another question.
+- The maximize button updates as soon as a window is maximized.
+
+### macOS
+
+- A badge held by another app says so.
+- Badges show up even if device notifications fail.
+
+### Windows
+
+- Ctrl+Q in Pop Out asks before quitting.
+- "Access is denied" suggests another program has the badge.
+- Windows use less graphics memory.
+- Pasting several lines puts one space between them.
+- Moving a window to another display is more reliable.
+
 ## 0.2.4 (2026-11-13)
 
 ### All platforms

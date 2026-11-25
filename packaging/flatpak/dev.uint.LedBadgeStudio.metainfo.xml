@@ -36,6 +36,11 @@
     <control>keyboard</control>
   </supports>
   <releases>
+    <release version="0.2.5" date="2026-11-24">
+      <description>
+        <p>Saving and reopening no longer loses edits or replaces files without asking; typing, fonts and spacing stay within the badge's limits; long animation exports use far less memory; and badgectl finishes an upload when you press Ctrl+C.</p>
+      </description>
+    </release>
     <release version="0.2.4" date="2026-11-13">
       <description>
         <p>Dragging a message no longer shows a second preview in the pop-out window, and on Windows the pop-out keeps playing while you work in the main window.</p>
