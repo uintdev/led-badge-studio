@@ -282,6 +282,8 @@ impl BadgeApp {
             self.ask_to_save_first(window, cx, move |t, window, cx| {
                 t.show_read(path, loaded, read, save, window, cx)
             });
+        } else if file_hash(&path) != read {
+            self.check_file(path, window, cx);
         } else {
             // The file as it was becomes an earlier version (File → Revert
             // To), as when saving: the repairs can drop what's out of range.

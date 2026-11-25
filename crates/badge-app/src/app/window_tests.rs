@@ -2335,3 +2335,25 @@ fn replacing_the_project_cancels_an_open_question(cx: &mut TestAppContext) {
         assert_ne!(app.msg().text, "x");
     });
 }
+
+/// Repair and Save File for a file changed since it was checked checks it
+/// again instead of saving the earlier copy over it.
+#[gpui::test]
+fn repairing_a_file_changed_meanwhile_checks_it_again(cx: &mut TestAppContext) {
+    let dir = temp_dir("repair-changed");
+    let path = dir.join("bad.badge");
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Older");
+    save(&app, cx, &path);
+    let repairable = |path: &Path| {
+        let text = std::fs::read_to_string(path).unwrap();
+        std::fs::write(path, text.replacen("\"speed\": ", "\"speed\": 9", 1)).unwrap();
+    };
+    repairable(&path);
+    app.update_in(cx, |app, window, cx| app.check_file(path.clone(), window, cx));
+    let newer = std::fs::read_to_string(&path).unwrap().replace("Older", "Newer");
+    std::fs::write(&path, &newer).unwrap();
+    app.update_in(cx, |app, window, cx| app.finish_repair(false, true, window, cx));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), newer, "not saved over");
+    app.read_with(cx, |app, _| assert!(matches!(app.dialog, Some(Dialog::Repair { .. }))));
+}
