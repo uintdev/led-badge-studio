@@ -1221,13 +1221,15 @@ fn update_here<R>(
 /// once that window is gone, the app just quits.
 pub fn route_quit(main: gpui::WindowHandle<BadgeApp>, cx: &mut App) {
     cx.on_action(move |_: &Quit, cx| {
-        let asked = main.update(cx, |app, window, cx| {
-            window.activate_window();
-            app.quit(&Quit, window, cx);
+        cx.defer(move |cx| {
+            let asked = main.update(cx, |app, window, cx| {
+                window.activate_window();
+                app.quit(&Quit, window, cx);
+            });
+            if asked.is_err() {
+                cx.quit();
+            }
         });
-        if asked.is_err() {
-            cx.quit();
-        }
     });
 }
 

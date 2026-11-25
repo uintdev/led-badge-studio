@@ -2264,3 +2264,23 @@ fn a_repair_that_cant_be_saved_stays_unsaved(cx: &mut TestAppContext) {
         });
     }
 }
+
+/// Quit asks first also when the main window's keyboard focus is on
+/// something no longer shown (then it reaches the app's own listener from
+/// inside that window).
+#[gpui::test]
+fn quitting_with_the_focus_on_nothing_shown_asks_first(cx: &mut TestAppContext) {
+    let (app, vcx) = open(cx);
+    let main = vcx.window_handle().downcast::<BadgeApp>().unwrap();
+    vcx.update(|_, cx| route_quit(main, cx));
+    type_text(&app, vcx, "Not saved");
+    let _gone = vcx.update(|window, cx| {
+        let handle = cx.focus_handle();
+        window.focus(&handle, cx);
+        handle
+    });
+    vcx.dispatch_action(Quit);
+    app.read_with(vcx, |app, _| {
+        assert!(matches!(app.dialog, Some(Dialog::Confirm { .. })), "asked first");
+    });
+}
