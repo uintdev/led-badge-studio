@@ -83,24 +83,65 @@ pub fn decode_image(bytes: &[u8], card: CardType, fit_height: bool) -> Result<Rg
             }
             canvas
         } else {
-            fit(decode_upright(bytes, format)?, height, fit_height)
+            decode_upright(bytes, format, height, fit_height)?
         }
     } else {
-        fit(decode_upright(bytes, format)?, height, fit_height)
+        decode_upright(bytes, format, height, fit_height)?
     };
     Ok(canvas)
 }
 
-/// Decodes a still image the right way up: phone photos are often stored
-/// sideways, with the turn to show them by in their EXIF data.
-fn decode_upright(bytes: &[u8], format: ImageFormat) -> Result<DynamicImage> {
+/// Decodes a still image the right way up (phone photos are often stored
+/// sideways, with the turn to show them by in their EXIF data), fitted as
+/// [`fit`] does. Without fitting, only the part a message can show is kept.
+/// Both happen before the turn, so a large image isn't copied whole.
+fn decode_upright(bytes: &[u8], format: ImageFormat, height: u32, fit_height: bool) -> Result<RgbaImage> {
+    use image::metadata::Orientation::{self, *};
     let mut decoder = image::ImageReader::with_format(Cursor::new(bytes), format).into_decoder()?;
-    let orientation = decoder
-        .orientation()
-        .unwrap_or(image::metadata::Orientation::NoTransforms);
-    let mut img = DynamicImage::from_decoder(decoder)?;
+    let orientation = decoder.orientation().unwrap_or(Orientation::NoTransforms);
+    let img = DynamicImage::from_decoder(decoder)?;
+    let turned = matches!(orientation, Rotate90 | Rotate270 | Rotate90FlipH | Rotate270FlipH);
+    let (w, h) = if turned {
+        (img.height(), img.width())
+    } else {
+        (img.width(), img.height())
+    };
+    let mut img = if fit_height && h > height {
+        let fitted = ((w as f64 * height as f64 / h as f64).round() as u32).max(1);
+        let (rw, rh) = if turned { (height, fitted) } else { (fitted, height) };
+        img.resize_exact(rw, rh, FilterType::Triangle)
+    } else {
+        let (x, y, rw, rh) = raw_rect(
+            orientation,
+            (img.width(), img.height()),
+            (w.min(MAX_WIDTH as u32), h.min(height)),
+        );
+        img.crop_imm(x, y, rw, rh)
+    };
     img.apply_orientation(orientation);
-    Ok(img)
+    Ok(img.to_rgba8())
+}
+
+/// The part of an image as stored, `raw` pixels in size, that becomes the
+/// top-left `size` of it turned by `o`: (x, y, width, height).
+fn raw_rect(o: image::metadata::Orientation, raw: (u32, u32), size: (u32, u32)) -> (u32, u32, u32, u32) {
+    use image::metadata::Orientation::*;
+    let ((rw, rh), (cw, ch)) = (raw, size);
+    if cw == 0 || ch == 0 {
+        return (0, 0, 0, 0);
+    }
+    let from = |x: u32, y: u32| match o {
+        NoTransforms => (x, y),
+        Rotate90 => (y, rh - 1 - x),
+        Rotate180 => (rw - 1 - x, rh - 1 - y),
+        Rotate270 => (rw - 1 - y, x),
+        FlipHorizontal => (rw - 1 - x, y),
+        FlipVertical => (x, rh - 1 - y),
+        Rotate90FlipH => (y, x),
+        Rotate270FlipH => (rw - 1 - y, rh - 1 - x),
+    };
+    let ((ax, ay), (bx, by)) = (from(0, 0), from(cw - 1, ch - 1));
+    (ax.min(bx), ay.min(by), ax.abs_diff(bx) + 1, ay.abs_diff(by) + 1)
 }
 
 /// The fast half of an import: thresholds a decoded image into LEDs.
@@ -204,8 +245,38 @@ mod tests {
         app1.extend(b"Exif\0\0");
         app1.extend(tiff);
         jpeg.splice(2..2, app1);
-        let img = decode_upright(&jpeg, ImageFormat::Jpeg).unwrap();
+        let img = decode_upright(&jpeg, ImageFormat::Jpeg, 16, false).unwrap();
         assert_eq!((img.width(), img.height()), (4, 8));
+        let img = decode_upright(&jpeg, ImageFormat::Jpeg, 4, true).unwrap();
+        assert_eq!((img.width(), img.height()), (2, 4));
+        let img = decode_upright(&jpeg, ImageFormat::Jpeg, 3, false).unwrap();
+        assert_eq!((img.width(), img.height()), (4, 3), "only the rows shown");
+    }
+
+    #[test]
+    fn cutting_out_before_turning_keeps_the_same_pixels() {
+        use image::metadata::Orientation::*;
+        let raw = DynamicImage::ImageRgba8(RgbaImage::from_fn(7, 5, |x, y| Rgba([x as u8, y as u8, 0, 255])));
+        for o in [
+            NoTransforms,
+            Rotate90,
+            Rotate180,
+            Rotate270,
+            FlipHorizontal,
+            FlipVertical,
+            Rotate90FlipH,
+            Rotate270FlipH,
+        ] {
+            let mut turned = raw.clone();
+            turned.apply_orientation(o);
+            for size in [(1, 1), (3, 2), (turned.width(), turned.height()), (2, turned.height())] {
+                let want = turned.crop_imm(0, 0, size.0, size.1);
+                let (x, y, w, h) = raw_rect(o, (raw.width(), raw.height()), size);
+                let mut got = raw.crop_imm(x, y, w, h);
+                got.apply_orientation(o);
+                assert_eq!(got.to_rgba8(), want.to_rgba8(), "{o:?} {size:?}");
+            }
+        }
     }
 
     #[test]
