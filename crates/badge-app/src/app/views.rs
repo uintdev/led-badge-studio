@@ -72,22 +72,25 @@ impl PreviewLeds {
 }
 
 impl Render for PreviewLeds {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         #[cfg(test)]
         {
             self.renders += 1;
         }
-        let matrix = self.app.upgrade().map(|app| app.read(cx).preview_matrix(window));
+        let matrix = self.app.upgrade().map(|app| app.read(cx).preview_frame());
         let slot = self.slot.clone();
         // Painted after `Content`, whose layout notes where the slot is.
         canvas(
             |_, _, _| {},
             move |_, _, window: &mut Window, _: &mut App| {
-                let (Some(slot), Some((frame, cols, style))) = (slot.get(), &matrix) else {
+                let (Some(slot), Some((frame, cols, mut style))) = (slot.get(), matrix) else {
                     return;
                 };
+                // The size `Content` laid out, which may be a frame behind a
+                // change of the room the preview has.
+                style.look.cell = slot.cell;
                 window.with_content_mask(Some(ContentMask { bounds: slot.clip }), |window| {
-                    led_view::paint_matrix(frame, *cols, style, slot.bounds, window);
+                    led_view::paint_matrix(&frame, cols, &style, slot.bounds, window);
                 });
             },
         )

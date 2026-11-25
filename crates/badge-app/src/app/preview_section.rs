@@ -330,8 +330,13 @@ impl BadgeApp {
     ) -> impl IntoElement + use<> {
         let target = self.preview_target();
         let playlist = self.preview_playlist();
-        let (_, width, style) = self.preview_matrix(window);
+        let (_, width, mut style) = self.preview_frame();
         let rows = self.project.card.height();
+        // Wide displays get smaller LEDs; below the smallest size it scrolls.
+        if let Some(room) = self.preview_room.get() {
+            style.look.cell =
+                led_view::fit_cell(PREVIEW_CELL, (room, f32::INFINITY), width, rows, window.scale_factor());
+        }
         let scrolls = self
             .preview_room
             .get()
@@ -428,10 +433,14 @@ impl BadgeApp {
                                 .when(!scrolls, |d| d.justify_center())
                                 .when(scrolls, |d| d.overflow_x_scroll())
                                 .child(
-                                    gpui::canvas(measure, |_, (w, room), window, _| {
+                                    gpui::canvas(measure, |_, (w, room), window, cx| {
                                         if room.get() != Some(w) {
                                             room.set(Some(w));
-                                            window.refresh();
+                                            // Not now: a refresh while drawing is ignored.
+                                            let handle = window.window_handle();
+                                            cx.defer(move |cx| {
+                                                handle.update(cx, |_, window, _| window.refresh()).ok();
+                                            });
                                         }
                                     })
                                     .absolute()
@@ -741,18 +750,6 @@ impl BadgeApp {
     /// Notified for each new frame while Pop Out is open.
     pub(crate) fn pop_out_frames(&self) -> &Entity<super::views::PopOutFrames> {
         &self.pop_out_frames
-    }
-
-    /// The preview's frame as the main window shows it: wide displays get
-    /// smaller LEDs, and below the smallest size it scrolls.
-    pub(super) fn preview_matrix(&self, window: &Window) -> (Framebuffer, usize, LedStyle) {
-        let (frame, width, mut style) = self.preview_frame();
-        if let Some(room) = self.preview_room.get() {
-            let rows = self.project.card.height();
-            style.look.cell =
-                led_view::fit_cell(PREVIEW_CELL, (room, f32::INFINITY), width, rows, window.scale_factor());
-        }
-        (frame, width, style)
     }
 
     /// The pop-out window has closed: play the preview here again.

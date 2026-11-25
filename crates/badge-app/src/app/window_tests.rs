@@ -2114,3 +2114,35 @@ fn the_main_windows_work_stays_in_it_while_pop_out_plays(cx: &mut TestAppContext
         pop_focus
     );
 }
+
+/// After the window changes size, the preview's LEDs are laid out again
+/// for the size they're drawn at.
+#[gpui::test]
+fn resizing_lays_the_preview_out_for_its_led_size(cx: &mut TestAppContext) {
+    let (app, cx) = open(cx);
+    type_text(&app, cx, "Hello");
+    app.update(cx, |app, cx| {
+        app.settings.preview_width = crate::settings::PREVIEW_WIDTHS.1;
+        cx.notify();
+    });
+    let laid_out = |cx: &mut VisualTestContext| {
+        let (slot, room, cols, rows) = app.read_with(cx, |app, _| {
+            (
+                app.preview_slot.get().expect("room kept for the LEDs"),
+                app.preview_room.get().expect("measured"),
+                app.display_width(),
+                app.project.card.height(),
+            )
+        });
+        let scale = cx.update(|window, _| window.scale_factor());
+        let fits = led_view::fit_cell(PREVIEW_CELL, (room, f32::INFINITY), cols, rows, scale);
+        assert_eq!(slot.cell, fits, "laid out for the room there is");
+        slot.cell
+    };
+    cx.simulate_resize(gpui::size(px(1500.), px(900.)));
+    cx.run_until_parked();
+    let wide = laid_out(cx);
+    cx.simulate_resize(gpui::size(px(900.), px(900.)));
+    cx.run_until_parked();
+    assert_ne!(laid_out(cx), wide, "the LEDs got smaller");
+}

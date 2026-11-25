@@ -71,12 +71,13 @@ pub fn led_matrix(
     )
 }
 
-/// Where a matrix painted by another view goes: its bounds, and the part of
-/// them that shows.
+/// Where a matrix painted by another view goes: its bounds, the part of
+/// them that shows, and the LED size it was laid out for.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Slot {
     pub bounds: Bounds<Pixels>,
     pub clip: Bounds<Pixels>,
+    pub cell: f32,
 }
 
 /// Room for a matrix `cols` x `rows` LEDs of `cell` that another view paints:
@@ -92,6 +93,7 @@ pub fn matrix_slot(cols: usize, rows: usize, cell: f32, slot: Rc<Cell<Option<Slo
                     slot.set(Some(Slot {
                         bounds,
                         clip: window.content_mask().bounds,
+                        cell,
                     }));
                 },
                 |_, _, _, _| {},
