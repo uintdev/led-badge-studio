@@ -1777,8 +1777,8 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * zerocopy-derive 0.8.64 - https://github.com/google/zerocopy
-  * zerocopy 0.8.64 - https://github.com/google/zerocopy
+  * zerocopy-derive 0.8.65 - https://github.com/google/zerocopy
+  * zerocopy 0.8.65 - https://github.com/google/zerocopy
 
 
                                  Apache License
@@ -2632,15 +2632,15 @@ Used by:
 Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
-  * clap 4.6.9 - https://github.com/clap-rs/clap
-  * clap_builder 4.6.7 - https://github.com/clap-rs/clap
+  * clap 4.6.10 - https://github.com/clap-rs/clap
+  * clap_builder 4.6.10 - https://github.com/clap-rs/clap
   * clap_derive 4.6.9 - https://github.com/clap-rs/clap
   * clap_lex 1.1.2 - https://github.com/clap-rs/clap
   * env_filter 2.1.0 - https://github.com/rust-cli/env_logger
   * env_logger 0.11.12 - https://github.com/rust-cli/env_logger
   * toml_datetime 1.1.3+spec-1.1.0 - https://github.com/toml-rs/toml
-  * toml_edit 0.25.20+spec-1.1.0 - https://github.com/toml-rs/toml
-  * toml_parser 1.1.6+spec-1.1.0 - https://github.com/toml-rs/toml
+  * toml_edit 0.25.21+spec-1.1.0 - https://github.com/toml-rs/toml
+  * toml_parser 1.1.7+spec-1.1.0 - https://github.com/toml-rs/toml
 
 
                                  Apache License
@@ -5409,7 +5409,7 @@ Apache License 2.0
 --------------------------------------------------------------------------------
 Used by:
   * addr2line 0.25.1 - https://github.com/gimli-rs/addr2line
-  * ahash 0.8.13 - https://github.com/tkaitchuck/ahash
+  * ahash 0.8.14 - https://github.com/tkaitchuck/ahash
     Authors: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
   * arrayvec 0.7.8 - https://github.com/bluss/arrayvec
     Authors: bluss
@@ -9111,7 +9111,7 @@ Used by:
     Authors: David Tolnay <dtolnay@gmail.com>
   * libc 0.2.191 - https://github.com/rust-lang/libc
   * linebender_resource_handle 0.1.1 - https://github.com/linebender/raw_resource_handle
-  * litrs 1.0.1 - https://github.com/LukasKalbertodt/litrs
+  * litrs 1.1.0 - https://github.com/LukasKalbertodt/litrs
     Authors: Lukas Kalbertodt <lukas.kalbertodt@gmail.com>
   * lyon_geom 1.0.20 - https://github.com/nical/lyon
     Authors: Nicolas Silva <nical@fastmail.com>
