@@ -256,7 +256,7 @@ cfg_select! {
                     handles: Vec::new(),
                     callback,
                 };
-                for class in [HID, USB_DEVICE, COMPORT] {
+                for (n, class) in [HID, USB_DEVICE, COMPORT].into_iter().enumerate() {
                     let filter = CM_NOTIFY_FILTER {
                         cbSize: std::mem::size_of::<CM_NOTIFY_FILTER>() as u32,
                         Flags: 0,
@@ -273,11 +273,11 @@ cfg_select! {
                     };
                     if cr == CR_SUCCESS {
                         watcher.handles.push(handle);
+                    } else if n == 0 {
+                        // Without HID notifications badges wouldn't be
+                        // noticed; poll instead.
+                        return None;
                     }
-                }
-                // Without HID notifications badges wouldn't be noticed; poll instead.
-                if watcher.handles.is_empty() {
-                    return None;
                 }
                 Some(watcher)
             }
