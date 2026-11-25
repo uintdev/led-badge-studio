@@ -54,7 +54,7 @@ impl SystemFonts {
     }
 
     /// `app_ids`: the faces that came with the app (their own group).
-    fn from_db(db: Database, app_ids: &[ID]) -> Self {
+    pub(crate) fn from_db(db: Database, app_ids: &[ID]) -> Self {
         let sorted = |mut v: Vec<String>| {
             v.sort_by_key(|s| s.to_lowercase());
             v.dedup();

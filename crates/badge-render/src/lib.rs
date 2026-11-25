@@ -96,7 +96,7 @@ impl Renderer {
                 let advance = glyph.width;
                 Some((glyph, advance))
             }
-            Token::Char { ch, .. } => {
+            Token::Char { ch, char_index } => {
                 let glyph = match &msg.font {
                     FontChoice::Builtin => self
                         .builtin
@@ -119,6 +119,11 @@ impl Renderer {
                         .glyph(family, *size_px, *bold, *italic, ch)
                         .or_else(|| self.system.fallback_glyph(ch, *size_px as usize)),
                 };
+                if glyph.is_none() && ch.is_whitespace() && ch != ' ' {
+                    let (space, advance) = self.token_glyph(msg, &Token::Char { ch: ' ', char_index }, height)?;
+                    let wide = ch == '\u{3000}';
+                    return Some((space, if wide { advance * 2 } else { advance }));
+                }
                 glyph.map(|g| {
                     let advance = g.advance;
                     (g, advance)
@@ -223,6 +228,23 @@ mod tests {
             .filter(|c| c.is_on())
             .collect();
         assert!(lit.contains(&LedColor::GREEN) && lit.contains(&LedColor::BLUE));
+    }
+
+    #[test]
+    fn a_space_no_font_has_is_the_font_s_own() {
+        let mut r = Renderer {
+            builtin: FontLibrary::embedded(),
+            system: SystemFonts::from_db(fontdb::Database::new(), &[]),
+        };
+        let mut width = |text: &str| {
+            let msg = Message {
+                text: text.into(),
+                ..Message::default()
+            };
+            r.render(&msg, CardType::Mono11).content_width()
+        };
+        assert_eq!(width("a\u{a0}b"), width("a b"));
+        assert_eq!(width("a\u{3000}b"), width("a  b"), "a full-width space");
     }
 
     #[test]
