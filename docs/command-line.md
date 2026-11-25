@@ -147,7 +147,11 @@ stopping it partway would leave the badge ignoring every upload until it's
 unplugged and plugged back in. `badgectl` then stops, with exit status 130.
 Closing the terminal, `kill` and a reader of its output going away (`| head`)
 also wait for the upload; Windows allows only a few seconds after the
-console window is closed.
+console window is closed. Ctrl+Z pauses `badgectl` once the upload is done
+(in the Flatpak, it does nothing while sending). With the Flatpak, `kill`
+the `badgectl` process itself (`pkill -x badgectl`): killing `flatpak run`
+ends only the wrapper around it, so the upload goes on without anything
+waiting for it.
 
 **Measure the badge's timing** (so the preview can match it):
 

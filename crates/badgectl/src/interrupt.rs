@@ -1,6 +1,6 @@
-//! Stop requests during an upload (Ctrl+C, the terminal closing, `kill`):
-//! the upload finishes first. Stopping it partway leaves the badge ignoring
-//! every upload until it's unplugged.
+//! Stop requests during an upload (Ctrl+C, the terminal closing, `kill`),
+//! and Ctrl+Z: the upload finishes first. Stopping it partway leaves the
+//! badge ignoring every upload until it's unplugged.
 
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
@@ -57,19 +57,25 @@ mod platform {
     use std::os::fd::{AsRawFd, RawFd};
     use std::os::unix::fs::OpenOptionsExt;
     use std::path::Path;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::thread::JoinHandle;
 
     use super::{FINISHING, HELD, STOP};
 
-    const SIGNALS: [libc::c_int; 4] = [libc::SIGINT, libc::SIGTERM, libc::SIGHUP, libc::SIGPIPE];
-    static PREVIOUS: [AtomicUsize; 4] = [const { AtomicUsize::new(0) }; 4];
+    const SIGNALS: [libc::c_int; 5] = [libc::SIGINT, libc::SIGTERM, libc::SIGHUP, libc::SIGTSTP, libc::SIGPIPE];
+    static PREVIOUS: [AtomicUsize; 5] = [const { AtomicUsize::new(0) }; 5];
+    /// Ctrl+Z was pressed: the program suspends once the upload is done.
+    static SUSPEND: AtomicBool = AtomicBool::new(false);
 
     extern "C" fn on_signal(signal: libc::c_int) {
-        if STOP
-            .compare_exchange(0, signal, Ordering::Relaxed, Ordering::Relaxed)
-            .is_ok()
-        {
+        let first = if signal == libc::SIGTSTP {
+            !SUSPEND.swap(true, Ordering::Relaxed) && STOP.load(Ordering::Relaxed) == 0
+        } else {
+            STOP.compare_exchange(0, signal, Ordering::Relaxed, Ordering::Relaxed)
+                .is_ok()
+                && !SUSPEND.load(Ordering::Relaxed)
+        };
+        if first {
             // SAFETY: write(2) is safe in a signal handler; a failed write
             // is ignored.
             unsafe {
@@ -79,6 +85,7 @@ mod platform {
     }
 
     pub fn install() {
+        SUSPEND.store(false, Ordering::Relaxed);
         for (signal, previous) in SIGNALS.into_iter().zip(&PREVIOUS) {
             let handler = if signal == libc::SIGPIPE {
                 libc::SIG_IGN
@@ -103,6 +110,12 @@ mod platform {
             // SAFETY: puts back the handler there was before `install`.
             unsafe {
                 libc::signal(signal, previous.load(Ordering::Relaxed));
+            }
+        }
+        if SUSPEND.swap(false, Ordering::Relaxed) && STOP.load(Ordering::Relaxed) == 0 {
+            // SAFETY: suspends as Ctrl+Z asked, with its handling put back.
+            unsafe {
+                libc::raise(libc::SIGTSTP);
             }
         }
     }
@@ -317,5 +330,53 @@ mod tests {
         // SAFETY: as above.
         let after = unsafe { libc::signal(libc::SIGHUP, was) };
         assert_eq!(after, libc::SIG_IGN);
+    }
+
+    /// Ctrl+Z while held suspends the program only once the hold ends. In a
+    /// copy of the test run, as it stops.
+    #[test]
+    fn a_suspend_while_held_waits_for_the_end() {
+        use std::io::Read;
+        use std::os::unix::process::CommandExt;
+
+        if std::env::var_os("BADGECTL_SUSPEND_TEST").is_some() {
+            let held = Deferred::new();
+            // SAFETY: raises a signal in this process, whose handler is ours.
+            unsafe {
+                libc::raise(libc::SIGTSTP);
+            }
+            eprintln!("still running");
+            assert_eq!(held.finish(), None);
+            eprintln!("resumed");
+            std::process::exit(0);
+        }
+        let mut copy = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "interrupt::tests::a_suspend_while_held_waits_for_the_end"])
+            .args(["--nocapture", "--test-threads=1"])
+            .env("BADGECTL_SUSPEND_TEST", "1")
+            .process_group(0)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let pid = copy.id() as libc::pid_t;
+        let mut status = 0;
+        // SAFETY: waits for the copy started above to stop or end.
+        unsafe {
+            libc::waitpid(pid, &mut status, libc::WUNTRACED);
+        }
+        let stopped = libc::WIFSTOPPED(status);
+        // SAFETY: lets the copy go on; it's stopped, or already gone.
+        unsafe {
+            libc::kill(pid, libc::SIGCONT);
+        }
+        let mut said = String::new();
+        copy.stderr.take().unwrap().read_to_string(&mut said).unwrap();
+        let _ = copy.wait();
+        assert!(stopped, "{said}");
+        assert!(said.contains("Finishing the upload first"), "{said}");
+        let (before, after) = said.split_once("resumed").expect(&said);
+        assert!(before.contains("still running"), "{said}");
+        assert!(!after.contains("Finishing"), "{said}");
     }
 }
